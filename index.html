@@ -2065,13 +2065,69 @@ function tutupKameraScanner() {
     if(html5QrcodeScanner) { html5QrcodeScanner.stop().then(() => { document.getElementById('modalScannerKamera').classList.add('hidden'); }).catch(err => console.log(err)); } 
     else { document.getElementById('modalScannerKamera').classList.add('hidden'); }
 }
+function playBeep() {
+    try {
+        // 1. Jurus Getar (Haptic Feedback) selama 200 milidetik
+        if (navigator.vibrate) navigator.vibrate(200);
+        
+        // 2. Jurus Suara Tertanam (AudioContext) - Tanpa File Suara & Tanpa Internet
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine'; // Tipe gelombang suara
+        osc.frequency.value = 800; // Frekuensi (nada tinggi khas kasir minimarket)
+        gain.gain.setValueAtTime(1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+        osc.start(ctx.currentTime);
+        osc.stop(ctx.currentTime + 0.1);
+    } catch (e) { 
+        console.log("Audio tidak didukung di perangkat ini", e); 
+    }
+}
 
 function onScanSuccess(decodedText) {
-    tutupKameraScanner(); let beep = new Audio('https://www.soundjay.com/buttons/sounds/button-09.mp3'); beep.play().catch(e => console.log(e));
+    tutupKameraScanner(); 
+    playBeep(); // Panggil fungsi getar & suara mandiri yang baru kita buat
+    
     if(targetScanAktif === 'gudang') {
-        document.getElementById('newBarcode').value = decodedText; let btnG = document.getElementById('btnScanGudang');
-        if(btnG){ btnG.classList.replace('bg-slate-100', 'bg-emerald-500'); btnG.classList.replace('text-slate-600', 'text-white'); document.getElementById('teksScanGudang').textContent = 'Terekam!'; }
-    } else if (targetScanAktif === 'kasir') { prosesScanKasir(decodedText); }
+        // Cek apakah barcode sudah ada di database Gudang
+        let barangSudahAda = masterItems.find(m => m.barcode === decodedText);
+        
+        if (barangSudahAda) {
+            // PENCEGATAN PINTAR
+            alert(`⚠️ BARANG SUDAH TERDAFTAR!\n\nBarcode ini adalah milik obat:\n${barangSudahAda.nama}\n\nSistem akan langsung membuka formulir Edit agar Anda bisa memperbarui stok atau harganya.`);
+            
+            // Reset tombol scan agar tidak merekam barcode di form kosong
+            document.getElementById('newBarcode').value = '';
+            let btnG = document.getElementById('btnScanGudang');
+            if(btnG) { 
+                btnG.classList.replace('bg-emerald-500', 'bg-slate-100'); 
+                btnG.classList.replace('text-white', 'text-slate-600'); 
+                document.getElementById('teksScanGudang').textContent = 'Scan'; 
+            }
+            
+            // LANGSUNG BUKA FORM EDIT JALAN PINTAS
+            bukaModalEdit(barangSudahAda.nama);
+            
+        } else {
+            // BARANG BARU - Rekam barcode dan persilakan isi form
+            document.getElementById('newBarcode').value = decodedText; 
+            let btnG = document.getElementById('btnScanGudang');
+            if(btnG){ 
+                btnG.classList.replace('bg-slate-100', 'bg-emerald-500'); 
+                btnG.classList.replace('text-slate-600', 'text-white'); 
+                document.getElementById('teksScanGudang').textContent = 'Terekam!'; 
+            }
+            
+            // Pastikan form Tambah Obat Baru tetap terbuka
+            document.getElementById('formTambah').classList.remove('hidden');
+        }
+    } else if (targetScanAktif === 'kasir') { 
+        // Jika scan dilakukan dari meja kasir
+        prosesScanKasir(decodedText); 
+    }
 }
 
 function resetSistem() {
