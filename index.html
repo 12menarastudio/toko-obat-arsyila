@@ -917,6 +917,58 @@ Detail Transaksi
         </div>
     </div>
 </div>
+<!-- Modal Custom Alert Pencegatan -->
+<div id="modalAlertCustom" class="relative z-[150] hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-sm border border-amber-200">
+                <div class="bg-gradient-to-br from-amber-50 to-orange-50 px-6 py-6 border-b border-amber-100 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-amber-200/40 rounded-full blur-2xl"></div>
+                    <div class="h-20 w-20 rounded-full bg-white border-4 border-amber-100 shadow-md flex items-center justify-center mb-4 relative z-10">
+                        <i class="fa-solid fa-triangle-exclamation text-4xl text-amber-500 animate-bounce"></i>
+                    </div>
+                    <h3 class="text-xl font-black text-amber-900 tracking-tight relative z-10">BARANG SUDAH TERDAFTAR!</h3>
+                </div>
+                <div class="px-6 py-6 bg-slate-50/50 text-center space-y-2">
+                    <p class="text-sm text-slate-500 font-bold uppercase tracking-wider">Barcode ini milik obat:</p>
+                    <p class="text-2xl font-black text-corporate-700" id="alertNamaObat">-</p>
+                    <p class="text-xs text-slate-500 mt-2">Sistem akan langsung membuka formulir Edit agar Anda bisa memperbarui stok atau harganya.</p>
+                </div>
+                <div class="bg-white px-6 py-5 border-t border-slate-100">
+                    <button type="button" id="btnAlertOke" class="w-full inline-flex justify-center items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-amber-500/30 transition transform hover:-translate-y-1">
+                        <i class="fa-solid fa-check-circle text-lg"></i> Mengerti, Lanjut Edit
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal Custom Error Kasir -->
+<div id="modalErrorKasir" class="relative z-[150] hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-sm border border-red-200">
+                <div class="bg-gradient-to-br from-red-50 to-rose-50 px-6 py-6 border-b border-red-100 flex flex-col items-center justify-center text-center relative overflow-hidden">
+                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-red-200/40 rounded-full blur-2xl"></div>
+                    <div class="h-20 w-20 rounded-full bg-white border-4 border-red-100 shadow-md flex items-center justify-center mb-4 relative z-10">
+                        <i class="fa-solid fa-circle-xmark text-5xl text-red-500 animate-pulse"></i>
+                    </div>
+                    <h3 class="text-xl font-black text-red-900 tracking-tight relative z-10">SCAN GAGAL!</h3>
+                </div>
+                <div class="px-6 py-6 bg-slate-50/50 text-center">
+                    <p class="text-base font-bold text-slate-700 leading-relaxed" id="teksErrorKasir">-</p>
+                </div>
+                <div class="bg-white px-6 py-5 border-t border-slate-100">
+                    <button type="button" onclick="document.getElementById('modalErrorKasir').classList.add('hidden')" class="w-full inline-flex justify-center items-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-900 px-5 py-3.5 text-sm font-bold text-white shadow-lg transition transform hover:-translate-y-1">
+                        Tutup Pesan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div id="modalEdit" class="relative z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
 <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-md transition-opacity"></div>
@@ -925,7 +977,10 @@ Detail Transaksi
 <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-sm border border-slate-100">
 <div class="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-blue-100 flex items-center gap-3">
 <div class="h-10 w-10 rounded-lg bg-blue-100 flex items-center justify-center"><i class="fa-solid fa-pen text-blue-600"></i></div>
-<h3 class="text-base font-bold text-slate-900">Edit Data Obat</h3>
+<button type="button" id="btnBukaKunci" onclick="aktifkanModeEdit()" class="text-base font-bold text-blue-700 flex items-center gap-2 hover:text-blue-800">
+    ✏️ Edit Data Obat <span class="text-xs bg-blue-100 px-2 py-1 rounded-full border border-blue-200 font-normal">Terkunci 🔒</span>
+</button>
+
 </div>
 <div class="px-6 py-5 space-y-4">
 <div>
@@ -952,7 +1007,10 @@ Detail Transaksi
 </div>
 </div>
 <div class="bg-slate-50/50 px-6 py-4 sm:flex sm:flex-row-reverse sm:gap-3 border-t border-slate-100">
-<button type="button" onclick="simpanEdit()" class="w-full sm:w-auto inline-flex justify-center items-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 px-5 py-2.5 text-sm font-bold text-white shadow-soft hover:shadow-md transition"><i class="fa-solid fa-save"></i> Simpan Perubahan</button>
+<button type="button" id="btnAksiEdit" onclick="prosesTombolAksiEdit()" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg shadow-lg border border-green-700">
+    Kembali
+</button>
+
 <button type="button" onclick="tutupModalEdit()" class="w-full sm:w-auto mt-2 sm:mt-0 inline-flex justify-center items-center gap-2 rounded-lg bg-white border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-900 hover:bg-slate-50 transition">Batal</button>
 </div>
 </div>
@@ -1348,6 +1406,7 @@ function bukaModalEdit(namaBarang) {
         document.getElementById('editJual').value = barang.jual;
         document.getElementById('editStok').value = barang.stok;
         document.getElementById('modalEdit').classList.remove('hidden');
+        kunciFormEdit();
     }
 }
 function tutupModalEdit() { document.getElementById('modalEdit').classList.add('hidden'); }
@@ -1396,9 +1455,14 @@ function prosesScanKasir(teksBarcode) {
     let barangMaster = masterItems.find(m => m.barcode === teksBarcode);
     if(barangMaster) {
         let barangEtalase = etalaseItems.find(e => e.nama === barangMaster.nama);
-        if(barangEtalase && barangEtalase.stok > 0) { masukkanKeKeranjang(barangEtalase); } 
-        else { alert("GAGAL! " + barangMaster.nama + " ditemukan, tapi STOKNYA KOSONG di Etalase!"); }
-    } else { alert("GAGAL! Barcode " + teksBarcode + " tidak terdaftar di sistem!"); }
+        if(barangEtalase && barangEtalase.stok > 0) { 
+            masukkanKeKeranjang(barangEtalase); 
+        } else { 
+            munculkanErrorKasir("Barang " + barangMaster.nama + " ditemukan, tapi STOKNYA KOSONG di Rak Etalase!"); 
+        }
+    } else { 
+        munculkanErrorKasir("Barcode tidak terdaftar di sistem Apotek Arsyila!"); 
+    }
 }
 
 function tambahManualKeKeranjang() {
@@ -2052,6 +2116,12 @@ function bukaKameraScanner(target) {
                 <div class="bg-corporate-900 px-6 py-4 flex justify-between items-center"><h3 class="font-bold text-white"><i class="fa-solid fa-camera mr-2"></i> Arahkan ke Barcode</h3><button onclick="tutupKameraScanner()" class="text-slate-300 hover:text-white text-2xl"><i class="fa-solid fa-xmark"></i></button></div>
                 <div id="reader" class="w-full bg-black min-h-[300px]"></div>
                 <div class="p-4 bg-slate-50 text-center border-t border-slate-200"><p class="text-xs text-slate-500 font-medium"><i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Scanner Otomatis Aktif</p></div>
+                <div class="flex justify-center pb-4">
+    <button type="button" id="btnSenter" onclick="toggleSenter()" class="bg-slate-700 text-white font-bold py-2 px-6 rounded-full flex items-center shadow-lg border border-slate-500">
+        🔦 Hidupkan Senter
+    </button>
+</div>
+
             </div>
         </div>`);
         modalScan = document.getElementById('modalScannerKamera');
@@ -2097,8 +2167,6 @@ function onScanSuccess(decodedText) {
         
         if (barangSudahAda) {
             // PENCEGATAN PINTAR
-            alert(`⚠️ BARANG SUDAH TERDAFTAR!\n\nBarcode ini adalah milik obat:\n${barangSudahAda.nama}\n\nSistem akan langsung membuka formulir Edit agar Anda bisa memperbarui stok atau harganya.`);
-            
             // Reset tombol scan agar tidak merekam barcode di form kosong
             document.getElementById('newBarcode').value = '';
             let btnG = document.getElementById('btnScanGudang');
@@ -2108,8 +2176,8 @@ function onScanSuccess(decodedText) {
                 document.getElementById('teksScanGudang').textContent = 'Scan'; 
             }
             
-            // LANGSUNG BUKA FORM EDIT JALAN PINTAS
-            bukaModalEdit(barangSudahAda.nama);
+            // Panggil Pop-up Custom kita
+            munculkanAlertPencegatan(barangSudahAda.nama);
             
         } else {
             // BARANG BARU - Rekam barcode dan persilakan isi form
@@ -2130,6 +2198,7 @@ function onScanSuccess(decodedText) {
     }
 }
 
+
 function resetSistem() {
     const konfirmasi = confirm("⚠️ PERINGATAN!\n\nApakah Anda yakin ingin menghapus SEMUA DATA percobaan?\n\nGudang, Etalase, Riwayat Transaksi, Piutang, Laporan, dan Modal Siklus akan dikosongkan ke posisi NOL (0).");
     if (konfirmasi) {
@@ -2139,6 +2208,121 @@ function resetSistem() {
         alert("Sistem berhasil dibersihkan bersih sampai ke akarnya! Memuat ulang aplikasi..."); window.location.reload();
     }
 }
+let senterMenyala = false;
+
+function toggleSenter() {
+    // Cari elemen video kamera yang sedang aktif
+    const videoElem = document.querySelector('#reader video'); 
+    
+    if (videoElem && videoElem.srcObject) {
+        const track = videoElem.srcObject.getVideoTracks()[0];
+        
+        const imageCapture = new ImageCapture(track);
+        imageCapture.getPhotoCapabilities().then(capabilities => {
+            if (capabilities.fillLightMode.includes('flash')) {
+                senterMenyala = !senterMenyala;
+                
+                track.applyConstraints({
+                    advanced: [{ torch: senterMenyala }]
+                }).then(() => {
+                    let btn = document.getElementById('btnSenter');
+                    if (senterMenyala) {
+                        btn.innerHTML = '💡 Matikan Senter';
+                        btn.classList.replace('bg-slate-700', 'bg-yellow-500');
+                    } else {
+                        btn.innerHTML = '🔦 Hidupkan Senter';
+                        btn.classList.replace('bg-yellow-500', 'bg-slate-700');
+                    }
+                }).catch(e => {
+                    alert("Gagal menyalakan senter. Akses ditolak sistem.");
+                });
+            } else {
+                alert("⚠️ Senter tidak didukung pada browser ini.");
+            }
+        }).catch(e => {
+            // Trik cadangan jika ImageCapture gagal
+            senterMenyala = !senterMenyala;
+            track.applyConstraints({ advanced: [{ torch: senterMenyala }] })
+                .then(() => {
+                    let btn = document.getElementById('btnSenter');
+                    btn.innerHTML = senterMenyala ? '💡 Matikan Senter' : '🔦 Hidupkan Senter';
+                })
+                .catch(err => alert("⚠️ Fitur senter diblokir oleh sistem HP/Browser."));
+        });
+    } else {
+        alert("Kamera belum siap, tunggu gambar muncul.");
+    }
+}
+// 1. Fungsi Mengunci Form (Mode Awal)
+function kunciFormEdit() {
+    // Mencari semua input khusus di dalam modalEdit
+    let formInputs = document.querySelectorAll('#modalEdit input');
+    
+    formInputs.forEach(input => {
+        input.readOnly = true; 
+        input.classList.add('bg-slate-200', 'text-slate-500'); // Warna abu-abu (terkunci)
+        input.classList.remove('bg-white', 'text-slate-900');
+    });
+
+    document.getElementById('btnBukaKunci').classList.remove('hidden');
+
+    let btnAksi = document.getElementById('btnAksiEdit');
+    btnAksi.innerHTML = 'Kembali';
+    btnAksi.className = 'w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg border border-green-700 mt-4 transition';
+}
+
+// 2. Fungsi Membuka Kunci (Saat ditekan "Buka Kunci Edit")
+function aktifkanModeEdit() {
+    let formInputs = document.querySelectorAll('#modalEdit input');
+    
+    formInputs.forEach(input => {
+        input.readOnly = false; 
+        input.classList.remove('bg-slate-200', 'text-slate-500'); 
+        input.classList.add('bg-white', 'text-slate-900'); // Warna putih normal (siap ketik)
+    });
+
+    document.getElementById('btnBukaKunci').classList.add('hidden');
+
+    let btnAksi = document.getElementById('btnAksiEdit');
+    btnAksi.innerHTML = '💾 Simpan Perubahan';
+    btnAksi.className = 'w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg shadow-lg border border-blue-700 mt-4 transition';
+}
+
+// 3. Fungsi Pengatur Arah Tombol Bawah
+function prosesTombolAksiEdit() {
+    let btnAksi = document.getElementById('btnAksiEdit');
+    
+    if (btnAksi.innerHTML.includes('Kembali')) {
+        tutupModalEdit(); // Nama fungsi penutup sudah benar
+    } else {
+        simpanEdit(); // <--- NAMA FUNGSI PENYIMPAN DISESUAIKAN DENGAN ASLI
+    }
+}
+
+// Fungsi Pengendali Custom Pop-up Alert
+let targetObatEdit = '';
+
+function munculkanAlertPencegatan(namaBarang) {
+    targetObatEdit = namaBarang;
+    
+    // Ganti teks nama obat di dalam pop-up
+    document.getElementById('alertNamaObat').textContent = namaBarang;
+    
+    // Munculkan pop-up cantik kita
+    document.getElementById('modalAlertCustom').classList.remove('hidden');
+    
+    // Beri perintah pada tombol "Mengerti"
+    document.getElementById('btnAlertOke').onclick = function() {
+        document.getElementById('modalAlertCustom').classList.add('hidden'); // Tutup pop-up
+        bukaModalEdit(targetObatEdit); // Buka form edit
+    };
+}
+// Fungsi Pengendali Custom Pop-up Error Kasir
+function munculkanErrorKasir(pesanError) {
+    document.getElementById('teksErrorKasir').textContent = pesanError;
+    document.getElementById('modalErrorKasir').classList.remove('hidden');
+}
+
 </script>
 </body>
 </html>
