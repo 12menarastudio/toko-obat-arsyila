@@ -944,31 +944,6 @@ Detail Transaksi
         </div>
     </div>
 </div>
-<!-- Modal Custom Error Kasir -->
-<div id="modalErrorKasir" class="relative z-[150] hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"></div>
-    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
-        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
-            <div class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-sm border border-red-200">
-                <div class="bg-gradient-to-br from-red-50 to-rose-50 px-6 py-6 border-b border-red-100 flex flex-col items-center justify-center text-center relative overflow-hidden">
-                    <div class="absolute -top-10 -right-10 w-32 h-32 bg-red-200/40 rounded-full blur-2xl"></div>
-                    <div class="h-20 w-20 rounded-full bg-white border-4 border-red-100 shadow-md flex items-center justify-center mb-4 relative z-10">
-                        <i class="fa-solid fa-circle-xmark text-5xl text-red-500 animate-pulse"></i>
-                    </div>
-                    <h3 class="text-xl font-black text-red-900 tracking-tight relative z-10">SCAN GAGAL!</h3>
-                </div>
-                <div class="px-6 py-6 bg-slate-50/50 text-center">
-                    <p class="text-base font-bold text-slate-700 leading-relaxed" id="teksErrorKasir">-</p>
-                </div>
-                <div class="bg-white px-6 py-5 border-t border-slate-100">
-                    <button type="button" onclick="document.getElementById('modalErrorKasir').classList.add('hidden')" class="w-full inline-flex justify-center items-center gap-2 rounded-xl bg-slate-800 hover:bg-slate-900 px-5 py-3.5 text-sm font-bold text-white shadow-lg transition transform hover:-translate-y-1">
-                        Tutup Pesan
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
 <div id="modalEdit" class="relative z-50 hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
 <div class="fixed inset-0 bg-slate-900/40 backdrop-blur-md transition-opacity"></div>
@@ -1455,14 +1430,9 @@ function prosesScanKasir(teksBarcode) {
     let barangMaster = masterItems.find(m => m.barcode === teksBarcode);
     if(barangMaster) {
         let barangEtalase = etalaseItems.find(e => e.nama === barangMaster.nama);
-        if(barangEtalase && barangEtalase.stok > 0) { 
-            masukkanKeKeranjang(barangEtalase); 
-        } else { 
-            munculkanErrorKasir("Barang " + barangMaster.nama + " ditemukan, tapi STOKNYA KOSONG di Rak Etalase!"); 
-        }
-    } else { 
-        munculkanErrorKasir("Barcode tidak terdaftar di sistem Apotek Arsyila!"); 
-    }
+        if(barangEtalase && barangEtalase.stok > 0) { masukkanKeKeranjang(barangEtalase); } 
+        else { alert("GAGAL! " + barangMaster.nama + " ditemukan, tapi STOKNYA KOSONG di Etalase!"); }
+    } else { alert("GAGAL! Barcode " + teksBarcode + " tidak terdaftar di sistem!"); }
 }
 
 function tambahManualKeKeranjang() {
@@ -1857,7 +1827,13 @@ function renderLaporan() {
                 <tr class="hover:bg-slate-50 transition border-b border-slate-50">
                     <td class="px-4 py-3 leading-tight">${tglFormat}</td><td class="px-4 py-3">${namaObatDisplay}</td><td class="px-4 py-3 text-slate-600">${t.kasir}</td>
                     <td class="px-4 py-3 text-center font-bold text-slate-700">${t.item}</td><td class="px-4 py-3 text-right font-semibold">${rupiah(t.total)}</td>
-                    <td class="px-4 py-3 text-center"><span class="${warnaBadge} px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">${teksMetode}</span></td>
+                                        <td class="px-4 py-3 text-center">
+                        <div class="flex flex-col items-center gap-1">
+                            <span class="${warnaBadge} px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">${teksMetode}</span>
+                            <button onclick="prosesCetakStruk(${t.id}, this)" class="text-[10px] text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 transition mt-1"><i class="fa-solid fa-print"></i> Cetak</button>
+                        </div>
+                    </td>
+
                 </tr>`;
             }).join('');
         }
@@ -1979,7 +1955,13 @@ function renderCashier() {
                 <td class="px-6 py-4 text-slate-600"><div class="flex items-center gap-2"><span>${t.tanggal || '-'}</span><span class="text-xs bg-slate-200 text-slate-700 px-2 py-1 rounded-md font-bold">${t.waktu}</span></div></td>
                 <td class="px-6 py-4 text-slate-700 font-medium">${t.kasir}</td><td class="px-6 py-4 text-center text-slate-700 font-bold">${t.item}</td>
                 <td class="px-6 py-4 text-right font-bold text-corporate-900">${rupiah(t.total)}</td>
-                <td class="px-6 py-4 text-center"><span class="inline-block rounded-full px-3 py-1.5 text-xs font-bold uppercase tracking-wider ${metodeColor[t.metode] || 'bg-slate-100 text-slate-700'}">${teksMetode}</span></td>
+                                <td class="px-6 py-4 text-center">
+                    <div class="flex flex-col items-center gap-1">
+                        <span class="inline-block rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider ${metodeColor[t.metode] || 'bg-slate-100 text-slate-700'}">${teksMetode}</span>
+                        <button onclick="prosesCetakStruk(${t.id}, this)" class="text-[10px] text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 transition mt-1"><i class="fa-solid fa-print"></i> Cetak Struk</button>
+                    </div>
+                </td>
+
                 <td class="px-6 py-4 text-center">
                     <button onclick="bukaModalAksiTransaksi(${t.id}, '${t.obat}')" title="Pilih Aksi Transaksi" class="relative inline-flex items-center justify-center w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 transition shadow-soft hover:shadow-md group">
                         <i class="fa-solid fa-rotate-left text-lg text-amber-500 group-hover:text-amber-600 transition"></i>
@@ -2298,6 +2280,74 @@ function prosesTombolAksiEdit() {
         simpanEdit(); // <--- NAMA FUNGSI PENYIMPAN DISESUAIKAN DENGAN ASLI
     }
 }
+// ==========================================
+// MESIN PENCETAK STRUK BLUETOOTH (ESC/POS)
+// ==========================================
+async function prosesCetakStruk(idTransaksi, elemenTombol) {
+    const trx = cashierHistory.find(t => t.id === idTransaksi);
+    if(!trx) { alert("Data transaksi tidak ditemukan!"); return; }
+
+    // 1. Menyusun Format Teks Struk
+    let struk = "";
+    struk += "        APOTEK ARSYILA        \n";
+    struk += "   Kec. Siompu, Buton Selatan \n";
+    struk += "================================\n";
+    struk += `Tgl   : ${trx.tanggal}\n`;
+    struk += `Waktu : ${trx.waktu}\n`;
+    struk += `Kasir : ${trx.kasir}\n`;
+    struk += "--------------------------------\n";
+    struk += `${trx.obat}\n`;
+    struk += `${trx.item} Item        Rp ${trx.total.toLocaleString('id-ID')}\n`;
+    struk += "--------------------------------\n";
+    struk += `TOTAL       : Rp ${trx.total.toLocaleString('id-ID')}\n`;
+    struk += `PEMBAYARAN  : ${trx.metode.toUpperCase()}\n`;
+    struk += "================================\n";
+    struk += "  Terima Kasih & Semoga Sehat!  \n";
+    struk += "\n\n\n";
+
+    // 2. Mengirim ke Printer via Web Bluetooth
+    try {
+        const teksAsli = elemenTombol.innerHTML;
+        elemenTombol.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ...';
+
+        const device = await navigator.bluetooth.requestDevice({
+            acceptAllDevices: true,
+            optionalServices: [
+                '000018f0-0000-1000-8000-00805f9b34fb', 
+                '49535343-fe7d-4ae5-8fa9-9fafd205e455', 
+                'e7810a71-73ae-499d-8c15-faa9aef0c3f2'
+            ] 
+        });
+
+        const server = await device.gatt.connect();
+        const services = await server.getPrimaryServices();
+        
+        let writeCharacteristic = null;
+        for (const service of services) {
+            const characteristics = await service.getCharacteristics();
+            for (const char of characteristics) {
+                if (char.properties.write || char.properties.writeWithoutResponse) {
+                    writeCharacteristic = char;
+                    break;
+                }
+            }
+            if (writeCharacteristic) break;
+        }
+
+        if (!writeCharacteristic) throw new Error("Printer tidak valid.");
+
+        const encoder = new TextEncoder();
+        await writeCharacteristic.writeValue(encoder.encode(struk));
+        
+        elemenTombol.innerHTML = teksAsli;
+        alert("✅ Struk berhasil dicetak!");
+
+    } catch(error) {
+        console.log("Error Printer:", error);
+        alert("Gagal mencetak. Pastikan Bluetooth HP & Printer EPPOS menyala!");
+        elemenTombol.innerHTML = '<i class="fa-solid fa-print"></i> Cetak';
+    }
+}
 
 // Fungsi Pengendali Custom Pop-up Alert
 let targetObatEdit = '';
@@ -2316,11 +2366,6 @@ function munculkanAlertPencegatan(namaBarang) {
         document.getElementById('modalAlertCustom').classList.add('hidden'); // Tutup pop-up
         bukaModalEdit(targetObatEdit); // Buka form edit
     };
-}
-// Fungsi Pengendali Custom Pop-up Error Kasir
-function munculkanErrorKasir(pesanError) {
-    document.getElementById('teksErrorKasir').textContent = pesanError;
-    document.getElementById('modalErrorKasir').classList.remove('hidden');
 }
 
 </script>
