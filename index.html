@@ -1816,16 +1816,23 @@ function renderLaporan() {
     else if (tglMulai) { dataPeriode = cashierHistory.filter(t => t.tanggal >= tglMulai); } 
     else if (tglAkhir) { dataPeriode = cashierHistory.filter(t => t.tanggal <= tglAkhir); }
 
-    dataPeriode.forEach(t => {
-        lOmset += t.total || 0; lLaba += t.laba || 0; lHPP += ((t.total || 0) - (t.laba || 0));
+        dataPeriode.forEach(t => {
+        // Hitung aliran uang laci/bank
         if(t.metode === 'Tunai') { if(t.isPelunasan) lPelunasanTunai += t.total || 0; else lTunaiMurni += t.total || 0; } 
         else if(t.metode === 'QRIS') { if(t.isPelunasan) lPelunasanQris += t.total || 0; else lQrisMurni += t.total || 0; } 
-        else if(t.metode === 'Debt') { lDebt += t.total || 0; }
+        else if(t.metode === 'Debt') { if(!t.statusLunas) lDebt += t.total || 0; } // Hilang dari piutang jika lunas
 
-        if(!t.isPelunasan) { cTotalPembeli += 1; cItemKeluar += t.item || 0; }
-
-        if(daftarTerlaris[t.obat]) { daftarTerlaris[t.obat].item += t.item || 0; daftarTerlaris[t.obat].omset += t.total || 0; daftarTerlaris[t.obat].laba += (t.laba || 0); } 
-        else { daftarTerlaris[t.obat] = { nama: t.obat, item: t.item || 0, omset: t.total || 0, laba: (t.laba || 0) }; }
+        // Hitung Omset, HPP, Laba, dan Terlaris HANYA dari transaksi jual beli (Anti-Ganda)
+        if(!t.isPelunasan) { 
+            lOmset += t.total || 0; 
+            lLaba += t.laba || 0; 
+            lHPP += ((t.total || 0) - (t.laba || 0));
+            cTotalPembeli += 1; 
+            cItemKeluar += t.item || 0; 
+            
+            if(daftarTerlaris[t.obat]) { daftarTerlaris[t.obat].item += t.item || 0; daftarTerlaris[t.obat].omset += t.total || 0; daftarTerlaris[t.obat].laba += (t.laba || 0); } 
+            else { daftarTerlaris[t.obat] = { nama: t.obat, item: t.item || 0, omset: t.total || 0, laba: (t.laba || 0) }; }
+        }
     });
 
     if(document.getElementById('lapOmset')) document.getElementById('lapOmset').textContent = rupiah(lOmset);
@@ -2047,12 +2054,15 @@ function eksekusiPelunasan(metodePilihan) {
                 idTerkait: utangLama.id // Tautkan ke ID Utang Lama
             };
             
-            // 2. Modifikasi Utang Lama (Tanpa ubah TANGGAL asli)
+                        // 2. Modifikasi Utang Lama (Tanpa ubah TANGGAL asli)
             utangLama.statusLunas = true; // Tandai Lunas
             utangLama.idTerkait = idBaru; // Tautkan ke ID Uang Masuk
 
+            // SAMBUNGAN KABEL 3: Uang pelunasan masuk ke brankas modal
+            siklusAktif.uangMasuk += utangLama.total;
+
             cashierHistory.unshift(pelunasanBaru); // Masukkan ke database
-            
+
             if(typeof renderPiutang === 'function') renderPiutang(); renderCashier(); renderLaporan(); simpanKeMemoriHP();
             tutupModalPelunasan(); let wadahUang = metodePilihan === 'Tunai' ? 'Kas Laci Tunai' : 'Rekening Bank/QRIS';
             alert(`✅ Sukses! Utang dinyatakan LUNAS. Bukti uang masuk hari ini tercatat dengan ID: ${idBaru}.`);
@@ -2062,13 +2072,20 @@ function eksekusiPelunasan(metodePilihan) {
 
 function renderCashier() {
     const metodeColor = { 'Tunai': 'bg-emerald-100 text-emerald-700 font-semibold', 'QRIS': 'bg-blue-100 text-blue-700 font-semibold', 'Debt': 'bg-red-100 text-red-700 font-semibold' };
-    let tglHariIni = getTanggalLokal(); let bTunai = 0, bQris = 0, bDebt = 0, bLaba = 0;
+    let tglHariIni = getTanggalLokal(); let bTunai = 0, bQris = 0, bDebt = 0, bLaba = 0, bRevenue = 0;
     
     cashierHistory.filter(t => t.tanggal === tglHariIni).forEach(t => {
         if(t.metode === 'Tunai') bTunai += t.total || 0; 
         if(t.metode === 'QRIS') bQris += t.total || 0; 
-        if(t.metode === 'Debt') bDebt += t.total || 0;
-        bLaba += t.laba || 0; 
+        
+        // Cuma hitung ke kotak merah kalau BELUM LUNAS
+        if(t.metode === 'Debt' && !t.statusLunas) bDebt += t.total || 0; 
+        
+        // Omset & Laba murni dihitung dari penjualan (Bukan dari pelunasan)
+        if(!t.isPelunasan) {
+            bRevenue += t.total || 0;
+            bLaba += t.laba || 0; 
+        }
     });
 
     if(document.getElementById('rekapTunai1')) document.getElementById('rekapTunai1').textContent = rupiah(bTunai);
@@ -2076,7 +2093,7 @@ function renderCashier() {
     if(document.getElementById('rekapDebt1')) document.getElementById('rekapDebt1').textContent = rupiah(bDebt);
     
     if(roleAktif === 'bos') {
-        if(document.getElementById('statRevenue')) document.getElementById('statRevenue').textContent = rupiah(bTunai + bQris + bDebt);
+        if(document.getElementById('statRevenue')) document.getElementById('statRevenue').textContent = rupiah(bRevenue);
         if(document.getElementById('statProfit')) document.getElementById('statProfit').textContent = rupiah(bLaba);
     }
 
@@ -2090,6 +2107,9 @@ function renderCashier() {
 
     const tbody = document.getElementById('cashierBody');
     if(tbody) {
+        // TAMBAHAN BARU: Memori untuk Mencegah Render Ganda (Anti-Duplikat)
+        let pasanganTergambar = new Set(); 
+
         tbody.innerHTML = dataTampil.map(t => {
             if(t.metode === 'Tunai') { if(t.isPelunasan) tPelunasanTunai += t.total || 0; else tTunaiMurni += t.total || 0; } 
             if(t.metode === 'QRIS') { if(t.isPelunasan) tPelunasanQris += t.total || 0; else tQrisMurni += t.total || 0; } 
@@ -2101,6 +2121,11 @@ function renderCashier() {
                 let dataLunas = t.isPelunasan ? t : cashierHistory.find(x => x.id === t.idTerkait);
                 
                 if(!asalKasbon || !dataLunas) return ''; // Pengaman Logika
+                
+                // SISTEM ANTI-GANDA: Cek apakah gabungan ID ini sudah pernah dicetak di layar
+                let kodePasangan = asalKasbon.id + "_" + dataLunas.id;
+                if(pasanganTergambar.has(kodePasangan)) return ''; // Jika sudah, LEWATI baris ini!
+                pasanganTergambar.add(kodePasangan); // Jika belum, simpan ke ingatan sistem
                 
                 let badgeMetode = dataLunas.metode === 'QRIS' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700';
                 
