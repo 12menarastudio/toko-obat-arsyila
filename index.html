@@ -703,27 +703,12 @@ Detail Transaksi
   <div class="grid grid-cols-1 gap-6">
     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
       <div class="bg-slate-50 p-4 border-b border-slate-200">
-        <h3 class="text-xs font-black text-slate-700 uppercase"><i class="fa-solid fa-trophy text-orange-400 mr-2"></i>Blok F: Obat Terlaris</h3>
+        <h3 class="text-xs font-black text-slate-700 uppercase"><i class="fa-solid fa-list-check text-blue-500 mr-2"></i>Blok F: Rincian Transaksi</h3>
       </div>
       <div class="overflow-x-auto">
         <table class="w-full text-sm text-left">
           <thead class="bg-white text-slate-400 uppercase text-[10px] font-bold border-b border-slate-100">
-            <tr><th class="px-4 py-3 text-center w-12">#</th><th class="px-4 py-3">Nama Obat</th><th class="px-4 py-3 text-center">Terjual</th><th class="px-4 py-3 text-right">Omset</th><th class="px-4 py-3 text-right">Laba</th></tr>
-          </thead>
-          <tbody id="lapPeringkatBody" class="divide-y divide-slate-50 text-xs">
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-      <div class="bg-slate-50 p-4 border-b border-slate-200">
-        <h3 class="text-xs font-black text-slate-700 uppercase"><i class="fa-solid fa-list-check text-blue-500 mr-2"></i>Blok G: Rincian Transaksi</h3>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm text-left">
-          <thead class="bg-white text-slate-400 uppercase text-[10px] font-bold border-b border-slate-100">
-            <tr><th class="px-4 py-3">Waktu</th><th class="px-4 py-3">Nama Obat</th><th class="px-4 py-3">Kasir</th><th class="px-4 py-3 text-center">Item</th><th class="px-4 py-3 text-right">Tagihan</th><th class="px-4 py-3 text-center">Metode</th></tr>
+            <tr><th class="px-4 py-3">Daftar Obat</th><th class="px-4 py-3">Tgl & Waktu</th><th class="px-4 py-3">Kasir</th><th class="px-4 py-3 text-center">Item</th><th class="px-4 py-3 text-right">Total Penjualan</th><th class="px-4 py-3 text-center">Metode / Aksi</th></tr>
           </thead>
           <tbody id="lapRincianBody" class="divide-y divide-slate-50 text-xs">
           </tbody>
@@ -1897,46 +1882,70 @@ function renderLaporan() {
         }
     }
 
-    const urutanObat = Object.values(daftarTerlaris).sort((a, b) => b.item - a.item);
-    const tbodyPeringkat = document.getElementById('lapPeringkatBody');
-    if(tbodyPeringkat) {
-        if(urutanObat.length === 0) { tbodyPeringkat.innerHTML = `<tr><td colspan="5" class="px-6 py-8 text-center text-slate-500 font-medium"><i class="fa-solid fa-folder-open text-3xl text-slate-300 mb-2 block"></i>Tidak ada penjualan pada periode ini</td></tr>`; } 
-        else {
-            tbodyPeringkat.innerHTML = urutanObat.map((o, index) => {
-                let rankBadge = index === 0 ? 'bg-orange-100 text-orange-600' : index === 1 ? 'bg-slate-200 text-slate-700' : index === 2 ? 'bg-amber-100 text-amber-700' : 'bg-slate-50 text-slate-500';
+        const metodeColorLaporan = { 'Tunai': 'bg-emerald-100 text-emerald-700 font-semibold', 'QRIS': 'bg-blue-100 text-blue-700 font-semibold', 'Debt': 'bg-red-100 text-red-700 font-semibold' };
+    const tbodyRincian = document.getElementById('lapRincianBody');
+    
+    if(tbodyRincian) {
+        if(dataPeriode.length === 0) { 
+            tbodyRincian.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-slate-500 font-medium"><i class="fa-solid fa-receipt text-3xl text-slate-300 mb-2 block"></i>Tidak ada rincian transaksi</td></tr>`; 
+        } else {
+            // Memori untuk Mencegah Render Ganda di Laporan (Sama seperti Beranda)
+            let pasanganTergambarLap = new Set(); 
+            
+            tbodyRincian.innerHTML = dataPeriode.map(t => {
+                // ===== DESAIN KHUSUS JIKA TRANSAKSI TERKAIT PELUNASAN =====
+                if ((t.metode === 'Debt' && t.statusLunas) || t.isPelunasan) {
+                    let asalKasbon = t.isPelunasan ? cashierHistory.find(x => x.id === t.idTerkait) : t;
+                    let dataLunas = t.isPelunasan ? t : cashierHistory.find(x => x.id === t.idTerkait);
+                    
+                    if(!asalKasbon || !dataLunas) return ''; // Pengaman Logika
+                    
+                    // SISTEM ANTI-GANDA LAPORAN
+                    let kodePasangan = asalKasbon.id + "_" + dataLunas.id;
+                    if(pasanganTergambarLap.has(kodePasangan)) return ''; 
+                    pasanganTergambarLap.add(kodePasangan); 
+                    
+                    let badgeMetode = dataLunas.metode === 'QRIS' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700';
+                    
+                    return `
+                    <tr class="border-b border-dashed border-slate-200 bg-slate-50/50 opacity-60">
+                        <td class="px-4 py-3 font-semibold text-slate-700 line-through">${asalKasbon.obat}</td>
+                        <td class="px-4 py-3 text-slate-500 text-xs"><div class="flex items-center gap-2"><span>${asalKasbon.tanggal}</span><span class="bg-slate-200 px-1.5 py-0.5 rounded font-bold">${asalKasbon.waktu}</span></div></td>
+                        <td class="px-4 py-3 text-slate-500 font-medium">${asalKasbon.kasir}</td>
+                        <td class="px-4 py-3 text-center text-slate-500 font-bold">${asalKasbon.item}</td>
+                        <td class="px-4 py-3 text-right font-bold text-slate-500">${rupiah(asalKasbon.total)}</td>
+                        <td class="px-4 py-3 text-center"><span class="text-[9px] font-bold uppercase tracking-wider text-slate-400 bg-slate-200 px-2 py-1 rounded">Kasbon Awal</span></td>
+                    </tr>
+                    <tr class="border-b-4 border-slate-100 bg-white shadow-[inset_4px_0_0_0_#10b981]">
+                        <td class="px-4 py-4 font-bold text-corporate-800"><i class="fa-solid fa-arrow-turn-up text-emerald-500 mr-2 rotate-90"></i> Lunas: <span class="uppercase">${asalKasbon.pelanggan || 'Pelanggan'}</span></td>
+                        <td class="px-4 py-4 text-emerald-600 text-xs font-bold"><div class="flex items-center gap-2"><span>${dataLunas.tanggal}</span><span class="bg-emerald-50 px-1.5 py-0.5 rounded font-bold">${dataLunas.waktu}</span></div></td>
+                        <td class="px-4 py-4 text-slate-700 font-medium">${dataLunas.kasir}</td>
+                        <td class="px-4 py-4 text-center text-slate-400 font-bold">-</td>
+                        <td class="px-4 py-4 text-right font-black text-emerald-600">${rupiah(dataLunas.total)}</td>
+                        <td class="px-4 py-4 text-center">
+                            <div class="flex flex-col items-center gap-1">
+                                <span class="inline-block rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-wider ${badgeMetode} shadow-sm"><i class="fa-solid fa-check-circle mr-1"></i>LUNAS / ${dataLunas.metode}</span>
+                                <button onclick="prosesCetakStruk(${dataLunas.id}, this)" class="text-[10px] text-blue-600 hover:text-blue-800 font-bold flex items-center justify-center gap-1 transition mt-1"><i class="fa-solid fa-print text-sm"></i> Cetak</button>
+                            </div>
+                        </td>
+                    </tr>`;
+                }
+
+                // ===== DESAIN BARIS NORMAL =====
+                let teksMetode = t.metode; 
                 return `
                 <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                    <td class="px-4 py-3 text-center"><div class="mx-auto flex items-center justify-center w-8 h-8 rounded-full font-black ${rankBadge}">${index + 1}</div></td>
-                    <td class="px-4 py-3 font-bold text-corporate-700">${o.nama}</td><td class="px-4 py-3 text-center font-bold text-slate-900">${o.item} Item</td>
-                    <td class="px-4 py-3 text-right font-semibold text-slate-700">${rupiah(o.omset)}</td><td class="px-4 py-3 text-right font-bold text-emerald-600">+ ${rupiah(o.laba)}</td>
-                </tr>`;
-            }).join('');
-        }
-    }
-
-    const metodeColorLaporan = { 'Tunai': 'bg-emerald-100 text-emerald-700', 'QRIS': 'bg-blue-100 text-blue-700', 'Debt': 'bg-red-100 text-red-700' };
-    const tbodyRincian = document.getElementById('lapRincianBody');
-    if(tbodyRincian) {
-        if(dataPeriode.length === 0) { tbodyRincian.innerHTML = `<tr><td colspan="6" class="px-6 py-8 text-center text-slate-500 font-medium"><i class="fa-solid fa-receipt text-3xl text-slate-300 mb-2 block"></i>Tidak ada rincian transaksi</td></tr>`; } 
-        else {
-            tbodyRincian.innerHTML = dataPeriode.map(t => {
-                let teksMetode = t.metode; let warnaBadge = metodeColorLaporan[t.metode] || 'bg-slate-100 text-slate-700';
-                if(t.isPelunasan) { teksMetode = `LUNAS/${t.metode}`; warnaBadge = t.metode === 'QRIS' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700'; }
-                let tglFormat = t.tanggal;
-                if(tglMulai === '' || tglMulai !== tglAkhir) { tglFormat = `${t.tanggal} <br> <span class="text-slate-400">${t.waktu}</span>`; }
-                else { tglFormat = `<span class="text-slate-500">${t.waktu}</span>`; }
-                let namaObatDisplay = t.isPelunasan ? `<span class="text-xs font-semibold text-slate-400 uppercase">Pelunasan Utang:</span><br>${t.pelanggan || 'Pelanggan'}` : `<span class="font-bold text-slate-800">${t.obat}</span>`;
-                return `
-                <tr class="hover:bg-slate-50 transition border-b border-slate-50">
-                    <td class="px-4 py-3 leading-tight">${tglFormat}</td><td class="px-4 py-3">${namaObatDisplay}</td><td class="px-4 py-3 text-slate-600">${t.kasir}</td>
-                    <td class="px-4 py-3 text-center font-bold text-slate-700">${t.item}</td><td class="px-4 py-3 text-right font-semibold">${rupiah(t.total)}</td>
-                                        <td class="px-4 py-3 text-center">
+                    <td class="px-4 py-3 font-semibold ${t.metode === 'Debt' ? 'text-red-600' : 'text-corporate-700'}">${t.obat}</td>
+                    <td class="px-4 py-3 text-slate-600"><div class="flex items-center gap-2"><span>${t.tanggal || '-'}</span><span class="text-xs bg-slate-200 text-slate-700 px-2 py-1 rounded-md font-bold">${t.waktu}</span></div></td>
+                    <td class="px-4 py-3 text-slate-700 font-medium">${t.kasir}</td>
+                    <td class="px-4 py-3 text-center text-slate-700 font-bold">${t.item}</td>
+                    <td class="px-4 py-3 text-right font-bold text-corporate-900">${rupiah(t.total)}</td>
+                    <td class="px-4 py-3 text-center">
                         <div class="flex flex-col items-center gap-1">
-                            <span class="${warnaBadge} px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider">${teksMetode}</span>
+                            <span class="inline-block rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider ${metodeColorLaporan[t.metode] || 'bg-slate-100 text-slate-700'}">${teksMetode}</span>
                             <button onclick="prosesCetakStruk(${t.id}, this)" class="text-[10px] text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 transition mt-1"><i class="fa-solid fa-print"></i> Cetak</button>
                         </div>
                     </td>
-
                 </tr>`;
             }).join('');
         }
@@ -2113,7 +2122,9 @@ function renderCashier() {
         tbody.innerHTML = dataTampil.map(t => {
             if(t.metode === 'Tunai') { if(t.isPelunasan) tPelunasanTunai += t.total || 0; else tTunaiMurni += t.total || 0; } 
             if(t.metode === 'QRIS') { if(t.isPelunasan) tPelunasanQris += t.total || 0; else tQrisMurni += t.total || 0; } 
-            if(t.metode === 'Debt') tDebt += t.total || 0;
+            
+            // Perbaikan: Hanya hitung ke total Kasbon Beranda JIKA BELUM LUNAS
+            if(t.metode === 'Debt' && !t.statusLunas) tDebt += t.total || 0;
             
             // ===== DESAIN KHUSUS JIKA TRANSAKSI TERKAIT PELUNASAN =====
             if ((t.metode === 'Debt' && t.statusLunas) || t.isPelunasan) {
