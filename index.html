@@ -174,6 +174,9 @@ body.mode-kasir .only-bos { display: none !important; }
 <button onclick="document.querySelector('[data-tab=\'karyawan\']').click()" class="only-bos hidden sm:inline-flex h-9 px-3 rounded-xl bg-green-50 text-green-600 hover:bg-green-600 hover:text-white border border-green-200 shadow-sm items-center justify-center text-xs font-bold transition gap-2">
 <i class="fa-brands fa-whatsapp text-sm"></i> Share Kasir
 </button>
+<button onclick="bukaModalLacak()" class="h-9 px-3 rounded-xl bg-slate-100 text-slate-600 hover:bg-corporate-600 hover:text-white border border-slate-200 shadow-sm flex items-center justify-center text-xs font-bold transition gap-2" title="Lacak Transaksi">
+<i class="fa-solid fa-magnifying-glass"></i> <span class="hidden sm:inline">Lacak ID</span>
+</button>
 
 <span id="badgeUser" class="hidden sm:inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 ring-1 ring-emerald-200/50 px-3 py-1.5 text-xs font-bold text-emerald-700 backdrop-blur-sm uppercase">
 <i class="fa-solid fa-shield-halved"></i> Pemilik
@@ -917,6 +920,32 @@ Detail Transaksi
         </div>
     </div>
 </div>
+<div id="modalLacakTrx" class="relative z-[120] hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div class="relative transform overflow-hidden rounded-3xl bg-white text-left shadow-2xl transition-all sm:my-8 sm:w-full sm:max-w-md border border-slate-200">
+                <div class="bg-gradient-to-r from-corporate-800 to-corporate-900 px-6 py-5 flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-3"><i class="fa-solid fa-satellite-dish text-emerald-400"></i> Lacak ID Transaksi</h3>
+                    <button onclick="tutupModalLacak()" class="text-slate-300 hover:text-white transition text-lg"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="px-6 py-5 bg-slate-50">
+                    <div class="relative group">
+                        <i class="fa-solid fa-barcode absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="number" id="inputLacakID" placeholder="Ketik / Scan ID Transaksi..." class="w-full pl-11 pr-4 py-3 font-bold text-slate-900 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-corporate-600 shadow-inner" onkeypress="if(event.key === 'Enter') prosesLacakID()">
+                    </div>
+                    <button onclick="prosesLacakID()" class="w-full mt-3 bg-corporate-600 hover:bg-corporate-700 text-white font-bold py-3 rounded-xl shadow-md transition"><i class="fa-solid fa-search mr-2"></i> Mulai Lacak</button>
+                    
+                    <div id="hasilLacakArea" class="mt-5 hidden">
+                        <div class="border-t border-dashed border-slate-300 pt-4" id="kontenHasilLacak">
+                            </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Modal Custom Alert Pencegatan -->
 <div id="modalAlertCustom" class="relative z-[150] hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
     <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"></div>
@@ -1538,6 +1567,66 @@ async function prosesBayar() {
     
     simpanKeMemoriHP(); tutupModalKasir(); alert(`Transaksi ${metode} Berhasil Dieksekusi!`);
 }
+function bukaModalLacak() { 
+    document.getElementById('inputLacakID').value = ''; 
+    document.getElementById('hasilLacakArea').classList.add('hidden');
+    document.getElementById('modalLacakTrx').classList.remove('hidden'); 
+    setTimeout(() => document.getElementById('inputLacakID').focus(), 100);
+}
+function tutupModalLacak() { document.getElementById('modalLacakTrx').classList.add('hidden'); }
+
+function prosesLacakID() {
+    const inputID = parseInt(document.getElementById('inputLacakID').value);
+    const area = document.getElementById('hasilLacakArea');
+    const konten = document.getElementById('kontenHasilLacak');
+    
+    if(!inputID) { alert("Masukkan ID yang valid!"); return; }
+    
+    const trx = cashierHistory.find(t => t.id === inputID);
+    area.classList.remove('hidden');
+    
+    if(!trx) {
+        konten.innerHTML = `<div class="text-center text-red-500 font-bold p-4 bg-red-50 rounded-xl"><i class="fa-solid fa-file-circle-xmark text-3xl mb-2 block"></i>ID Transaksi tidak ditemukan di database.</div>`;
+        return;
+    }
+
+    let statusHtml = '';
+    
+    if (trx.metode === 'Debt') {
+        if(trx.statusLunas) {
+            statusHtml = `<div class="bg-emerald-50 border border-emerald-200 p-3 rounded-lg mt-3">
+                <p class="text-[10px] font-black text-emerald-600 uppercase mb-1">🟢 STATUS: SUDAH DILUNASI</p>
+                <p class="text-xs text-emerald-800 font-medium">Utang telah dibayar (Cek ID Pemasukan: <span class="font-bold">${trx.idTerkait || '-'}</span>)</p>
+            </div>`;
+        } else {
+            statusHtml = `<div class="bg-red-50 border border-red-200 p-3 rounded-lg mt-3">
+                <p class="text-[10px] font-black text-red-600 uppercase mb-1">🔴 STATUS: BELUM BAYAR</p>
+                <p class="text-xs text-red-800 font-medium">Faktur kasbon ini belum dilunasi.</p>
+            </div>`;
+        }
+    } else if (trx.isPelunasan) {
+        statusHtml = `<div class="bg-blue-50 border border-blue-200 p-3 rounded-lg mt-3">
+            <p class="text-[10px] font-black text-blue-600 uppercase mb-1">🔗 BUKTI PELUNASAN</p>
+            <p class="text-xs text-blue-800 font-medium">Ini adalah tanda terima uang untuk Faktur Kasbon (Cek ID Utang Asli: <span class="font-bold">${trx.idTerkait || '-'}</span>)</p>
+        </div>`;
+    } else {
+        statusHtml = `<div class="bg-emerald-50 border border-emerald-200 p-3 rounded-lg mt-3">
+            <p class="text-[10px] font-black text-emerald-600 uppercase mb-1">🟢 STATUS: TRANSAKSI TUNTAS</p>
+            <p class="text-xs text-emerald-800 font-medium">Penjualan putus (${trx.metode}). Tidak ada tunggakan.</p>
+        </div>`;
+    }
+
+    konten.innerHTML = `
+        <h4 class="font-black text-corporate-900 text-lg mb-1 tracking-tight"><i class="fa-solid fa-receipt text-slate-400 mr-1"></i> Rincian Struk</h4>
+        <div class="flex justify-between items-center text-xs font-semibold text-slate-500 mb-2 border-b border-slate-200 pb-2">
+            <span>Tgl: ${trx.tanggal} (${trx.waktu})</span>
+            <span>Kasir: ${trx.kasir}</span>
+        </div>
+        <p class="text-sm font-bold text-slate-800">${trx.obat} ${trx.item > 0 ? `(${trx.item} Item)` : ''}</p>
+        <p class="text-2xl font-black text-corporate-700 mt-1">${rupiah(trx.total)}</p>
+        ${statusHtml}
+    `;
+}
 
 let idTransaksiAksi = null;
 function bukaModalAksiTransaksi(id, namaObat) {
@@ -1843,48 +1932,74 @@ function renderLaporan() {
 function renderPiutang() {
     if(roleAktif !== 'bos') return;
     let totalPiutang = 0;
-    const dataPiutang = cashierHistory.filter(t => (t.metode && t.metode.trim() === 'Debt') || t.isPelunasan);
-    const tbody = document.getElementById('piutangBody'); const tableEmpty = document.getElementById('piutangEmpty');
     
-    if (dataPiutang.length === 0) { tbody.innerHTML = ''; tableEmpty.classList.remove('hidden'); } 
-    else {
+    // HANYA AMBIL DATA UTANG ASLI
+    const dataPiutang = cashierHistory.filter(t => t.metode === 'Debt');
+    const tbody = document.getElementById('piutangBody'); 
+    const tableEmpty = document.getElementById('piutangEmpty');
+    
+    if (dataPiutang.length === 0) { 
+        tbody.innerHTML = ''; tableEmpty.classList.remove('hidden'); 
+    } else {
         tableEmpty.classList.add('hidden');
         tbody.innerHTML = dataPiutang.map(t => {
-            if (!t.isPelunasan) { totalPiutang += t.total || 0; }
             const nama = t.pelanggan || '<span class="text-slate-400 italic">Tanpa Nama</span>';
-            const waLink = t.wa ? `<a href="https://wa.me/${t.wa}" target="_blank" class="text-xs text-blue-600 hover:text-blue-800 underline font-bold mt-1 inline-block"><i class="fa-brands fa-whatsapp text-green-500"></i> ${t.wa}</a>` : '<span class="text-xs text-slate-400 mt-1 inline-block">-</span>';
-            let tampilanStatus = ''; let warnaBaris = ''; let warnaHarga = '';
-
-            if (t.isPelunasan) {
-                warnaBaris = 'bg-slate-50/50 opacity-70';
-                if (t.metode === 'QRIS') {
-                    warnaHarga = 'text-blue-600'; tampilanStatus = `<span class="inline-flex items-center gap-1.5 rounded-xl bg-blue-100 text-blue-700 px-4 py-2 text-xs font-bold border border-blue-200 shadow-sm uppercase tracking-wider"><i class="fa-solid fa-check-circle"></i> LUNAS / QRIS</span>`;
-                } else {
-                    warnaHarga = 'text-emerald-600'; tampilanStatus = `<span class="inline-flex items-center gap-1.5 rounded-xl bg-emerald-100 text-emerald-700 px-4 py-2 text-xs font-bold border border-emerald-200 shadow-sm uppercase tracking-wider"><i class="fa-solid fa-check-circle"></i> LUNAS / TUNAI</span>`;
-                }
+            const waLink = t.wa ? `<a href="https://wa.me/${t.wa}" target="_blank" class="text-xs text-blue-600 hover:text-blue-800 underline font-bold mt-1 inline-block"><i class="fa-brands fa-whatsapp text-green-500"></i> ${t.wa}</a>` : '<span class="text-[10px] text-slate-400 mt-1 inline-block">Tanpa No. WA</span>';
+            
+            if (t.statusLunas) {
+                // ===== JIKA LUNAS: DESAIN BARIS BERTINGKAT (STACKED) =====
+                const dataLunas = cashierHistory.find(x => x.id === t.idTerkait);
+                const tglLunas = dataLunas ? dataLunas.tanggal : '-';
+                const wktLunas = dataLunas ? dataLunas.waktu : '-';
+                const metodeLunas = dataLunas ? dataLunas.metode : 'Tunai';
+                const badgeLunas = metodeLunas === 'QRIS' ? 'text-blue-700 bg-blue-100 border-blue-200' : 'text-emerald-700 bg-emerald-100 border-emerald-200';
+                
+                return `
+                <tr class="transition border-b-4 border-slate-100 bg-slate-50/50">
+                    <td colspan="5" class="px-6 py-4">
+                        <div class="flex flex-col gap-3 relative">
+                            <div class="absolute -left-2 top-0 bottom-0 w-1 bg-emerald-400 rounded-full"></div>
+                            <div class="flex items-start gap-4 pb-3 border-b border-dashed border-slate-200 opacity-60">
+                                <div class="w-32 shrink-0 text-xs text-slate-500 font-bold">${t.tanggal} <br> <span class="font-normal">${t.waktu}</span></div>
+                                <div class="w-48 shrink-0 leading-tight"><span class="font-bold text-slate-500 uppercase block line-through">${nama}</span></div>
+                                <div class="flex-1 leading-tight"><span class="font-bold text-slate-500 block">${t.obat}</span> <span class="text-[10px] bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded mt-1 inline-block">${t.item} Item</span></div>
+                                <div class="w-28 text-right font-bold text-slate-500">${rupiah(t.total)}</div>
+                                <div class="w-32 text-right"><span class="text-[10px] font-bold uppercase text-slate-400">Jejak Utang Awal</span></div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="w-32 shrink-0 text-xs text-emerald-600 font-bold">${tglLunas} <br> <span class="font-normal text-emerald-500">${wktLunas}</span></div>
+                                <div class="w-48 shrink-0 flex items-center gap-2"><span class="font-black text-slate-800 uppercase block">${nama}</span></div>
+                                <div class="flex-1 text-sm font-bold text-emerald-700"><i class="fa-solid fa-arrow-turn-up rotate-90 mr-1 text-emerald-400"></i> Bukti Terima Uang Pelunasan</div>
+                                <div class="w-28 text-right font-black text-emerald-600">${rupiah(t.total)}</div>
+                                <div class="w-32 text-right flex justify-end"><span class="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-[10px] font-black border uppercase tracking-wider shadow-sm ${badgeLunas}"><i class="fa-solid fa-check-circle"></i> LUNAS / ${metodeLunas}</span></div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>`;
             } else {
-                warnaBaris = 'hover:bg-red-50'; warnaHarga = 'text-red-600';
-                tampilanStatus = `
-                <button onclick="prosesPelunasanPiutang(${t.id})" class="relative inline-flex group">
-                    <div class="absolute transition-all duration-1000 opacity-70 -inset-px bg-gradient-to-r from-[#FF416C] to-[#FF4B2B] rounded-xl blur-lg group-hover:opacity-100 group-hover:-inset-1 group-hover:duration-200 animate-tilt"></div>
-                    <div class="relative inline-flex items-center justify-center px-4 py-2 text-xs font-bold text-white transition-all duration-200 bg-red-600 font-pj rounded-xl hover:bg-red-500 border-b-4 border-red-800 hover:border-b-2 hover:translate-y-[2px] shadow-[0_4px_0_0_#991b1b] hover:shadow-[0_2px_0_0_#991b1b]">
-                        <i class="fa-solid fa-hourglass-half mr-2 animate-pulse"></i> Belum Bayar
-                    </div>
-                </button>`;
+                // ===== JIKA BELUM LUNAS: TAMPILAN MERAH NORMAL =====
+                totalPiutang += t.total || 0;
+                return `
+                <tr class="transition border-b border-slate-100 hover:bg-red-50/50">
+                    <td class="px-6 py-4 text-slate-600 text-xs font-semibold">${t.tanggal} <br> <span class="text-slate-400 font-normal">${t.waktu}</span></td>
+                    <td class="px-6 py-4 leading-tight"><span class="font-black text-slate-900 uppercase block">${nama}</span> ${waLink}</td>
+                    <td class="px-6 py-4 leading-tight"><span class="font-bold text-corporate-700 block">${t.obat}</span> <span class="text-[10px] bg-slate-200 text-slate-700 px-1.5 py-0.5 rounded mt-1 inline-block">${t.item} Item</span></td>
+                    <td class="px-6 py-4 text-right font-black text-red-600 text-base">${rupiah(t.total)}</td>
+                    <td class="px-6 py-4 text-center">
+                        <button onclick="prosesPelunasanPiutang(${t.id})" class="relative inline-flex group">
+                            <div class="absolute transition-all duration-1000 opacity-70 -inset-px bg-gradient-to-r from-[#FF416C] to-[#FF4B2B] rounded-xl blur-lg group-hover:opacity-100 group-hover:-inset-1 group-hover:duration-200 animate-tilt"></div>
+                            <div class="relative inline-flex items-center justify-center px-4 py-2 text-xs font-bold text-white transition-all duration-200 bg-red-600 font-pj rounded-xl hover:bg-red-500 border-b-4 border-red-800 hover:border-b-2 hover:translate-y-[2px] shadow-[0_4px_0_0_#991b1b]">
+                                <i class="fa-solid fa-hourglass-half mr-1.5 animate-pulse"></i> BELUM BAYAR
+                            </div>
+                        </button>
+                    </td>
+                </tr>`;
             }
-
-            return `
-            <tr class="transition border-b border-slate-100 ${warnaBaris}">
-                <td class="px-6 py-4 text-slate-600 text-xs font-semibold">${t.tanggal} <br> <span class="text-slate-400">${t.waktu}</span></td>
-                <td class="px-6 py-4 leading-tight"><span class="font-bold ${t.isPelunasan ? 'text-slate-500' : 'text-slate-900'} uppercase block">${nama}</span> ${waLink}</td>
-                <td class="px-6 py-4 leading-tight"><span class="font-bold text-corporate-700 block">${t.obat}</span> <span class="text-xs font-semibold bg-slate-200 text-slate-700 px-2 py-0.5 rounded-md mt-1 inline-block">${t.item} Item</span></td>
-                <td class="px-6 py-4 text-right font-black ${warnaHarga} text-base">${rupiah(t.total)}</td>
-                <td class="px-6 py-4 text-center">${tampilanStatus}</td>
-            </tr>`;
         }).join('');
     }
     document.getElementById('totalPiutangBerjalan').textContent = rupiah(totalPiutang);
 }
+
 
 let idTransaksiPelunasanAktif = null;
 
@@ -1903,12 +2018,37 @@ function tutupModalPelunasan() { document.getElementById('modalPelunasanUtang').
 
 function eksekusiPelunasan(metodePilihan) {
     if(idTransaksiPelunasanAktif !== null) {
-        const transaksi = cashierHistory.find(t => t.id === idTransaksiPelunasanAktif);
-        if(transaksi) {
-            transaksi.metode = metodePilihan; transaksi.tanggal = getTanggalLokal(); transaksi.isPelunasan = true;
+        const utangLama = cashierHistory.find(t => t.id === idTransaksiPelunasanAktif);
+        if(utangLama) {
+            const idBaru = Date.now(); // Ciptakan ID Pelunasan Baru
+            const tglWaktu = new Date();
+            
+            // 1. Catat Transaksi Baru (Uang Masuk)
+            const pelunasanBaru = {
+                id: idBaru,
+                tanggal: getTanggalLokal(),
+                waktu: tglWaktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                obat: `Pelunasan Utang: ${utangLama.pelanggan || 'Pelanggan'}`,
+                kasir: roleAktif === 'bos' ? 'Pemilik' : 'Kasir',
+                item: 0, // 0 karena barang fisiknya keluar saat kasbon
+                total: utangLama.total,
+                metode: metodePilihan,
+                laba: 0, 
+                pelanggan: utangLama.pelanggan,
+                wa: utangLama.wa,
+                isPelunasan: true,
+                idTerkait: utangLama.id // Tautkan ke ID Utang Lama
+            };
+            
+            // 2. Modifikasi Utang Lama (Tanpa ubah TANGGAL asli)
+            utangLama.statusLunas = true; // Tandai Lunas
+            utangLama.idTerkait = idBaru; // Tautkan ke ID Uang Masuk
+
+            cashierHistory.unshift(pelunasanBaru); // Masukkan ke database
+            
             if(typeof renderPiutang === 'function') renderPiutang(); renderCashier(); renderLaporan(); simpanKeMemoriHP();
             tutupModalPelunasan(); let wadahUang = metodePilihan === 'Tunai' ? 'Kas Laci Tunai' : 'Rekening Bank/QRIS';
-            alert(`✅ Sukses! Utang dinyatakan LUNAS. Uang otomatis masuk ke bagian ${wadahUang} hari ini.`);
+            alert(`✅ Sukses! Utang dinyatakan LUNAS. Bukti uang masuk hari ini tercatat dengan ID: ${idBaru}.`);
         }
     }
 }
@@ -1947,21 +2087,56 @@ function renderCashier() {
             if(t.metode === 'Tunai') { if(t.isPelunasan) tPelunasanTunai += t.total || 0; else tTunaiMurni += t.total || 0; } 
             if(t.metode === 'QRIS') { if(t.isPelunasan) tPelunasanQris += t.total || 0; else tQrisMurni += t.total || 0; } 
             if(t.metode === 'Debt') tDebt += t.total || 0;
-            let teksMetode = t.metode; if(t.isPelunasan) { teksMetode = `Lunas/${t.metode}`; }
+            
+            // ===== DESAIN KHUSUS JIKA TRANSAKSI TERKAIT PELUNASAN =====
+            if ((t.metode === 'Debt' && t.statusLunas) || t.isPelunasan) {
+                let asalKasbon = t.isPelunasan ? cashierHistory.find(x => x.id === t.idTerkait) : t;
+                let dataLunas = t.isPelunasan ? t : cashierHistory.find(x => x.id === t.idTerkait);
+                
+                if(!asalKasbon || !dataLunas) return ''; // Pengaman Logika
+                
+                let badgeMetode = dataLunas.metode === 'QRIS' ? 'bg-blue-100 text-blue-700' : 'bg-emerald-100 text-emerald-700';
+                
+                // Me-render 2 Baris Tabel (Atas Redup, Bawah Nyala) untuk tampilan Beranda yang selaras
+                return `
+                <tr class="border-b border-dashed border-slate-200 bg-slate-50/50 opacity-60">
+                    <td class="px-6 py-3 font-semibold text-slate-700 line-through">${asalKasbon.obat}</td>
+                    <td class="px-6 py-3 text-slate-500 text-xs"><div class="flex items-center gap-2"><span>${asalKasbon.tanggal}</span><span class="bg-slate-200 px-1.5 py-0.5 rounded font-bold">${asalKasbon.waktu}</span></div></td>
+                    <td class="px-6 py-3 text-slate-500 font-medium">${asalKasbon.kasir}</td>
+                    <td class="px-6 py-3 text-center text-slate-500 font-bold">${asalKasbon.item}</td>
+                    <td class="px-6 py-3 text-right font-bold text-slate-500">${rupiah(asalKasbon.total)}</td>
+                    <td class="px-6 py-3 text-center"><span class="text-[9px] font-bold uppercase tracking-wider text-slate-400 bg-slate-200 px-2 py-1 rounded">Kasbon Awal</span></td>
+                    <td class="px-6 py-3 text-center"><i class="fa-solid fa-link text-slate-300"></i></td>
+                </tr>
+                <tr class="border-b-4 border-slate-100 bg-white shadow-[inset_4px_0_0_0_#10b981]">
+                    <td class="px-6 py-4 font-bold text-corporate-800"><i class="fa-solid fa-arrow-turn-up text-emerald-500 mr-2 rotate-90"></i> Lunas: <span class="uppercase">${asalKasbon.pelanggan || 'Pelanggan'}</span></td>
+                    <td class="px-6 py-4 text-emerald-600 text-xs font-bold"><div class="flex items-center gap-2"><span>${dataLunas.tanggal}</span><span class="bg-emerald-50 px-1.5 py-0.5 rounded font-bold">${dataLunas.waktu}</span></div></td>
+                    <td class="px-6 py-4 text-slate-700 font-medium">${dataLunas.kasir}</td>
+                    <td class="px-6 py-4 text-center text-slate-400 font-bold">-</td>
+                    <td class="px-6 py-4 text-right font-black text-emerald-600">${rupiah(dataLunas.total)}</td>
+                    <td class="px-6 py-4 text-center">
+                        <span class="inline-block rounded-full px-3 py-1.5 text-[9px] font-black uppercase tracking-wider ${badgeMetode} shadow-sm"><i class="fa-solid fa-check-circle mr-1"></i>LUNAS / ${dataLunas.metode}</span>
+                    </td>
+                    <td class="px-6 py-4 text-center">
+                        <button onclick="prosesCetakStruk(${dataLunas.id}, this)" class="text-[10px] text-blue-600 hover:text-blue-800 font-bold flex flex-col items-center justify-center gap-1 mx-auto transition"><i class="fa-solid fa-print text-sm"></i> Cetak</button>
+                    </td>
+                </tr>`;
+            }
 
+            // ===== DESAIN BARIS NORMAL (TUNAI/QRIS/DEBT AKTIF) =====
+            let teksMetode = t.metode; 
             return `
             <tr class="hover:bg-slate-50 transition border-b border-slate-100">
-                <td class="px-6 py-4 font-semibold text-corporate-700">${t.obat}</td>
+                <td class="px-6 py-4 font-semibold ${t.metode === 'Debt' ? 'text-red-600' : 'text-corporate-700'}">${t.obat}</td>
                 <td class="px-6 py-4 text-slate-600"><div class="flex items-center gap-2"><span>${t.tanggal || '-'}</span><span class="text-xs bg-slate-200 text-slate-700 px-2 py-1 rounded-md font-bold">${t.waktu}</span></div></td>
                 <td class="px-6 py-4 text-slate-700 font-medium">${t.kasir}</td><td class="px-6 py-4 text-center text-slate-700 font-bold">${t.item}</td>
                 <td class="px-6 py-4 text-right font-bold text-corporate-900">${rupiah(t.total)}</td>
-                                <td class="px-6 py-4 text-center">
+                <td class="px-6 py-4 text-center">
                     <div class="flex flex-col items-center gap-1">
                         <span class="inline-block rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider ${metodeColor[t.metode] || 'bg-slate-100 text-slate-700'}">${teksMetode}</span>
                         <button onclick="prosesCetakStruk(${t.id}, this)" class="text-[10px] text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1 transition mt-1"><i class="fa-solid fa-print"></i> Cetak Struk</button>
                     </div>
                 </td>
-
                 <td class="px-6 py-4 text-center">
                     <button onclick="bukaModalAksiTransaksi(${t.id}, '${t.obat}')" title="Pilih Aksi Transaksi" class="relative inline-flex items-center justify-center w-9 h-9 rounded-lg bg-slate-100 hover:bg-slate-200 transition shadow-soft hover:shadow-md group">
                         <i class="fa-solid fa-rotate-left text-lg text-amber-500 group-hover:text-amber-600 transition"></i>
@@ -1986,6 +2161,7 @@ function renderCashier() {
         if(typeof buildChart === 'function') setTimeout(() => buildChart(activeType), 50);
     }
 }
+
 
 let salesChart;
 function buildChart(type = 'bar') {
@@ -2280,6 +2456,9 @@ function prosesTombolAksiEdit() {
         simpanEdit(); // <--- NAMA FUNGSI PENYIMPAN DISESUAIKAN DENGAN ASLI
     }
 }
+// Variabel Memori (Menyimpan koneksi printer agar pop-up HP tidak muncul berulang)
+let printerApotekTerhubung = null;
+
 // ==========================================
 // MESIN PENCETAK STRUK BLUETOOTH (ESC/POS)
 // ==========================================
@@ -2287,7 +2466,7 @@ async function prosesCetakStruk(idTransaksi, elemenTombol) {
     const trx = cashierHistory.find(t => t.id === idTransaksi);
     if(!trx) { alert("Data transaksi tidak ditemukan!"); return; }
 
-    // 1. Menyusun Format Teks Struk Biasa (KOP TENGAH, ISI KIRI)
+    // 1. Menyusun Format Teks Struk Biasa
     let struk = "";
     struk += "         APOTEK ARSYILA         \n";
     struk += "        Desa Bahari Dua         \n";
@@ -2300,64 +2479,78 @@ async function prosesCetakStruk(idTransaksi, elemenTombol) {
     struk += `${trx.obat}\n`;
     struk += `${trx.item} Item        Rp ${trx.total.toLocaleString('id-ID')}\n`;
     struk += "--------------------------------\n";
-    struk += `TOTAL       : Rp ${trx.total.toLocaleString('id-ID')}\n`;
-    struk += `PEMBAYARAN  : ${trx.metode.toUpperCase()}\n`;
+    
+    // Logika Pintar: Beda Pembelian Baru vs Bayar Utang
+    struk += `TOTAL           : Rp ${trx.total.toLocaleString('id-ID')}\n`;
+    if (trx.isPelunasan) {
+        struk += `PELUNASAN UTANG : ${trx.metode.toUpperCase()}\n`;
+    } else {
+        struk += `PEMBAYARAN      : ${trx.metode.toUpperCase()}\n`;
+    }
     struk += "================================\n";
     struk += "  Terima Kasih & Semoga Sehat!  \n";
 
-    // Ubah teks menjadi format Byte
     const encoder = new TextEncoder();
     let teksBytes = encoder.encode(struk);
 
     // 2. Menyusun Isi QR Code Lengkap (Struk Digital)
     const isiQRCode = `APOTEK ARSYILA\nTgl: ${trx.tanggal} ${trx.waktu}\nTrx: ${trx.id}\nObat: ${trx.obat}\nJml: ${trx.item} Item\nTotal: Rp ${trx.total.toLocaleString('id-ID')}`;
     
-    // Perhitungan panjang data untuk mesin printer
     const qLen = isiQRCode.length + 3;
     const pL = qLen % 256;
     const pH = Math.floor(qLen / 256);
 
-    // KUNCI POSISI QR CODE KE TENGAH (MENGGUNAKAN KODE ASCII 49)
     let qrBytes = [
-        27, 97, 49, // Perintah ESC a '1' -> Rata TENGAH mutlak
+        27, 97, 49, // Rata TENGAH Mutlak
         29, 40, 107, 4, 0, 49, 65, 50, 0, 
-        29, 40, 107, 3, 0, 49, 67, 5,     // Ukuran QR Code
+        29, 40, 107, 3, 0, 49, 67, 5,     
         29, 40, 107, 3, 0, 49, 69, 48,    
         29, 40, 107, pL, pH, 49, 80, 48   
     ];
 
-    // Memasukkan teks isiQRCode ke dalam bentuk gambar Byte
     for (let i = 0; i < isiQRCode.length; i++) {
         qrBytes.push(isiQRCode.charCodeAt(i));
     }
 
-    // Eksekusi Cetak QR dan Kembalikan ke Kiri
-    qrBytes.push(
-        29, 40, 107, 3, 0, 49, 81, 48, 
-        27, 97, 48, // Perintah ESC a '0' -> Kembalikan spasi ke KIRI normal                 
-        10, 10, 10 // Gulung kertas 3 baris
-    );
+    // Perintah Cetak QR Code
+    qrBytes.push(29, 40, 107, 3, 0, 49, 81, 48);
 
-    // Gabungkan Teks + QR Code
+    // ========================================================
+    // TAHAP 3: MENYUNTIKKAN ID TRANSAKSI DI BAWAH QR CODE
+    // ========================================================
+    // 10 = Enter, 27 69 1 = Huruf Tebal (Bold) ON
+    qrBytes.push(10, 27, 69, 1); 
+    
+    let teksIDTransaksi = `ID TRX: ${trx.id}\n`;
+    for (let i = 0; i < teksIDTransaksi.length; i++) {
+        qrBytes.push(teksIDTransaksi.charCodeAt(i));
+    }
+
+    // 27 69 0 = Huruf Tebal OFF, 27 97 48 = Rata Kiri Normal, 10 = Enter/Spasi Potong
+    qrBytes.push(27, 69, 0, 27, 97, 48, 10, 10, 10);
+    // ========================================================
+
     let payloadAkhir = new Uint8Array(teksBytes.length + qrBytes.length);
     payloadAkhir.set(teksBytes, 0);
     payloadAkhir.set(qrBytes, teksBytes.length);
 
-    // 3. Mengirim ke Printer via Web Bluetooth (DENGAN CHUNKING)
+    // 3. Mengirim ke Printer via Web Bluetooth
     try {
         const teksAsli = elemenTombol.innerHTML;
         elemenTombol.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ...';
 
-        const device = await navigator.bluetooth.requestDevice({
-            acceptAllDevices: true,
-            optionalServices: [
-                '000018f0-0000-1000-8000-00805f9b34fb', 
-                '49535343-fe7d-4ae5-8fa9-9fafd205e455', 
-                'e7810a71-73ae-499d-8c15-faa9aef0c3f2'
-            ] 
-        });
+        if (!printerApotekTerhubung) {
+            printerApotekTerhubung = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: [
+                    '000018f0-0000-1000-8000-00805f9b34fb', 
+                    '49535343-fe7d-4ae5-8fa9-9fafd205e455', 
+                    'e7810a71-73ae-499d-8c15-faa9aef0c3f2'
+                ] 
+            });
+        }
 
-        const server = await device.gatt.connect();
+        const server = await printerApotekTerhubung.gatt.connect();
         const services = await server.getPrimaryServices();
         
         let writeCharacteristic = null;
@@ -2374,25 +2567,24 @@ async function prosesCetakStruk(idTransaksi, elemenTombol) {
 
         if (!writeCharacteristic) throw new Error("Printer tidak valid.");
 
-        // ========================================================
-        // TEKNIK MEMOTONG DATA (CHUNK) AGAR BLUETOOTH TIDAK CRASH
-        // ========================================================
-        const CHUNK_SIZE = 100; // Potong jadi 100 byte per suapan
+        const CHUNK_SIZE = 100; 
         for (let i = 0; i < payloadAkhir.length; i += CHUNK_SIZE) {
             let potonganData = payloadAkhir.slice(i, i + CHUNK_SIZE);
             await writeCharacteristic.writeValue(potonganData);
-            // Beri waktu 50 milidetik agar printer menelan data sebelum disuapi lagi
             await new Promise(resolve => setTimeout(resolve, 50)); 
         }
         
         elemenTombol.innerHTML = teksAsli;
         tampilkanNotifikasiPrint('sukses');
+
     } catch(error) {
         console.log("Error Printer:", error);
-        elemenTombol.innerHTML = '<i class="fa-solid fa-print"></i> Cetak';
-    tampilkanNotifikasiPrint('gagal');
+        printerApotekTerhubung = null; 
+        elemenTombol.innerHTML = '<i class="fa-solid fa-print text-sm"></i> Cetak';
+        tampilkanNotifikasiPrint('gagal');
+    }
 }
-}
+
 
 
 // Fungsi Pengendali Custom Pop-up Alert
@@ -2460,7 +2652,7 @@ function tampilkanNotifikasiPrint(status) {
         judul.className = 'text-2xl font-black tracking-tight relative z-10 mb-2 text-red-900';
         judul.innerText = 'GAGAL MENCETAK!';
         pesan.className = 'text-xs font-bold px-4 py-2 rounded-xl shadow-sm relative z-10 leading-relaxed bg-red-100/80 text-red-700';
-        pesan.innerHTML = 'Pastikan <b>Bluetooth HP menyala</b> dan printer EPPOS terhubung.';
+        pesan.innerHTML = 'Pastikan <b>Bluetooth HP menyala</b> dan printer terhubung.';
         btnTutup.classList.add('bg-gradient-to-r', 'from-red-500', 'to-rose-500', 'hover:from-red-600', 'hover:to-rose-600', 'shadow-red-500/30');
         btnTutup.innerHTML = '<i class="fa-solid fa-rotate-right text-lg"></i> Tutup & Coba Lagi';
         clearTimeout(timerTutupPrint); // Kalau error, biarkan kasir baca dulu (tidak nutup otomatis)
