@@ -2287,7 +2287,7 @@ async function prosesCetakStruk(idTransaksi, elemenTombol) {
     const trx = cashierHistory.find(t => t.id === idTransaksi);
     if(!trx) { alert("Data transaksi tidak ditemukan!"); return; }
 
-    // 1. Menyusun Format Teks Struk Biasa
+    // 1. Menyusun Format Teks Struk Biasa (KOP TENGAH, ISI KIRI)
     let struk = "";
     struk += "         APOTEK ARSYILA         \n";
     struk += "        Desa Bahari Dua         \n";
@@ -2317,8 +2317,9 @@ async function prosesCetakStruk(idTransaksi, elemenTombol) {
     const pL = qLen % 256;
     const pH = Math.floor(qLen / 256);
 
+    // KUNCI POSISI QR CODE KE TENGAH (MENGGUNAKAN KODE ASCII 49)
     let qrBytes = [
-        27, 97, 2, // Geser ke Rata Kanan
+        27, 97, 49, // Perintah ESC a '1' -> Rata TENGAH mutlak
         29, 40, 107, 4, 0, 49, 65, 50, 0, 
         29, 40, 107, 3, 0, 49, 67, 5,     // Ukuran QR Code
         29, 40, 107, 3, 0, 49, 69, 48,    
@@ -2330,10 +2331,10 @@ async function prosesCetakStruk(idTransaksi, elemenTombol) {
         qrBytes.push(isiQRCode.charCodeAt(i));
     }
 
-    // Eksekusi Cetak QR dan Reset Spasi
+    // Eksekusi Cetak QR dan Kembalikan ke Kiri
     qrBytes.push(
         29, 40, 107, 3, 0, 49, 81, 48, 
-        27, 97, 1, // Kembalikan ke Rata Tengah                 
+        27, 97, 48, // Perintah ESC a '0' -> Kembalikan spasi ke KIRI normal                 
         10, 10, 10 // Gulung kertas 3 baris
     );
 
@@ -2342,7 +2343,7 @@ async function prosesCetakStruk(idTransaksi, elemenTombol) {
     payloadAkhir.set(teksBytes, 0);
     payloadAkhir.set(qrBytes, teksBytes.length);
 
-    // 3. Mengirim ke Printer via Web Bluetooth
+    // 3. Mengirim ke Printer via Web Bluetooth (DENGAN CHUNKING)
     try {
         const teksAsli = elemenTombol.innerHTML;
         elemenTombol.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> ...';
@@ -2373,16 +2374,24 @@ async function prosesCetakStruk(idTransaksi, elemenTombol) {
 
         if (!writeCharacteristic) throw new Error("Printer tidak valid.");
 
-        await writeCharacteristic.writeValue(payloadAkhir);
+        // ========================================================
+        // TEKNIK MEMOTONG DATA (CHUNK) AGAR BLUETOOTH TIDAK CRASH
+        // ========================================================
+        const CHUNK_SIZE = 100; // Potong jadi 100 byte per suapan
+        for (let i = 0; i < payloadAkhir.length; i += CHUNK_SIZE) {
+            let potonganData = payloadAkhir.slice(i, i + CHUNK_SIZE);
+            await writeCharacteristic.writeValue(potonganData);
+            // Beri waktu 50 milidetik agar printer menelan data sebelum disuapi lagi
+            await new Promise(resolve => setTimeout(resolve, 50)); 
+        }
         
         elemenTombol.innerHTML = teksAsli;
-        alert("✅ Struk & QR Code berhasil dicetak!");
-
+        tampilkanNotifikasiPrint('sukses');
     } catch(error) {
         console.log("Error Printer:", error);
-        alert("Gagal mencetak. Pastikan Bluetooth HP & Printer EPPOS menyala!");
         elemenTombol.innerHTML = '<i class="fa-solid fa-print"></i> Cetak';
-    }
+    tampilkanNotifikasiPrint('gagal');
+}
 }
 
 
@@ -2404,7 +2413,99 @@ function munculkanAlertPencegatan(namaBarang) {
         bukaModalEdit(targetObatEdit); // Buka form edit
     };
 }
+// --- MESIN ANIMASI NOTIFIKASI PRINT ---
+let timerTutupPrint;
+
+function tampilkanNotifikasiPrint(status) {
+    const modal = document.getElementById('modalNotifikasiPrint');
+    const animasi = document.getElementById('printAnimasiModal');
+    const bgHeader = document.getElementById('printBgHeader');
+    const glow = document.getElementById('printGlow');
+    const iconContainer = document.getElementById('printIconContainer');
+    const icon = document.getElementById('printIcon');
+    const judul = document.getElementById('printJudul');
+    const pesan = document.getElementById('printPesan');
+    const btnTutup = document.getElementById('printBtnTutup');
+
+    // Reset desain dasar (Sapu bersih kelas lama)
+    bgHeader.className = 'px-6 py-8 border-b flex flex-col items-center justify-center relative overflow-hidden';
+    glow.className = 'absolute -top-10 -right-10 w-32 h-32 rounded-full blur-2xl';
+    iconContainer.className = 'h-24 w-24 rounded-full bg-white border-4 shadow-lg flex items-center justify-center mb-4 relative z-10 transition-all duration-300';
+    icon.className = 'fa-solid text-5xl';
+    btnTutup.className = 'w-full inline-flex justify-center items-center gap-2 rounded-xl px-5 py-3.5 text-sm font-bold text-white shadow-lg transition transform hover:-translate-y-1';
+
+    // Riasan Jika SUKSES
+    if (status === 'sukses') {
+        bgHeader.classList.add('bg-gradient-to-br', 'from-emerald-50', 'to-teal-50', 'border-emerald-100');
+        glow.classList.add('bg-emerald-200/40');
+        iconContainer.classList.add('border-emerald-100');
+        icon.classList.add('fa-print', 'text-emerald-500', 'animate-bounce');
+        judul.className = 'text-2xl font-black tracking-tight relative z-10 mb-2 text-emerald-900';
+        judul.innerText = 'CETAK SUKSES!';
+        pesan.className = 'text-xs font-bold px-4 py-2 rounded-xl shadow-sm relative z-10 leading-relaxed bg-emerald-100/80 text-emerald-700';
+        pesan.innerHTML = 'Kertas struk sedang dikeluarkan oleh printer EPPOS...';
+        btnTutup.classList.add('bg-gradient-to-r', 'from-emerald-500', 'to-teal-500', 'hover:from-emerald-600', 'hover:to-teal-600', 'shadow-emerald-500/30');
+        btnTutup.innerHTML = '<i class="fa-solid fa-check-circle text-lg"></i> Mengerti';
+
+        // Tutup otomatis dalam 2.5 detik agar kasir bisa lanjut kerja
+        clearTimeout(timerTutupPrint);
+        timerTutupPrint = setTimeout(() => { tutupNotifikasiPrint(); }, 2500);
+
+    // Riasan Jika GAGAL
+    } else if (status === 'gagal') {
+        bgHeader.classList.add('bg-gradient-to-br', 'from-red-50', 'to-rose-50', 'border-red-100');
+        glow.classList.add('bg-red-200/40');
+        iconContainer.classList.add('border-red-100');
+        icon.classList.add('fa-triangle-exclamation', 'text-red-500', 'animate-pulse');
+        judul.className = 'text-2xl font-black tracking-tight relative z-10 mb-2 text-red-900';
+        judul.innerText = 'GAGAL MENCETAK!';
+        pesan.className = 'text-xs font-bold px-4 py-2 rounded-xl shadow-sm relative z-10 leading-relaxed bg-red-100/80 text-red-700';
+        pesan.innerHTML = 'Pastikan <b>Bluetooth HP menyala</b> dan printer EPPOS terhubung.';
+        btnTutup.classList.add('bg-gradient-to-r', 'from-red-500', 'to-rose-500', 'hover:from-red-600', 'hover:to-rose-600', 'shadow-red-500/30');
+        btnTutup.innerHTML = '<i class="fa-solid fa-rotate-right text-lg"></i> Tutup & Coba Lagi';
+        clearTimeout(timerTutupPrint); // Kalau error, biarkan kasir baca dulu (tidak nutup otomatis)
+    }
+
+    // Munculkan Pop-up dengan efek Zoom & Fade In
+    modal.classList.remove('hidden');
+    setTimeout(() => {
+        animasi.classList.remove('scale-90', 'opacity-0');
+        animasi.classList.add('scale-100', 'opacity-100');
+    }, 10);
+}
+
+function tutupNotifikasiPrint() {
+    const modal = document.getElementById('modalNotifikasiPrint');
+    const animasi = document.getElementById('printAnimasiModal');
+    // Efek Zoom Out & Fade Out
+    animasi.classList.remove('scale-100', 'opacity-100');
+    animasi.classList.add('scale-90', 'opacity-0');
+    setTimeout(() => { modal.classList.add('hidden'); }, 300);
+}
 
 </script>
+<div id="modalNotifikasiPrint" class="relative z-[160] hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity"></div>
+    <div class="fixed inset-0 z-10 w-screen overflow-y-auto">
+        <div class="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+            <div id="printAnimasiModal" class="relative transform overflow-hidden rounded-3xl bg-white text-center shadow-2xl transition-all duration-300 sm:my-8 sm:w-full sm:max-w-sm scale-90 opacity-0">
+                <div id="printBgHeader" class="px-6 py-8 border-b flex flex-col items-center justify-center relative overflow-hidden">
+                    <div id="printGlow" class="absolute -top-10 -right-10 w-32 h-32 rounded-full blur-2xl"></div>
+                    <div id="printIconContainer" class="h-24 w-24 rounded-full bg-white border-4 shadow-lg flex items-center justify-center mb-4 relative z-10">
+                        <i id="printIcon" class="fa-solid text-5xl"></i>
+                    </div>
+                    <h3 id="printJudul" class="text-2xl font-black tracking-tight relative z-10 mb-2">TITLE</h3>
+                    <p id="printPesan" class="text-sm font-bold px-4 py-1.5 rounded-xl shadow-sm relative z-10 leading-relaxed max-w-[250px] mx-auto">Message</p>
+                </div>
+                <div class="bg-white px-6 py-5 border-t border-slate-100">
+                    <button type="button" onclick="tutupNotifikasiPrint()" id="printBtnTutup" class="w-full inline-flex justify-center items-center gap-2 rounded-xl px-5 py-3.5 text-sm font-bold text-white shadow-lg transition transform hover:-translate-y-1">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 </body>
 </html>
