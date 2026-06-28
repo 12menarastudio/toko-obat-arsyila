@@ -934,7 +934,14 @@ Detail Transaksi
                         <i class="fa-solid fa-barcode absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
                         <input type="number" id="inputLacakID" placeholder="Ketik / Scan ID Transaksi..." class="w-full pl-11 pr-4 py-3 font-bold text-slate-900 bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-corporate-600 shadow-inner" onkeypress="if(event.key === 'Enter') prosesLacakID()">
                     </div>
-                    <button onclick="prosesLacakID()" class="w-full mt-3 bg-corporate-600 hover:bg-corporate-700 text-white font-bold py-3 rounded-xl shadow-md transition"><i class="fa-solid fa-search mr-2"></i> Mulai Lacak</button>
+                    <div class="flex gap-2 mt-3">
+    <button onclick="bukaKameraScanner('lacak')" class="w-1/3 bg-slate-800 hover:bg-slate-900 text-white font-bold py-3 rounded-xl shadow-md transition flex items-center justify-center" title="Scan QR Struk">
+        <i class="fa-solid fa-qrcode text-xl"></i>
+    </button>
+    <button onclick="prosesLacakID()" class="w-2/3 bg-corporate-600 hover:bg-corporate-700 text-white font-bold py-3 rounded-xl shadow-md transition">
+        <i class="fa-solid fa-search mr-2"></i> Mulai Lacak
+    </button>
+</div>
                     
                     <div id="hasilLacakArea" class="mt-5 hidden">
                         <div class="border-t border-dashed border-slate-300 pt-4" id="kontenHasilLacak">
@@ -1611,7 +1618,7 @@ function prosesLacakID() {
         </div>`;
     } else {
         statusHtml = `<div class="bg-emerald-50 border border-emerald-200 p-3 rounded-lg mt-3">
-            <p class="text-[10px] font-black text-emerald-600 uppercase mb-1">🟢 STATUS: TRANSAKSI TUNTAS</p>
+            <p class="text-[10px] font-black text-emerald-600 uppercase mb-1">🟢 STATUS: TRANSAKSI LUNAS</p>
             <p class="text-xs text-emerald-800 font-medium">Penjualan putus (${trx.metode}). Tidak ada tunggakan.</p>
         </div>`;
     }
@@ -2317,44 +2324,37 @@ function playBeep() {
 
 function onScanSuccess(decodedText) {
     tutupKameraScanner(); 
-    playBeep(); // Panggil fungsi getar & suara mandiri yang baru kita buat
+    playBeep(); 
     
     if(targetScanAktif === 'gudang') {
-        // Cek apakah barcode sudah ada di database Gudang
         let barangSudahAda = masterItems.find(m => m.barcode === decodedText);
-        
         if (barangSudahAda) {
-            // PENCEGATAN PINTAR
-            // Reset tombol scan agar tidak merekam barcode di form kosong
             document.getElementById('newBarcode').value = '';
             let btnG = document.getElementById('btnScanGudang');
-            if(btnG) { 
-                btnG.classList.replace('bg-emerald-500', 'bg-slate-100'); 
-                btnG.classList.replace('text-white', 'text-slate-600'); 
-                document.getElementById('teksScanGudang').textContent = 'Scan'; 
-            }
-            
-            // Panggil Pop-up Custom kita
+            if(btnG) { btnG.className = 'w-full rounded-lg bg-slate-100 border border-slate-300 text-slate-600 font-bold hover:bg-corporate-600 hover:text-white transition flex items-center justify-center gap-2 shadow-soft'; document.getElementById('teksScanGudang').textContent = 'Scan'; }
             munculkanAlertPencegatan(barangSudahAda.nama);
-            
         } else {
-            // BARANG BARU - Rekam barcode dan persilakan isi form
             document.getElementById('newBarcode').value = decodedText; 
             let btnG = document.getElementById('btnScanGudang');
-            if(btnG){ 
-                btnG.classList.replace('bg-slate-100', 'bg-emerald-500'); 
-                btnG.classList.replace('text-slate-600', 'text-white'); 
-                document.getElementById('teksScanGudang').textContent = 'Terekam!'; 
-            }
-            
-            // Pastikan form Tambah Obat Baru tetap terbuka
+            if(btnG){ btnG.className = 'w-full rounded-lg bg-emerald-500 border border-emerald-600 text-white font-bold transition flex items-center justify-center gap-2 shadow-soft'; document.getElementById('teksScanGudang').textContent = 'Terekam!'; }
             document.getElementById('formTambah').classList.remove('hidden');
         }
     } else if (targetScanAktif === 'kasir') { 
-        // Jika scan dilakukan dari meja kasir
         prosesScanKasir(decodedText); 
+    } else if (targetScanAktif === 'lacak') {
+        // LOGIKA BARU: MENYEDOT ID DARI QR CODE STRUK
+        // QR Code kita berisi teks seperti: "Trx: 1782629533356"
+        // Kita gunakan regex untuk mengambil angka di sebelahnya
+        let match = decodedText.match(/Trx:\s*(\d+)/);
+        if(match && match[1]) {
+            document.getElementById('inputLacakID').value = match[1];
+            prosesLacakID(); // Langsung otomatis jalankan pelacakan!
+        } else {
+            alert("QR Code tidak valid atau ini bukan QR Code Struk Apotek Arsyila.");
+        }
     }
 }
+
 
 
 function resetSistem() {
