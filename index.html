@@ -1232,6 +1232,7 @@ function masukSistem(role) {
     }
     renderMaster(document.getElementById('masterSearch') ? document.getElementById('masterSearch').value : '');
     renderCashier();
+    renderEtalase(); // SUNTIKAN 1: Memaksa Etalase digambar saat halaman pertama kali dimuat (Refresh)
     if(role === 'bos') {
         if(typeof buildChart === 'function') setTimeout(() => buildChart('bar'), 100);
         if(typeof renderLaporan === 'function') renderLaporan();
@@ -1345,6 +1346,8 @@ tabButtons.forEach(btn => {
             renderCashier(); renderCritical();
             if(roleAktif === 'bos' && typeof buildChart === 'function') setTimeout(() => buildChart('bar'), 100);
         }
+        // SUNTIKAN 2: Memastikan Etalase selalu digambar ulang saat Anda mengklik menu "Etalase Produk"
+        if(target === 'transaksi') { renderEtalase(); } 
         if(target === 'laporan') { if(typeof renderLaporan === 'function') renderLaporan(); }
         if(target === 'piutang') { if(typeof renderPiutang === 'function') renderPiutang(); }
     });
@@ -1420,14 +1423,28 @@ function simpanEdit() {
         if(roleAktif === 'bos' && isNaN(mBaru)) { alert('Isi form dengan benar!'); return; }
         if(roleAktif === 'bos' && mBaru >= jBaru) { alert('Ditolak! Harga Jual harus LEBIH BESAR dari Harga Beli agar apotek tidak rugi.'); return; }
 
+        // SAMBUNGAN KABEL: Hitung selisih stok untuk melacak Injeksi Modal (Kulakan/Restok)
+        if(roleAktif === 'bos') {
+            let selisihStok = sBaru - barang.stok;
+            if (selisihStok !== 0) {
+                siklusAktif.qtyTambahan += selisihStok;
+                siklusAktif.modalTambahan += (selisihStok * mBaru);
+            }
+        }
+
+        // Terapkan perubahan ke memori
         barang.nama = nBaru; barang.kategori = kBaru; barang.modal = mBaru; barang.jual = jBaru; barang.stok = sBaru;
 
         let bEtalase = etalaseItems.find(i => i.nama === namaBarangTerpilih);
         if(bEtalase) { bEtalase.nama = nBaru; bEtalase.kategori = kBaru; bEtalase.jual = jBaru; } 
+        
         renderMaster(document.getElementById('masterSearch').value); renderEtalase();
+        if(typeof renderLaporan === 'function') renderLaporan(); // Segarkan Laporan agar Bar Modal langsung bergerak
+        
         tutupModalEdit(); simpanKeMemoriHP(); 
     }
 }
+
 
 let keranjangKasir = [];
 
