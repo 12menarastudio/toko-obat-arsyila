@@ -1384,7 +1384,16 @@ function simpanKeMemoriHP() {
 }
 
 const rupiah = (n) => 'Rp ' + (Number(n) || 0).toLocaleString('id-ID');
-let namaBarangTerpilih = ''; 
+let idBatchTerpilih = null; 
+
+// --- AUTO-MIGRASI DATA LAMA KE SISTEM MULTI-BATCH FIFO ---
+masterItems.forEach(i => { if (!i.idBatch) i.idBatch = 'B-' + Date.now() + Math.random().toString(36).substr(2, 5); });
+etalaseItems.forEach(e => {
+    if (!e.antreanFIFO) {
+        let masterAsli = masterItems.find(m => m.nama === e.nama);
+        e.antreanFIFO = [{ idBatch: masterAsli ? masterAsli.idBatch : 'OLD', modal: masterAsli ? masterAsli.modal : 0, stok: e.stok, expired: masterAsli ? masterAsli.expired : '' }];
+    }
+});
 
 function terbilang(angka) {
     let bilangan = ['','Satu','Dua','Tiga','Empat','Lima','Enam','Tujuh','Delapan','Sembilan','Sepuluh','Sebelas'];
@@ -1439,11 +1448,12 @@ tabButtons.forEach(btn => {
     });
 });
 
-function transferKeEtalase(namaBarang) {
-    let barangGudang = masterItems.find(i => i.nama === namaBarang);
+// --- SISTEM TRANSFER FIFO & MULTI-BATCH (MASTER PROGRAMMER) ---
+function transferKeEtalase(idBatch) {
+    let barangGudang = masterItems.find(i => i.idBatch === idBatch);
     if(barangGudang) {
-        namaBarangTerpilih = namaBarang;
-        document.getElementById('modalNamaObat').textContent = barangGudang.nama;
+        idBatchTerpilih = idBatch;
+        document.getElementById('modalNamaObat').textContent = `${barangGudang.nama} (Exp: ${barangGudang.expired || 'Aman'})`;
         document.getElementById('modalSisaGudang').textContent = barangGudang.stok;
         document.getElementById('inputJumlahTransfer').value = ''; 
         document.getElementById('modalTransfer').classList.remove('hidden'); 
@@ -1456,33 +1466,46 @@ function prosesTransfer() {
     let jumlah = parseInt(jumlahInput);
     if (isNaN(jumlah) || jumlah <= 0) { alert("Mohon ketik jumlah angka yang valid!"); return; }
 
-    let barangGudang = masterItems.find(i => i.nama === namaBarangTerpilih);
-    if (barangGudang && barangGudang.stok >= jumlah) {
-        barangGudang.stok -= jumlah; 
-        let barangEtalase = etalaseItems.find(i => i.nama === barangGudang.nama);
-        if (barangEtalase) { barangEtalase.stok += jumlah; } 
-        else { etalaseItems.push({ nama: barangGudang.nama, kategori: barangGudang.kategori, jual: barangGudang.jual, stok: jumlah }); }
-        renderMaster(document.getElementById('masterSearch').value); 
-        renderEtalase(); tutupModal(); simpanKeMemoriHP(); 
+    let bGudang = masterItems.find(i => i.idBatch === idBatchTerpilih);
+    if (bGudang && bGudang.stok >= jumlah) {
+        bGudang.stok -= jumlah; 
+        let bEtalase = etalaseItems.find(i => i.nama === bGudang.nama);
+        
+        if (!bEtalase) { 
+            bEtalase = { nama: bGudang.nama, kategori: bGudang.kategori, jual: bGudang.jual, stok: 0, antreanFIFO: [] };
+            etalaseItems.push(bEtalase); 
+        }
+        
+        bEtalase.stok += jumlah; 
+        if(!bEtalase.antreanFIFO) bEtalase.antreanFIFO = [];
+        
+        let batchSama = bEtalase.antreanFIFO.find(b => b.idBatch === bGudang.idBatch);
+        if(batchSama) { batchSama.stok += jumlah; } 
+        else { bEtalase.antreanFIFO.push({ idBatch: bGudang.idBatch, modal: bGudang.modal, stok: jumlah, expired: bGudang.expired }); }
+        
+        // Sorting FIFO otomatis: Obat expire paling dekat masuk ke antrean depan!
+        bEtalase.antreanFIFO.sort((a, b) => new Date(a.expired || '2099-12-31') - new Date(b.expired || '2099-12-31'));
+
+        renderMaster(document.getElementById('masterSearch').value); renderEtalase(); tutupModal(); simpanKeMemoriHP(); 
     } else { alert('Gagal! Stok di gudang tidak mencukupi.'); }
 }
 
-function bukaModalHapus(namaBarang) {
-    namaBarangTerpilih = namaBarang;
-    document.getElementById('namaObatHapus').textContent = namaBarang;
+function bukaModalHapus(idBatch) {
+    idBatchTerpilih = idBatch;
+    let barang = masterItems.find(i => i.idBatch === idBatch);
+    document.getElementById('namaObatHapus').textContent = barang ? barang.nama : '';
     document.getElementById('modalHapus').classList.remove('hidden');
 }
 function tutupModalHapus() { document.getElementById('modalHapus').classList.add('hidden'); }
 function prosesHapus() {
-    masterItems = masterItems.filter(i => i.nama !== namaBarangTerpilih); 
-    etalaseItems = etalaseItems.filter(i => i.nama !== namaBarangTerpilih); 
+    masterItems = masterItems.filter(i => i.idBatch !== idBatchTerpilih); 
     renderMaster(document.getElementById('masterSearch').value); renderEtalase();
     tutupModalHapus(); simpanKeMemoriHP(); 
 }
 
-function bukaModalEdit(namaBarang) {
-    namaBarangTerpilih = namaBarang;
-    let barang = masterItems.find(i => i.nama === namaBarang);
+function bukaModalEdit(idBatch) {
+    idBatchTerpilih = idBatch;
+    let barang = masterItems.find(i => i.idBatch === idBatch);
     if(barang) {
         document.getElementById('editNama').value = barang.nama;
         document.getElementById('editKategori').value = barang.kategori;
@@ -1497,43 +1520,33 @@ function bukaModalEdit(namaBarang) {
 }
 function tutupModalEdit() { document.getElementById('modalEdit').classList.add('hidden'); }
 function simpanEdit() {
-    let barang = masterItems.find(i => i.nama === namaBarangTerpilih);
+    let barang = masterItems.find(i => i.idBatch === idBatchTerpilih);
     if(barang) {
-        let nBaru = document.getElementById('editNama').value;
-        let kBaru = document.getElementById('editKategori').value;
-        let mBaru = barang.modal; 
-        if(roleAktif === 'bos') { mBaru = parseInt(document.getElementById('editModal').value); }
-        let jBaru = parseInt(document.getElementById('editJual').value);
-        let sBaru = parseInt(document.getElementById('editStok').value);
+        let nBaru = document.getElementById('editNama').value; let kBaru = document.getElementById('editKategori').value;
+        let mBaru = barang.modal; if(roleAktif === 'bos') { mBaru = parseInt(document.getElementById('editModal').value); }
+        let jBaru = parseInt(document.getElementById('editJual').value); let sBaru = parseInt(document.getElementById('editStok').value);
         let expBaru = document.getElementById('editExpired') ? document.getElementById('editExpired').value : '';
 
-        if(!nBaru || !kBaru || isNaN(jBaru) || isNaN(sBaru)) { alert('Isi form dengan benar!'); return; }
-        if(roleAktif === 'bos' && isNaN(mBaru)) { alert('Isi form dengan benar!'); return; }
-        if(roleAktif === 'bos' && mBaru >= jBaru) { alert('Ditolak! Harga Jual harus LEBIH BESAR dari Harga Beli agar apotek tidak rugi.'); return; }
+        if(!nBaru || !kBaru || isNaN(jBaru) || isNaN(sBaru)) return alert('Isi form dengan benar!');
+        if(roleAktif === 'bos' && isNaN(mBaru)) return alert('Isi form Harga Beli!');
+        if(roleAktif === 'bos' && mBaru >= jBaru) return alert('Ditolak! Harga Jual harus LEBIH BESAR dari Harga Beli.');
 
-        // SAMBUNGAN KABEL: Hitung selisih stok untuk melacak Injeksi Modal (Kulakan/Restok)
         if(roleAktif === 'bos') {
             let selisihStok = sBaru - barang.stok;
-            if (selisihStok !== 0) {
-                siklusAktif.qtyTambahan += selisihStok;
-                siklusAktif.modalTambahan += (selisihStok * mBaru);
-            }
+            if (selisihStok !== 0) { siklusAktif.qtyTambahan += selisihStok; siklusAktif.modalTambahan += (selisihStok * mBaru); }
         }
 
-        // Terapkan perubahan ke memori
-        barang.nama = nBaru; barang.kategori = kBaru; barang.modal = mBaru; barang.jual = jBaru; barang.stok = sBaru; barang.expired = expBaru;
-
-
-
-        let bEtalase = etalaseItems.find(i => i.nama === namaBarangTerpilih);
+        // Cari dulu data etalasenya pakai nama lama, lalu update ke nama baru
+        let bEtalase = etalaseItems.find(i => i.nama === barang.nama);
         if(bEtalase) { bEtalase.nama = nBaru; bEtalase.kategori = kBaru; bEtalase.jual = jBaru; } 
         
+        barang.nama = nBaru; barang.kategori = kBaru; barang.modal = mBaru; barang.jual = jBaru; barang.stok = sBaru; barang.expired = expBaru;
+
         renderMaster(document.getElementById('masterSearch').value); renderEtalase();
-        if(typeof renderLaporan === 'function') renderLaporan(); // Segarkan Laporan agar Bar Modal langsung bergerak
-        
-        tutupModalEdit(); simpanKeMemoriHP(); 
+        if(typeof renderLaporan === 'function') renderLaporan(); tutupModalEdit(); simpanKeMemoriHP(); 
     }
 }
+
 
 
 let keranjangKasir = [];
@@ -1639,13 +1652,34 @@ async function prosesBayar() {
     let totalBelanja = 0, totalLaba = 0, totalItem = 0;
     let namaObatGabungan = [];
 
+    // --- MESIN PEMOTONG FIFO & KALKULATOR LABA (MASTER PROGRAMMER) ---
     keranjangKasir.forEach(k => {
         totalBelanja += (k.jual * k.qty); totalItem += k.qty; namaObatGabungan.push(k.nama);
-        let barangEtalase = etalaseItems.find(e => e.nama === k.nama);
-        if(barangEtalase) barangEtalase.stok -= k.qty;
-        let barangMaster = masterItems.find(m => m.nama === k.nama);
-        let modal = barangMaster ? barangMaster.modal : 0;
-        totalLaba += ((k.jual - modal) * k.qty);
+        let bEtalase = etalaseItems.find(e => e.nama === k.nama);
+        let totalModalItemIni = 0; let sisaQtyDipotong = k.qty;
+
+        if(bEtalase) {
+            bEtalase.stok -= k.qty;
+            if(bEtalase.antreanFIFO && bEtalase.antreanFIFO.length > 0) {
+                // Potong stok dari batch tertua (FIFO Algorithm)
+                for(let i = 0; i < bEtalase.antreanFIFO.length; i++) {
+                    let batch = bEtalase.antreanFIFO[i];
+                    if(batch.stok > 0) {
+                        let ambil = Math.min(sisaQtyDipotong, batch.stok);
+                        batch.stok -= ambil;
+                        sisaQtyDipotong -= ambil;
+                        totalModalItemIni += (ambil * batch.modal);
+                        if(sisaQtyDipotong <= 0) break;
+                    }
+                }
+                // Bersihkan memori kardus yang sudah kosong
+                bEtalase.antreanFIFO = bEtalase.antreanFIFO.filter(b => b.stok > 0);
+            } else {
+                let bMaster = masterItems.find(m => m.nama === k.nama);
+                totalModalItemIni = (bMaster ? bMaster.modal : 0) * k.qty;
+            }
+        }
+        totalLaba += ((k.jual * k.qty) - totalModalItemIni);
     });
 
     if (metode !== 'Debt') { siklusAktif.uangMasuk += totalBelanja; }
@@ -1738,36 +1772,36 @@ function prosesBatalTransaksi() {
         const transaksiYgBatal = cashierHistory.find(t => t.id === idTransaksiAksi);
         if (transaksiYgBatal) {
             if (!transaksiYgBatal.isPelunasan) {
-                // BUG FIX: Hanya kurangi laci fisik jika yang dibatalkan BUKAN transaksi utang (Debt)
+                // Hanya kurangi laci fisik jika yang dibatalkan BUKAN transaksi utang (Debt)
                 if (transaksiYgBatal.metode !== 'Debt') {
                     siklusAktif.uangMasuk -= (transaksiYgBatal.total || 0);
                     if (siklusAktif.uangMasuk < 0) siklusAktif.uangMasuk = 0; 
                 }
             }
-                        let barangEtalase = etalaseItems.find(i => i.nama === transaksiYgBatal.obat);
-            if (barangEtalase) { 
-                barangEtalase.stok += transaksiYgBatal.item; 
-            } else {
-                let barangGudang = masterItems.find(i => i.nama === transaksiYgBatal.obat);
-                if (barangGudang) { 
-                    etalaseItems.push({ nama: barangGudang.nama, kategori: barangGudang.kategori, jual: barangGudang.jual, stok: transaksiYgBatal.item }); 
-                } else {
-                    // FITUR REINKARNASI BARANG ZOMBIE (BARANG RETUR)
-                    let qty = transaksiYgBatal.item || 1;
-                    let hJualRetur = Math.round((transaksiYgBatal.total || 0) / qty);
-                    let hppRetur = Math.round(((transaksiYgBatal.total || 0) - (transaksiYgBatal.laba || 0)) / qty);
-                    
-                    etalaseItems.push({ nama: transaksiYgBatal.obat, kategori: '⚠️ Barang Retur', jual: hJualRetur, stok: qty });
-                    masterItems.unshift({ barcode: '', nama: transaksiYgBatal.obat, kategori: '⚠️ Barang Retur', modal: hppRetur, jual: hJualRetur, stok: 0 });
-                    
-                    if (document.getElementById('masterSearch')) {
-                        renderMaster(document.getElementById('masterSearch').value);
-                    }
-                }
-            }
-        }
-        cashierHistory = cashierHistory.filter(t => t.id !== idTransaksiAksi);
-  if(supabaseClient) supabaseClient.from('cashier_history').delete().eq('id', idTransaksiAksi);
+            
+            // Kalkulasi ulang Modal HPP untuk Barang Retur
+            let qty = transaksiYgBatal.item || 1;
+            let hppRetur = Math.round(((transaksiYgBatal.total || 0) - (transaksiYgBatal.laba || 0)) / qty);
+            let idBatchRetur = 'RETUR-' + Date.now(); // Beri ID Batch Khusus Retur
+            
+            let bEtalase = etalaseItems.find(i => i.nama === transaksiYgBatal.obat);
+            if (bEtalase) { 
+                bEtalase.stok += qty; 
+                if(!bEtalase.antreanFIFO) bEtalase.antreanFIFO = [];
+                // Lempar barang retur ke antrean paling depan agar dijual duluan
+                bEtalase.antreanFIFO.unshift({ idBatch: idBatchRetur, modal: hppRetur, stok: qty, expired: '' });
+            } else {
+                let hJualRetur = Math.round((transaksiYgBatal.total || 0) / qty);
+                etalaseItems.push({ 
+                    nama: transaksiYgBatal.obat, kategori: '⚠️ Barang Retur', jual: hJualRetur, stok: qty,
+                    antreanFIFO: [{ idBatch: idBatchRetur, modal: hppRetur, stok: qty, expired: '' }]
+                }); 
+                masterItems.unshift({ idBatch: idBatchRetur, barcode: '', nama: transaksiYgBatal.obat, kategori: '⚠️ Barang Retur', modal: hppRetur, jual: hJualRetur, stok: 0, expired: '' });
+                if (document.getElementById('masterSearch')) renderMaster(document.getElementById('masterSearch').value);
+            }
+        }
+        cashierHistory = cashierHistory.filter(t => t.id !== idTransaksiAksi);
+        if(supabaseClient) supabaseClient.from('cashier_history').delete().eq('id', idTransaksiAksi);
         renderEtalase(); renderCashier(); renderLaporan(); tutupModalAksiTransaksi(); simpanKeMemoriHP(); 
     }
 }
@@ -1798,7 +1832,8 @@ function simpanObat() {
     if(roleAktif === 'bos' && isNaN(modal)) { alert('Isi Harga Beli!'); return; }
     if(roleAktif === 'bos' && modal >= jual) { alert('Ditolak! Harga Jual harus LEBIH BESAR dari Harga Beli agar apotek tidak rugi.'); return; }
     
-    masterItems.unshift({ barcode, nama, kategori, modal, jual, stok, expired });
+    const idBatch = 'B-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+    masterItems.unshift({ idBatch, barcode, nama, kategori, modal, jual, stok, expired });
 
     if(roleAktif === 'bos') {
         let nilaiSuntikan = modal * stok;
@@ -1886,9 +1921,9 @@ function renderMaster(filter = '') {
         <td class="px-6 py-4 text-center">${expBadge}</td>
         <td class="px-6 py-4">
         <div class="flex items-center justify-center gap-2">
-        <button onclick="transferKeEtalase('${i.nama}')" title="Kirim ke Etalase" class="h-9 w-9 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition shadow-soft hover:shadow-md"><i class="fa-solid fa-boxes-packing text-sm"></i></button>
-        <button onclick="bukaModalEdit('${i.nama}')" title="Edit Data" class="h-9 w-9 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition shadow-soft hover:shadow-md"><i class="fa-solid fa-pen text-sm"></i></button>
-        <button onclick="bukaModalHapus('${i.nama}')" title="Hapus Data" class="h-9 w-9 rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition shadow-soft hover:shadow-md"><i class="fa-solid fa-trash text-sm"></i></button>
+        <button onclick="transferKeEtalase('${i.idBatch}')" title="Kirim ke Etalase" class="h-9 w-9 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition shadow-soft hover:shadow-md"><i class="fa-solid fa-boxes-packing text-sm"></i></button>
+        <button onclick="bukaModalEdit('${i.idBatch}')" title="Edit Data" class="h-9 w-9 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition shadow-soft hover:shadow-md"><i class="fa-solid fa-pen text-sm"></i></button>
+        <button onclick="bukaModalHapus('${i.idBatch}')" title="Hapus Data" class="h-9 w-9 rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition shadow-soft hover:shadow-md"><i class="fa-solid fa-trash text-sm"></i></button>
         </div></td></tr>`;
     }).join('');
     
@@ -1914,7 +1949,11 @@ function renderEtalase() {
     }
 
     tbody.innerHTML = etalaseAktif.map(i => {
-        const dataGudang = masterItems.find(m => m.nama === i.nama); const hargaBeli = dataGudang ? dataGudang.modal : 0;
+        // Logika Pintar: Tampilkan Harga Beli dari Antrean FIFO paling depan (Barang Tertua)
+        let hargaBeli = 0;
+        if (i.antreanFIFO && i.antreanFIFO.length > 0) { hargaBeli = i.antreanFIFO[0].modal; } 
+        else { const dataGudang = masterItems.find(m => m.nama === i.nama); hargaBeli = dataGudang ? dataGudang.modal : 0; }
+        
         totalAsetBeli += (hargaBeli * i.stok); totalAsetJual += (i.jual * i.stok); totalStokFisik += i.stok;
         return `
         <tr class="hover:bg-slate-50 transition border-b border-slate-100">
@@ -2577,7 +2616,7 @@ function bukaModalTransferMasal() {
     const list = document.getElementById('listMasalBody');
     list.innerHTML = masterItems.map((o, index) => `
         <div class="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-xl">
-            <div><p class="font-bold text-sm text-slate-800">${o.nama}</p><p class="text-[11px] text-slate-600">Stok Gudang: <span class="font-black text-emerald-600">${o.stok}</span></p></div>
+            <div><p class="font-bold text-sm text-slate-800">${o.nama}</p><p class="text-[11px] text-slate-600">Sisa: <span class="font-black text-emerald-600">${o.stok}</span> | Exp: <span class="font-bold text-red-500">${o.expired || '-'}</span></p></div>
             <div class="flex items-center gap-2">
                 <button type="button" onclick="ubahJumlah('masal-${index}', -1)" class="h-8 w-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold">-</button>
                 <input type="number" id="masal-${index}" value="0" min="0" max="${o.stok}" class="w-12 rounded-lg border border-slate-200 text-center font-black text-sm py-1.5 focus:ring-2 focus:ring-emerald-500 focus:outline-none">
@@ -2599,8 +2638,23 @@ function prosesTransferMasal() {
     masterItems.forEach((o, index) => {
         let val = parseInt(document.getElementById(`masal-${index}`).value) || 0;
         if (val > 0 && o.stok >= val) {
-            o.stok -= val; let e = etalaseItems.find(i => i.nama === o.nama);
-            if(e) e.stok += val; else etalaseItems.push({ nama: o.nama, kategori: o.kategori, jual: o.jual, stok: val });
+            o.stok -= val; 
+            let bEtalase = etalaseItems.find(i => i.nama === o.nama);
+            
+            if(!bEtalase) { 
+                bEtalase = { nama: o.nama, kategori: o.kategori, jual: o.jual, stok: 0, antreanFIFO: [] };
+                etalaseItems.push(bEtalase); 
+            }
+            
+            bEtalase.stok += val;
+            if(!bEtalase.antreanFIFO) bEtalase.antreanFIFO = [];
+            
+            let batchSama = bEtalase.antreanFIFO.find(b => b.idBatch === o.idBatch);
+            if(batchSama) { batchSama.stok += val; } 
+            else { bEtalase.antreanFIFO.push({ idBatch: o.idBatch, modal: o.modal, stok: val, expired: o.expired }); }
+            
+            // Pengurutan pintar berdasarkan kedaluwarsa terdekat
+            bEtalase.antreanFIFO.sort((a, b) => new Date(a.expired || '2099-12-31') - new Date(b.expired || '2099-12-31'));
         }
     });
     renderMaster(); renderEtalase(); tutupModalTransferMasal(); simpanKeMemoriHP();
