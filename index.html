@@ -1469,13 +1469,15 @@ function prosesTransfer() {
     let bGudang = masterItems.find(i => i.idBatch === idBatchTerpilih);
     if (bGudang && bGudang.stok >= jumlah) {
         bGudang.stok -= jumlah; 
-        let bEtalase = etalaseItems.find(i => i.nama === bGudang.nama);
+                // Mencari obat di etalase menggunakan DNA Induk agar tidak meleset
+        let bEtalase = etalaseItems.find(i => (i.dnaInduk === bGudang.dnaInduk) || (i.nama === bGudang.nama));
         
         if (!bEtalase) { 
-            bEtalase = { nama: bGudang.nama, kategori: bGudang.kategori, jual: bGudang.jual, stok: 0, antreanFIFO: [] };
+            // Injeksi DNA Induk ke Etalase saat pertama kali dibuat
+            bEtalase = { dnaInduk: bGudang.dnaInduk, nama: bGudang.nama, kategori: bGudang.kategori, jual: bGudang.jual, stok: 0, antreanFIFO: [] };
             etalaseItems.push(bEtalase); 
         }
-        
+
         bEtalase.stok += jumlah; 
         if(!bEtalase.antreanFIFO) bEtalase.antreanFIFO = [];
         
@@ -1531,21 +1533,58 @@ function simpanEdit() {
         if(roleAktif === 'bos' && isNaN(mBaru)) return alert('Isi form Harga Beli!');
         if(roleAktif === 'bos' && mBaru >= jBaru) return alert('Ditolak! Harga Jual harus LEBIH BESAR dari Harga Beli.');
 
+        let selisihStok = sBaru - barang.stok;
+
+        // PASTIKAN OBAT PUNYA DNA (Untuk migrasi data lama yang belum punya DNA)
+        if (!barang.dnaInduk) barang.dnaInduk = barang.barcode ? barang.barcode : 'DNA-' + barang.nama.replace(/\s/g, '');
+
+        if (selisihStok > 0 && (expBaru !== barang.expired || mBaru !== barang.modal)) {
+            let konfirmasi = confirm("🪄 DETEKSI KULAKAN BARU:\n\nSistem melihat Anda menambah stok (+ " + selisihStok + " Box) sekaligus mengubah Tanggal Expired / Harga Beli.\n\nApakah ini KULAKAN BARU? (Klik OK agar sistem memisahkannya otomatis menjadi baris baru di Gudang).");
+            
+            if (konfirmasi) {
+                // Buat Kardus Baru dengan DNA INDUK YANG SAMA
+                const idBatchBaru = 'B-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+                masterItems.unshift({ 
+                    idBatch: idBatchBaru, dnaInduk: barang.dnaInduk, barcode: barang.barcode, 
+                    nama: nBaru, kategori: kBaru, modal: mBaru, jual: jBaru, stok: selisihStok, expired: expBaru 
+                });
+
+                if(roleAktif === 'bos') { siklusAktif.qtyTambahan += selisihStok; siklusAktif.modalTambahan += (selisihStok * mBaru); }
+
+                renderMaster(document.getElementById('masterSearch').value); renderEtalase();
+                if(typeof renderLaporan === 'function') renderLaporan(); tutupModalEdit(); simpanKeMemoriHP();
+                alert("Sukses! Obat kulakan berhasil dipisahkan menjadi kardus baru di Gudang.");
+                return; 
+            }
+        }
+
+        // JIKA EDIT BIASA
         if(roleAktif === 'bos') {
-            let selisihStok = sBaru - barang.stok;
             if (selisihStok !== 0) { siklusAktif.qtyTambahan += selisihStok; siklusAktif.modalTambahan += (selisihStok * mBaru); }
         }
 
-        // Cari dulu data etalasenya pakai nama lama, lalu update ke nama baru
-        let bEtalase = etalaseItems.find(i => i.nama === barang.nama);
-        if(bEtalase) { bEtalase.nama = nBaru; bEtalase.kategori = kBaru; bEtalase.jual = jBaru; } 
-        
-        barang.nama = nBaru; barang.kategori = kBaru; barang.modal = mBaru; barang.jual = jBaru; barang.stok = sBaru; barang.expired = expBaru;
+        // --- OTAK BARU: HANYA UBAH BARIS INI SAJA ---
+        barang.nama = nBaru; 
+        barang.kategori = kBaru; 
+        barang.modal = mBaru; 
+        barang.jual = jBaru; 
+        barang.stok = sBaru; 
+        barang.expired = expBaru;
+
+        // Update Etalase yang punya DNA / Nama Sama
+        let bEtalase = etalaseItems.find(i => i.dnaInduk === barang.dnaInduk || i.nama === barang.nama);
+        if(bEtalase) { 
+            bEtalase.dnaInduk = barang.dnaInduk; // Injeksi DNA ke etalase jika belum punya
+            bEtalase.nama = nBaru; // Etalase akan memakai nama hasil editan terakhir
+            bEtalase.kategori = kBaru; 
+            bEtalase.jual = jBaru; 
+        } 
 
         renderMaster(document.getElementById('masterSearch').value); renderEtalase();
         if(typeof renderLaporan === 'function') renderLaporan(); tutupModalEdit(); simpanKeMemoriHP(); 
     }
 }
+
 
 
 
@@ -1819,13 +1858,13 @@ function resetFilterTanggal() { document.getElementById('filterTanggal').value =
 
 function toggleForm() { document.getElementById('formTambah').classList.toggle('hidden'); }
 function simpanObat() {
-    const barcode = escapeHTML(document.getElementById('newBarcode').value || '');
-    const nama = escapeHTML(document.getElementById('newNama').value);
-    const kategori = escapeHTML(document.getElementById('newKategori').value);
-  let modalInput = document.getElementById('newModal');
+    const barcode = escapeHTML(document.getElementById('newBarcode').value || '');
+    const nama = escapeHTML(document.getElementById('newNama').value);
+    const kategori = escapeHTML(document.getElementById('newKategori').value);
+    let modalInput = document.getElementById('newModal');
     let modal = roleAktif === 'bos' && modalInput ? parseInt(modalInput.value) : 0;
     const jual = parseInt(document.getElementById('newJual').value);
-        const stok = parseInt(document.getElementById('newStok').value);
+    const stok = parseInt(document.getElementById('newStok').value);
     const expired = document.getElementById('newExpired') ? document.getElementById('newExpired').value : '';
 
     if(!nama || !kategori || isNaN(jual) || isNaN(stok)) { alert('Isi semua form dengan benar!'); return; }
@@ -1833,7 +1872,22 @@ function simpanObat() {
     if(roleAktif === 'bos' && modal >= jual) { alert('Ditolak! Harga Jual harus LEBIH BESAR dari Harga Beli agar apotek tidak rugi.'); return; }
     
     const idBatch = 'B-' + Date.now() + '-' + Math.floor(Math.random()*1000);
-    masterItems.unshift({ idBatch, barcode, nama, kategori, modal, jual, stok, expired });
+    
+    // --- MESIN DNA INDUK (YANG DISEMPURNAKAN) ---
+    let dnaInduk = '';
+    if (barcode) { 
+        dnaInduk = barcode; 
+    } else {
+        // Jika ketik manual (tanpa barcode), mesin otomatis mencari apakah nama ini sudah ada di Gudang
+        let cekGudang = masterItems.find(m => m.nama.toLowerCase() === nama.toLowerCase());
+        if (cekGudang && cekGudang.dnaInduk) {
+            dnaInduk = cekGudang.dnaInduk; // Pinjam DNA saudara tuanya agar Zebra Grouping tidak pecah!
+        } else {
+            dnaInduk = 'DNA-' + Date.now(); // Buat DNA baru jika benar-benar obat baru
+        }
+    }
+
+    masterItems.unshift({ idBatch, dnaInduk, barcode, nama, kategori, modal, jual, stok, expired });
 
     if(roleAktif === 'bos') {
         let nilaiSuntikan = modal * stok;
@@ -1848,7 +1902,6 @@ function simpanObat() {
     document.getElementById('newBarcode').value = ''; document.getElementById('newNama').value = ''; document.getElementById('newKategori').value = ''; 
     if(modalInput) modalInput.value = ''; document.getElementById('newJual').value = ''; document.getElementById('newStok').value = '';
     if(document.getElementById('newExpired')) document.getElementById('newExpired').value = '';
-
     
     let btnG = document.getElementById('btnScanGudang');
     if(btnG) { btnG.classList.replace('bg-emerald-500', 'bg-slate-100'); btnG.classList.replace('text-white', 'text-slate-600'); document.getElementById('teksScanGudang').textContent = 'Scan'; }
@@ -1857,6 +1910,7 @@ function simpanObat() {
     if(typeof renderLaporan === 'function') renderLaporan();
     alert('Berhasil! ' + nama + ' tersimpan.');
 }
+
 
 function eksekusiTutupBuku() {
     const konfirmasi = confirm("🔐 KONFIRMASI TUTUP BUKU\n\nApakah Anda yakin ingin melakukan Tutup Buku sekarang?\nIni akan mengunci status keuangan saat ini dan memulai Siklus Modal baru dari awal (Uang Keluar direset, dan Aset Barang saat ini dihitung ulang sebagai Modal Awal bulan yang baru).");
@@ -1894,16 +1948,27 @@ function renderCritical() {
 
 function renderMaster(filter = '') {
     const f = filter.trim().toLowerCase();
-    const rows = masterItems.filter(i => i.nama !== '___SYSTEM_AUTH___' && ((i.nama && i.nama.toLowerCase().includes(f)) || (i.kategori && i.kategori.toLowerCase().includes(f))));
+    let rows = masterItems.filter(i => i.nama !== '___SYSTEM_AUTH___' && ((i.nama && i.nama.toLowerCase().includes(f)) || (i.kategori && i.kategori.toLowerCase().includes(f))));
+    
+    // PENAMBAL DNA UNTUK DATA LAMA:
+    rows.forEach(r => { if(!r.dnaInduk) r.dnaInduk = r.barcode ? r.barcode : 'DNA-' + r.nama.replace(/\s/g, ''); });
+
+    // --- PENGURUTAN BERBASIS DNA (Bukan Nama Lagi) ---
+    // Agar walau namanya diedit beda, mereka tetap berkumpul karena DNA-nya sama
+    rows.sort((a, b) => a.dnaInduk.localeCompare(b.dnaInduk));
+    
     document.getElementById('masterEmpty').classList.toggle('hidden', rows.length !== 0);
     
     let totalAsetBeliGudang = 0; let totalAsetJualGudang = 0; let totalStokFisikGudang = 0;
+    
+    let htmlContent = '';
+    let currentDna = '';
+    let isBgAbuAbu = false; 
 
-    document.getElementById('masterBody').innerHTML = rows.map(i => {
+    rows.forEach(i => {
         totalAsetBeliGudang += (i.modal * i.stok); totalAsetJualGudang += (i.jual * i.stok); totalStokFisikGudang += i.stok;
         const stokBadge = i.stok <= 6 ? `<span class="inline-block rounded-full bg-red-100 text-red-700 px-3 py-1.5 text-xs font-bold">${i.stok}</span>` : `<span class="inline-block rounded-full bg-emerald-100 text-emerald-700 px-3 py-1.5 text-xs font-bold">${i.stok}</span>`;
         
-        // Sensor Penghitung Mundur Kedaluwarsa
         let expBadge = '<span class="text-xs text-slate-300 font-medium">-</span>';
         if (i.expired) {
             let d1 = new Date(getTanggalLokal()); let d2 = new Date(i.expired);
@@ -1913,8 +1978,16 @@ function renderMaster(filter = '') {
             else expBadge = `<span class="inline-flex items-center rounded-full bg-slate-50 text-slate-500 px-3 py-1 text-[10px] font-bold border border-slate-200">${i.expired}</span>`;
         }
 
-        return `
-        <tr class="hover:bg-slate-50 transition border-b border-slate-100">
+        // --- SAKLAR PENGGANTI WARNA BLOK BERDASARKAN DNA ---
+        if (i.dnaInduk !== currentDna) {
+            isBgAbuAbu = !isBgAbuAbu; 
+            currentDna = i.dnaInduk;
+        }
+        
+        let warnaBaris = isBgAbuAbu ? 'bg-slate-100 hover:bg-slate-200 border-slate-200' : 'bg-white hover:bg-slate-50 border-slate-100';
+
+        htmlContent += `
+        <tr class="transition border-b ${warnaBaris}">
         <td class="px-6 py-4 font-semibold text-slate-900">${i.nama}</td><td class="px-6 py-4 text-slate-600">${i.kategori}</td>
         <td class="only-bos px-6 py-4 text-right text-slate-700 font-medium">${rupiah(i.modal)}</td><td class="px-6 py-4 text-right font-bold text-corporate-700">${rupiah(i.jual)}</td>
         <td class="px-6 py-4 text-center">${stokBadge}</td>
@@ -1925,7 +1998,9 @@ function renderMaster(filter = '') {
         <button onclick="bukaModalEdit('${i.idBatch}')" title="Edit Data" class="h-9 w-9 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white transition shadow-soft hover:shadow-md"><i class="fa-solid fa-pen text-sm"></i></button>
         <button onclick="bukaModalHapus('${i.idBatch}')" title="Hapus Data" class="h-9 w-9 rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white transition shadow-soft hover:shadow-md"><i class="fa-solid fa-trash text-sm"></i></button>
         </div></td></tr>`;
-    }).join('');
+    });
+    
+    document.getElementById('masterBody').innerHTML = htmlContent; 
     
     if(document.getElementById('rekapanBeliGudang')) {
         document.getElementById('rekapanBeliGudang').textContent = rupiah(totalAsetBeliGudang);
@@ -1934,6 +2009,7 @@ function renderMaster(filter = '') {
     }
     renderCritical(); 
 }
+
 
 function renderEtalase() {
     const tbody = document.getElementById('etalaseBody');
@@ -2642,7 +2718,9 @@ function prosesTransferMasal() {
             let bEtalase = etalaseItems.find(i => i.nama === o.nama);
             
             if(!bEtalase) { 
-                bEtalase = { nama: o.nama, kategori: o.kategori, jual: o.jual, stok: 0, antreanFIFO: [] };
+                bEtalase = { dnaInduk: o.dnaInduk, nama: o.nama, kategori: o.kategori, jual: o.jual, stok: 0, antreanFIFO: [] };
+
+
                 etalaseItems.push(bEtalase); 
             }
             
