@@ -37,8 +37,19 @@ tailwind.config = {
         background-color: #f8fafc; position: relative; overflow: hidden;
         display: flex; flex-direction: column; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
     }
-    @media (min-width: 640px) { .mobile-frame { border-radius: 2.5rem; height: 90vh; border: 8px solid #0f172a; } }
+        @media (min-width: 640px) { .mobile-frame { border-radius: 2.5rem; height: 90vh; border: 8px solid #0f172a; } }
+    
+    /* Mesin Format PDF Laporan */
+    @media print {
+        body { background: white !important; margin: 0; padding: 0; }
+        .mobile-frame { border: none !important; box-shadow: none !important; width: 100% !important; max-width: 100% !important; height: auto !important; max-height: none !important; }
+        .absolute.bottom-0, button, .sticky.top-0 { display: none !important; }
+        #layar-laporan { display: block !important; }
+        #kontenLaporanMobile { padding: 0 !important; margin-top: -20px !important; }
+        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    }
 </style>
+
 </head>
 <body class="text-slate-800">
 
@@ -148,9 +159,10 @@ tailwind.config = {
                                 </h4>
                                 <p class="text-[9px] text-slate-500 font-medium mt-0.5" id="berandaJenisObat">0 Obat Terdaftar</p>
                             </div>
-                            <div class="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-50 border border-red-100 text-red-500 text-[8px] font-black tracking-widest uppercase">
-                                <i class="fa-solid fa-circle text-[5px] animate-pulse"></i> Live
+                                                        <div id="indikatorCloudMobile" class="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-50 border border-red-100 text-red-500 text-[8px] font-black tracking-widest uppercase transition-colors duration-500">
+                                <i class="fa-solid fa-circle text-[5px] animate-pulse"></i> <span id="teksCloudMobile">Live</span>
                             </div>
+
                         </div>
 
                         <div class="mt-1 mb-2">
@@ -257,11 +269,15 @@ tailwind.config = {
         <div id="layar-riwayat" class="layar-app hidden pb-6">
             <div class="sticky top-0 bg-[#f1f5f9]/90 backdrop-blur-md z-20 px-6 pt-10 pb-4 border-b border-slate-200/60 flex items-center gap-3">
                 <button onclick="bukaLayar('beranda')" class="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm active:scale-95 transition-transform"><i class="fa-solid fa-arrow-left"></i></button>
-                <div>
+                                <div class="flex-1">
                     <h2 class="font-black text-corporate-900 text-2xl tracking-tight">Riwayat</h2>
                     <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Catatan Penjualan</p>
                 </div>
+                <button onclick="bukaModalLacakMobile()" class="w-10 h-10 rounded-2xl bg-corporate-50 text-corporate-600 flex items-center justify-center shadow-sm active:scale-95 transition-transform border border-corporate-100">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </button>
             </div>
+
             
             <div class="px-6 py-4">
                 <input type="date" id="filterTglRiwayatMobile" onchange="renderRiwayatMobile()" class="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-corporate-500/20 focus:border-corporate-500 focus:outline-none shadow-sm transition-all text-slate-500">
@@ -306,11 +322,15 @@ tailwind.config = {
         <div id="layar-laporan" class="layar-app hidden pb-6">
             <div class="sticky top-0 bg-[#f1f5f9]/90 backdrop-blur-md z-20 px-6 pt-10 pb-4 border-b border-slate-200/60 flex items-center gap-3">
                 <button onclick="bukaLayar('beranda')" class="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm active:scale-95 transition-transform"><i class="fa-solid fa-arrow-left"></i></button>
-                <div>
+                                <div class="flex-1">
                     <h2 class="font-black text-corporate-900 text-2xl tracking-tight">Laporan</h2>
                     <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Keuangan & Performa</p>
                 </div>
+                <button onclick="window.print()" class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm active:scale-95 transition-transform border border-blue-100">
+                    <i class="fa-solid fa-file-pdf"></i>
+                </button>
             </div>
+
             
             <div class="px-6 py-4">
                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Filter Tanggal</label>
@@ -724,6 +744,11 @@ tailwind.config = {
                 </div>
             </div>
 
+                            <button onclick="resetSistemMobile()" class="mt-4 w-full bg-red-50 hover:bg-red-100 border border-red-200 text-red-500 text-xs font-bold py-3 rounded-2xl transition-colors flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Kembalikan ke Pengaturan Awal (Reset)
+                </button>
+            </div>
+
             <div class="p-6 border-t border-slate-100 bg-white grid grid-cols-2 gap-3 rounded-b-3xl">
                 <button onclick="tutupModalMobile('modalSetelanMobile')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3.5 rounded-2xl transition-colors">Batal</button>
                 <button onclick="prosesSimpanSetelanMobile()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 rounded-2xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2">
@@ -733,8 +758,49 @@ tailwind.config = {
         </div>
     </div>
 
+    <!-- MODAL LACAK ID TRANSAKSI (SCAN STRUK) -->
+    <div id="modalLacakMobile" class="absolute inset-0 z-[145] hidden flex items-end sm:items-center justify-center pointer-events-none">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity pointer-events-auto" onclick="tutupModalMobile('modalLacakMobile')"></div>
+        
+        <div class="bg-[#f8fafc] w-full max-h-[85vh] rounded-t-3xl sm:rounded-3xl sm:w-[90%] sm:mb-10 shadow-2xl relative z-10 pointer-events-auto transform transition-transform translate-y-full flex flex-col" id="panelLacakMobile">
+            <div class="flex justify-center pt-3 pb-2" onclick="tutupModalMobile('modalLacakMobile')">
+                <div class="w-12 h-1.5 bg-slate-200 rounded-full"></div>
+            </div>
+            
+            <div class="px-6 pb-4 border-b border-slate-200 flex items-center gap-3">
+                <div class="h-10 w-10 rounded-xl bg-corporate-50 flex items-center justify-center text-corporate-600 border border-corporate-200">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-slate-800 text-lg leading-tight">Lacak Struk</h3>
+                    <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Verifikasi ID Transaksi</p>
+                </div>
+            </div>
+
+            <div class="p-6 overflow-y-auto hide-scrollbar flex-1 space-y-4">
+                <div class="flex gap-2">
+                    <div class="relative flex-1">
+                        <i class="fa-solid fa-barcode absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                        <input type="number" id="inputLacakIDMobile" placeholder="Ketik ID..." class="w-full bg-white border border-slate-200 rounded-2xl pl-11 pr-4 py-3 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-corporate-500/20 focus:border-corporate-500 focus:outline-none transition-all shadow-sm">
+                    </div>
+                    <button onclick="bukaScannerKameraMobile('lacak')" class="w-12 h-12 bg-slate-800 hover:bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-md transition-transform active:scale-95 shrink-0">
+                        <i class="fa-solid fa-qrcode text-lg"></i>
+                    </button>
+                </div>
+                
+                <button onclick="prosesLacakIDMobile()" class="w-full bg-corporate-600 hover:bg-corporate-700 text-white font-bold py-3.5 rounded-2xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm">
+                    Mulai Lacak
+                </button>
+
+                <div id="hasilLacakAreaMobile" class="mt-4 hidden pt-4 border-t border-dashed border-slate-300">
+                    <!-- Area hasil disuntikkan lewat JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- CUSTOM ALERT (UI/UX ESTETIK) -->
-    <div id="modalAlertMobile" class="absolute inset-0 z-[200] bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center transition-opacity duration-300 opacity-0">
+<div id="modalAlertMobile" class="absolute inset-0 z-[200] bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center transition-opacity duration-300 opacity-0">
         <div class="bg-white w-[85%] max-w-[320px] rounded-[2rem] shadow-2xl overflow-hidden transform transition-transform duration-300 scale-90" id="panelAlertMobile">
             <div id="headerAlertMobile" class="pt-8 pb-6 px-6 text-center relative">
                 <div class="w-16 h-16 mx-auto rounded-full flex items-center justify-center text-3xl mb-3 shadow-inner" id="iconAlertMobile"></div>
@@ -2203,9 +2269,109 @@ bukaLayar = function(targetLayar) {
     if(targetLayar === 'laporan') renderLaporanMobile();
 }
 
+// ==========================================
+// MESIN CLOUD SYNC (SUPABASE) & INDIKATOR
+// ==========================================
+let supabaseClient = null; // Bisa diisi kredensial Supabase kelak
+async function sinkronKeAwanMobile() {
+    if (!supabaseClient) return;
+    
+    // Animasi Indikator Sinkronisasi (Warna Hijau Menyala sesaat)
+    const indikator = document.getElementById('indikatorCloudMobile');
+    const teks = document.getElementById('teksCloudMobile');
+    if(indikator && teks) {
+        indikator.classList.replace('bg-red-50', 'bg-emerald-50');
+        indikator.classList.replace('text-red-500', 'text-emerald-500');
+        indikator.classList.replace('border-red-100', 'border-emerald-100');
+        teks.innerText = 'SYNC';
+    }
+
+    try {
+        if (masterItems.length > 0) await supabaseClient.from('master_items').upsert(masterItems, { onConflict: 'nama' });
+        if (etalaseItems.length > 0) await supabaseClient.from('etalase_items').upsert(etalaseItems, { onConflict: 'nama' });
+        if (cashierHistory.length > 0) await supabaseClient.from('cashier_history').upsert(cashierHistory, { onConflict: 'id' });
+    } catch (err) { console.log(err); }
+
+    setTimeout(() => {
+        if(indikator && teks) {
+            indikator.classList.replace('bg-emerald-50', 'bg-red-50');
+            indikator.classList.replace('text-emerald-500', 'text-red-500');
+            indikator.classList.replace('border-emerald-100', 'border-red-100');
+            teks.innerText = 'Live';
+        }
+    }, 1500);
+}
+// Panggil sinkronisasi otomatis tiap 10 detik jika ada akses internet
+setInterval(() => { sinkronKeAwanMobile(); }, 10000);
+
+
+// ==========================================
+// MESIN LACAK ID TRANSAKSI & RESET
+// ==========================================
+function bukaModalLacakMobile() {
+    document.getElementById('inputLacakIDMobile').value = ''; 
+    document.getElementById('hasilLacakAreaMobile').classList.add('hidden');
+    bukaModalMobile('modalLacakMobile', 'panelLacakMobile');
+}
+
+function prosesLacakIDMobile() {
+    const inputID = parseInt(document.getElementById('inputLacakIDMobile').value);
+    const area = document.getElementById('hasilLacakAreaMobile');
+    
+    if(!inputID) return alert("⚠️ Ketik nomor ID transaksi yang valid!");
+    
+    const trx = cashierHistory.find(t => t.id === inputID);
+    area.classList.remove('hidden');
+    
+    if(!trx) {
+        area.innerHTML = `<div class="text-center p-4 bg-red-50 rounded-2xl border border-red-100"><i class="fa-solid fa-file-circle-xmark text-3xl text-red-300 mb-2 block"></i><p class="text-xs font-bold text-red-600">ID Transaksi tidak ditemukan.</p></div>`;
+        return;
+    }
+
+    let statusHtml = '';
+    if (trx.metode === 'Debt') {
+        if(trx.statusLunas) {
+            statusHtml = `<div class="bg-emerald-50 border border-emerald-200 p-3 rounded-xl mt-3"><p class="text-[9px] font-black text-emerald-600 uppercase mb-1 tracking-wider"><i class="fa-solid fa-check-circle"></i> SUDAH DILUNASI</p><p class="text-[11px] text-emerald-800 font-medium leading-tight">Utang telah dibayar via ${trx.idTerkait || '-'}</p></div>`;
+        } else {
+            statusHtml = `<div class="bg-red-50 border border-red-200 p-3 rounded-xl mt-3"><p class="text-[9px] font-black text-red-600 uppercase mb-1 tracking-wider"><i class="fa-solid fa-triangle-exclamation"></i> BELUM BAYAR</p><p class="text-[11px] text-red-800 font-medium leading-tight">Faktur kasbon ini masih menunggak.</p></div>`;
+        }
+    } else if (trx.isPelunasan) {
+        statusHtml = `<div class="bg-blue-50 border border-blue-200 p-3 rounded-xl mt-3"><p class="text-[9px] font-black text-blue-600 uppercase mb-1 tracking-wider"><i class="fa-solid fa-link"></i> BUKTI PELUNASAN</p><p class="text-[11px] text-blue-800 font-medium leading-tight">Nota terima uang untuk Faktur ID: ${trx.idTerkait || '-'}</p></div>`;
+    } else {
+        statusHtml = `<div class="bg-slate-50 border border-slate-200 p-3 rounded-xl mt-3"><p class="text-[9px] font-black text-slate-600 uppercase mb-1 tracking-wider"><i class="fa-solid fa-check"></i> TRANSAKSI LUNAS</p><p class="text-[11px] text-slate-600 font-medium leading-tight">Pembelian putus via ${trx.metode}.</p></div>`;
+    }
+
+    area.innerHTML = `
+        <div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm">
+            <h4 class="font-black text-corporate-900 text-sm mb-1 tracking-tight">Rincian Struk</h4>
+            <div class="flex justify-between items-center text-[10px] font-bold text-slate-400 mb-3 border-b border-slate-100 pb-2">
+                <span><i class="fa-regular fa-clock"></i> ${trx.tanggal} (${trx.waktu})</span>
+                <span>Kasir: ${trx.kasir}</span>
+            </div>
+            <p class="text-xs font-bold text-slate-800 leading-tight">${trx.obat}</p>
+            <p class="text-2xl font-black text-corporate-700 mt-2">${rupiah(trx.total)}</p>
+            ${statusHtml}
+        </div>
+    `;
+}
+
+function resetSistemMobile() {
+    tampilkanConfirmMobile("PERINGATAN BAHAYA!\n\nApakah Anda yakin ingin menghapus SEMUA DATA secara permanen? Gudang, Etalase, Riwayat, Laporan, dan Siklus Modal akan dikosongkan ke posisi 0.", function() {
+        localStorage.setItem('apotek_masterItems', JSON.stringify([])); 
+        localStorage.setItem('apotek_etalaseItems', JSON.stringify([])); 
+        localStorage.setItem('apotek_cashierHistory', JSON.stringify([]));
+        localStorage.setItem('apotek_siklusAktif', JSON.stringify({ modalAwal: 0, qtyAwal: 0, modalTambahan: 0, qtyTambahan: 0, uangMasuk: 0, tanggalStart: getTanggalLokal() }));
+        
+        alert("✅ Sistem berhasil dibersihkan sampai ke akarnya! Memuat ulang..."); 
+        setTimeout(() => { window.location.reload(); }, 1200); 
+    }, null, 'bahaya'); 
+}
+
+
 // Pasang Profil dari Memory saat awal mula
 window.onload = () => { 
     try {
+
         let p = JSON.parse(localStorage.getItem('apotek_profilData'));
         if(p) { profilApotek = p; document.querySelector('h1.tracking-tight').innerText = p.nama; }
     } catch(e) {}
