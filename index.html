@@ -1089,7 +1089,6 @@ function toggleFormKasbonMobile() {
 function prosesBayarMobile() {
     if(keranjangKasirMobile.length === 0) return alert('Keranjang masih kosong!');
     const metode = document.querySelector('input[name="kasirMetodeMobile"]:checked').value;
-
     let namaPelanggan = ''; let waPelanggan = '';
     if(metode === 'Debt') {
         namaPelanggan = document.getElementById('kasbonNamaMobile').value; waPelanggan = document.getElementById('kasbonWaMobile').value;
@@ -1097,14 +1096,10 @@ function prosesBayarMobile() {
     }
 
     let totalBelanja = 0, totalLaba = 0, totalItem = 0; let namaObatGabungan = [];
-
     keranjangKasirMobile.forEach(k => {
         totalBelanja += (k.jual * k.qty); totalItem += k.qty; 
         let namaLengkap = k.nama; if(k.varian || k.keterangan) namaLengkap += ` (${k.varian || ''} ${k.keterangan || ''})`; namaObatGabungan.push(namaLengkap);
-        
-        let bEtalase = etalaseItems.find(e => e.nama === k.nama);
-        let totalModalItemIni = 0; let sisaQtyDipotong = k.qty;
-
+        let bEtalase = etalaseItems.find(e => e.nama === k.nama); let totalModalItemIni = 0; let sisaQtyDipotong = k.qty;
         if(bEtalase) {
             bEtalase.stok -= k.qty;
             if(bEtalase.antreanFIFO && bEtalase.antreanFIFO.length > 0) {
@@ -1116,14 +1111,18 @@ function prosesBayarMobile() {
             } else { let bMaster = masterItems.find(m => m.nama === k.nama); totalModalItemIni = (bMaster ? bMaster.modal : 0) * k.qty; }
         }
         totalLaba += ((k.jual * k.qty) - totalModalItemIni);
+        k.hppSatuan = Math.round(totalModalItemIni / k.qty); // SIMPAN HPP UNTUK RETUR
     });
 
     if (metode !== 'Debt') siklusAktif.uangMasuk += totalBelanja; 
-
     const namaObatFinal = namaObatGabungan.length > 1 ? `${namaObatGabungan[0]} + ${namaObatGabungan.length - 1} lainnya` : namaObatGabungan[0];
     const tglWaktu = new Date();
 
-    cashierHistory.unshift({ id: Date.now(), tanggal: getTanggalLokal(), waktu: tglWaktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }), obat: namaObatFinal, kasir: 'Pemilik', item: totalItem, total: totalBelanja, metode: metode, laba: totalLaba, pelanggan: namaPelanggan, wa: waPelanggan, isPelunasan: false });
+    cashierHistory.unshift({ 
+        id: Date.now(), tanggal: getTanggalLokal(), waktu: tglWaktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }), 
+        obat: namaObatFinal, detailKeranjang: JSON.parse(JSON.stringify(keranjangKasirMobile)), // SIMPAN RINCIAN KERANJANG
+        kasir: 'Pemilik', item: totalItem, total: totalBelanja, metode: metode, laba: totalLaba, pelanggan: namaPelanggan, wa: waPelanggan, isPelunasan: false 
+    });
 
     localStorage.setItem('apotek_etalaseItems', JSON.stringify(etalaseItems)); localStorage.setItem('apotek_cashierHistory', JSON.stringify(cashierHistory)); localStorage.setItem('apotek_siklusAktif', JSON.stringify(siklusAktif));
     tutupModalMobile('modalKasirMobile'); renderBerandaMobile(); 
@@ -1134,22 +1133,35 @@ function prosesBayarMobile() {
 }
 
 function prosesBatalTransaksiMobile(idTransaksi) {
-    tampilkanConfirmMobile("Batalkan transaksi ini?\n\nUang akan ditarik dari omzet dan barang akan dikembalikan ke Etalase (Retur).", function() {
+    tampilkanConfirmMobile("Batalkan transaksi ini?\n\nUang akan ditarik dari omzet dan seluruh item akan dikembalikan ke Etalase secara akurat.", function() {
         const trx = cashierHistory.find(t => t.id === idTransaksi);
         if (trx) {
             if (!trx.isPelunasan && trx.metode !== 'Debt') { siklusAktif.uangMasuk -= (trx.total || 0); if (siklusAktif.uangMasuk < 0) siklusAktif.uangMasuk = 0; }
             
-            let qty = trx.item || 1; let hppRetur = Math.round(((trx.total || 0) - (trx.laba || 0)) / qty); let idBatchRetur = 'RETUR-' + Date.now(); 
-            let bEtalase = etalaseItems.find(i => i.nama === trx.obat);
-            if (bEtalase) { bEtalase.stok += qty; if(!bEtalase.antreanFIFO) bEtalase.antreanFIFO = []; bEtalase.antreanFIFO.unshift({ idBatch: idBatchRetur, modal: hppRetur, stok: qty, expired: '' }); } 
-            else { let hJualRetur = Math.round((trx.total || 0) / qty); etalaseItems.push({ dnaInduk: 'DNA-' + Date.now(), nama: trx.obat, kategori: '⚠️ Barang Retur', jual: hJualRetur, stok: qty, antreanFIFO: [{ idBatch: idBatchRetur, modal: hppRetur, stok: qty, expired: '' }] }); }
+            // LOGIKA RETUR PINTAR (MEMBACA KERANJANG)
+            if (trx.detailKeranjang && trx.detailKeranjang.length > 0) {
+                trx.detailKeranjang.forEach(itemRetur => {
+                    let bEtalase = etalaseItems.find(i => i.nama === itemRetur.nama);
+                    let idBatchRetur = 'RETUR-' + Date.now() + '-' + Math.floor(Math.random() * 1000); 
+                    if (bEtalase) { 
+                        bEtalase.stok += itemRetur.qty; if(!bEtalase.antreanFIFO) bEtalase.antreanFIFO = [];
+                        bEtalase.antreanFIFO.unshift({ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: itemRetur.qty, expired: '' });
+                    } else {
+                        etalaseItems.push({ dnaInduk: 'DNA-RETUR-' + Date.now(), nama: itemRetur.nama, kategori: '⚠️ Barang Retur', jual: itemRetur.jual, stok: itemRetur.qty, antreanFIFO: [{ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: itemRetur.qty, expired: '' }] }); 
+                    }
+                });
+            } else { // Fallback untuk transaksi lama
+                let qty = trx.item || 1; let hppRetur = Math.round(((trx.total || 0) - (trx.laba || 0)) / qty);
+                etalaseItems.push({ dnaInduk: 'DNA-RETUR-OLD', nama: trx.obat, kategori: '⚠️ Barang Retur', jual: Math.round((trx.total || 0) / qty), stok: qty, antreanFIFO: [{ idBatch: 'RETUR-OLD', modal: hppRetur, stok: qty, expired: '' }] });
+            }
             
             cashierHistory = cashierHistory.filter(t => t.id !== idTransaksi);
             localStorage.setItem('apotek_etalaseItems', JSON.stringify(etalaseItems)); localStorage.setItem('apotek_cashierHistory', JSON.stringify(cashierHistory)); localStorage.setItem('apotek_siklusAktif', JSON.stringify(siklusAktif));
-            renderRiwayatMobile(); renderBerandaMobile(); alert("✅ Transaksi Dibatalkan. Stok diretur ke Etalase.");
+            renderRiwayatMobile(); renderBerandaMobile(); alert("✅ Transaksi Dibatalkan. Stok setiap item diretur ke Etalase.");
         }
     });
 }
+
 
 function bukaModalLacakMobile() {
     document.getElementById('inputLacakIDMobile').value = ''; document.getElementById('hasilLacakAreaMobile').classList.add('hidden');
@@ -1307,6 +1319,58 @@ function tutupConfirmMobile() {
     modal.classList.add('opacity-0'); panel.classList.add('scale-90'); setTimeout(() => { modal.classList.add('hidden'); }, 300);
 }
 function eksekusiConfirmMobile() { tutupConfirmMobile(); if(aksiConfirmCallback) setTimeout(() => { aksiConfirmCallback(); }, 300); }
+// ==========================================
+// KODE YANG KEMBALI: PELUNASAN & TUTUP BUKU
+// ==========================================
+let idKasbonAktifMobile = null;
+
+function bukaModalPelunasanMobile(idTransaksi) {
+    const transaksi = cashierHistory.find(t => t.id === idTransaksi);
+    if(transaksi) {
+        idKasbonAktifMobile = idTransaksi;
+        document.getElementById('pelunasanNamaMobile').textContent = (transaksi.pelanggan || 'Pelanggan').toUpperCase();
+        document.getElementById('pelunasanTotalMobile').textContent = rupiah(transaksi.total);
+        bukaModalMobile('modalPelunasanMobile', 'panelPelunasanMobile');
+    }
+}
+
+function eksekusiPelunasanMobile(metodePilihan) {
+    if(idKasbonAktifMobile !== null) {
+        const utangLama = cashierHistory.find(t => t.id === idKasbonAktifMobile);
+        if(utangLama) {
+            const idBaru = Date.now();
+            const tglWaktu = new Date();
+            const pelunasanBaru = {
+                id: idBaru, tanggal: getTanggalLokal(), waktu: tglWaktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                obat: `Pelunasan Utang: ${utangLama.pelanggan || 'Pelanggan'}`, kasir: 'Pemilik', item: 0, total: utangLama.total, metode: metodePilihan, laba: 0, pelanggan: utangLama.pelanggan, wa: utangLama.wa, isPelunasan: true, idTerkait: utangLama.id 
+            };
+            utangLama.statusLunas = true; utangLama.idTerkait = idBaru;
+            siklusAktif.uangMasuk += utangLama.total;
+            cashierHistory.unshift(pelunasanBaru);
+            localStorage.setItem('apotek_cashierHistory', JSON.stringify(cashierHistory)); localStorage.setItem('apotek_siklusAktif', JSON.stringify(siklusAktif));
+            tutupModalMobile('modalPelunasanMobile'); renderPiutangMobile(); renderBerandaMobile();
+            try { if (navigator.vibrate) navigator.vibrate([100, 50, 100]); } catch (e) {}
+            alert(`✅ Pelunasan Sukses! Utang ditutup dan omzet bertambah.`);
+        }
+    }
+}
+
+function eksekusiTutupBukuMobile() {
+    tampilkanConfirmMobile("Apakah Anda yakin ingin Tutup Buku?\n\nSiklus modal akan direset dan aset barang saat ini akan dijadikan patokan Modal Awal yang baru.", function() {
+        let asetGudang = 0; let qtyGudang = 0;
+        masterItems.filter(i => i.nama !== '___SYSTEM_AUTH___').forEach(b => { asetGudang += (b.modal || 0) * (b.stok || 0); qtyGudang += (b.stok || 0); });
+        let asetEtalase = 0; let qtyEtalase = 0;
+        etalaseItems.forEach(b => {
+            let totalModalBatchIni = 0;
+            if(b.antreanFIFO && b.antreanFIFO.length > 0) { b.antreanFIFO.forEach(fifo => { totalModalBatchIni += ((fifo.modal || 0) * (fifo.stok || 0)); }); } 
+            else { let masterNya = masterItems.find(m => m.dnaInduk === b.dnaInduk || m.nama === b.nama); totalModalBatchIni = (masterNya ? (masterNya.modal || 0) : 0) * (b.stok || 0); }
+            asetEtalase += totalModalBatchIni; qtyEtalase += (b.stok || 0);
+        });
+        siklusAktif = { modalAwal: asetGudang + asetEtalase, qtyAwal: qtyGudang + qtyEtalase, modalTambahan: 0, qtyTambahan: 0, uangMasuk: 0, tanggalStart: getTanggalLokal() };
+        localStorage.setItem('apotek_siklusAktif', JSON.stringify(siklusAktif));
+        renderBerandaMobile(); alert("✅ TUTUP BUKU BERHASIL! Progress Bar kembali nol dan siap untuk siklus baru.");
+    });
+}
 
 // ==========================================
 // MESIN BLUETOOTH PRINTER (ESC/POS)
@@ -1379,6 +1443,21 @@ async function sinkronKeAwanMobile() {
 setInterval(() => { sinkronKeAwanMobile(); }, 10000);
 
 document.getElementById('cariGudangMobile').addEventListener('input', (e) => { renderGudangMobile(e.target.value); });
+// ==========================================
+// MESIN RESET TOTAL (KEMBALI KE PENGATURAN AWAL)
+// ==========================================
+function resetSistemMobile() {
+    tampilkanConfirmMobile("PERINGATAN BAHAYA!\n\nApakah Anda yakin ingin menghapus SEMUA DATA secara permanen? Gudang, Etalase, Riwayat, Laporan, dan Siklus Modal akan dikosongkan ke posisi 0.", function() {
+        localStorage.setItem('apotek_masterItems', JSON.stringify([])); 
+        localStorage.setItem('apotek_etalaseItems', JSON.stringify([])); 
+        localStorage.setItem('apotek_cashierHistory', JSON.stringify([]));
+        localStorage.setItem('apotek_siklusAktif', JSON.stringify({ modalAwal: 0, qtyAwal: 0, modalTambahan: 0, qtyTambahan: 0, uangMasuk: 0, tanggalStart: getTanggalLokal() }));
+        
+        alert("✅ Sistem berhasil dibersihkan sampai ke akarnya! Memuat ulang..."); 
+        setTimeout(() => { window.location.reload(); }, 1200); 
+    }); 
+}
+
 window.onload = () => { 
     try { let p = JSON.parse(localStorage.getItem('apotek_profilData')); if(p) { profilApotek = p; document.getElementById('namaApotekHeader').innerText = p.nama; document.getElementById('setNamaMobile').value = p.nama; } } catch(e) {}
     renderBerandaMobile(); 
