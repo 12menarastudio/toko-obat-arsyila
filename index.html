@@ -884,56 +884,105 @@ function renderGudangMobile(filter = '') {
     wadah.innerHTML = Object.values(grouped).map(g => {
         g.batches.sort((a, b) => new Date(a.expired || '2099-12-31') - new Date(b.expired || '2099-12-31'));
         
-        let batchHtml = g.batches.map((b, idx) => {
-            let expTeks = b.expired ? b.expired : 'Tanpa Exp';
-            return `
-            <div class="flex justify-between items-center py-2 border-b border-slate-200 border-dashed last:border-0">
-                <div>
-                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Batch ${idx+1}</span>
-                    <span class="text-[10px] text-slate-400 mx-1">|</span>
-                    <span class="text-[10px] font-semibold text-slate-600">Exp: <span class="${b.expired ? 'text-red-500 font-bold' : ''}">${expTeks}</span></span>
-                </div>
-                <div class="text-right">
-                    <span class="text-[10px] font-bold text-slate-600">Stok: <span class="text-emerald-600">${b.stok}</span></span>
-                    <span class="text-[10px] text-slate-400 mx-1">|</span>
-                    <span class="text-[10px] font-bold text-slate-600">Beli: ${rupiah(b.modal)}</span>
-                </div>
-            </div>`;
-        }).join('');
-
-        let stokWarna = g.totalStok <= 6 ? 'bg-red-50 text-red-600 border-red-200' : 'bg-emerald-50 text-emerald-600 border-emerald-200';
+        let isMulti = g.batches.length > 1;
+        // Badge Total Stok di pojok kanan atas
+        let stokWarna = 'bg-red-50 text-red-600 border-red-100'; 
         let subTeks = g.varian ? `<p class="text-[10px] text-slate-500 italic mt-0.5">${g.varian}</p>` : '';
+        
+        let contentHtml = '';
 
+        // ========================================================
+        // DESAIN 1: JIKA BARANG PUNYA BANYAK BATCH (Garis Hijau)
+        // ========================================================
+        if (isMulti) {
+            let batchHtml = g.batches.map((b, idx) => {
+                let expTeks = b.expired ? b.expired : 'Tanpa Exp';
+                let expColor = b.expired ? 'text-red-500 font-bold' : 'text-slate-500';
+                return `
+                <div class="border border-slate-100 rounded-2xl p-3 mb-2 last:mb-0 relative bg-white flex justify-between items-center shadow-sm">
+                    <div>
+                        <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Harga Beli</p>
+                        <p class="text-sm font-bold text-slate-700 leading-tight">${rupiah(b.modal)}</p>
+                        <p class="text-[9px] text-slate-500 font-bold tracking-wide uppercase mt-1">BATCH ${idx+1} <span class="text-slate-300 mx-1">|</span> Exp: <span class="${expColor}">${expTeks}</span></p>
+                    </div>
+                    <div class="text-[10px] font-bold text-slate-600 flex items-center">
+                        Stok: <span class="text-emerald-600 ml-1">${b.stok}</span> <span class="text-slate-300 mx-1.5">|</span>
+                    </div>
+                </div>`;
+            }).join('');
+
+            contentHtml = `
+            <div class="flex mt-3">
+                <div class="w-1 bg-emerald-500 rounded-full mr-3 my-1 shrink-0"></div>
+                <div class="flex-1">
+                    ${batchHtml}
+                </div>
+            </div>
+            <div class="flex justify-between items-center bg-slate-50 rounded-2xl p-4 mt-2 border border-slate-100 shadow-sm">
+                <div></div>
+                <div class="text-right">
+                    <p class="text-[9px] text-blue-500 font-black uppercase tracking-widest mb-0.5">Harga Jual</p>
+                    <p class="text-xl font-black text-blue-800 leading-tight">${rupiah(g.jual)}</p>
+                </div>
+            </div>
+            `;
+        } 
+        // ========================================================
+        // DESAIN 2: JIKA BARANG HANYA 1 BATCH (Kotak Simpel)
+        // ========================================================
+        else {
+            let b = g.batches[0];
+            let expTeks = b.expired ? b.expired : 'Tanpa Exp';
+            let expColor = b.expired ? 'text-red-500 font-bold' : 'text-slate-500';
+            contentHtml = `
+            <div class="border border-slate-100 rounded-2xl p-4 mt-3 flex justify-between items-center bg-white shadow-sm">
+                <div>
+                    <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Harga Beli</p>
+                    <p class="text-sm font-bold text-slate-700 leading-tight">${rupiah(b.modal)}</p>
+                    <p class="text-[9px] text-slate-500 font-bold tracking-wide uppercase mt-1.5">BATCH 1 <span class="text-slate-300 mx-1">|</span> Exp: <span class="${expColor}">${expTeks}</span></p>
+                </div>
+                <div class="text-right pl-4 border-l border-slate-50">
+                    <p class="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-0.5">Harga Jual</p>
+                    <p class="text-xl font-black text-blue-800 leading-tight">${rupiah(g.jual)}</p>
+                </div>
+            </div>
+            `;
+        }
+
+        // ========================================================
+        // BINGKAI UTAMA & TOMBOL AKSI
+        // ========================================================
         return `
-        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col gap-3 transition hover:shadow-md">
+        <div class="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm flex flex-col transition hover:shadow-md mb-4">
+            
             <div class="flex justify-between items-start">
                 <div class="pr-2">
-                    <h3 class="font-black text-slate-800 text-sm leading-tight">${g.nama}</h3>
+                    <h3 class="font-black text-slate-900 text-lg leading-tight">${g.nama}</h3>
                     ${subTeks}
-                    <p class="text-[9px] text-slate-500 font-bold uppercase tracking-widest mt-1">${g.kategori || 'Tanpa Kategori'}</p>
+                    <p class="text-[10px] text-slate-500 font-black uppercase tracking-widest mt-1">${g.kategori || 'Tanpa Kategori'}</p>
                 </div>
-                <div class="px-2.5 py-1.5 rounded-lg border ${stokWarna} flex items-center gap-1.5 shadow-inner shrink-0">
-                    <i class="fa-solid fa-boxes-stacked text-[10px]"></i><span class="font-black text-sm">${g.totalStok}</span>
+                <div class="px-3 py-1.5 rounded-xl border ${stokWarna} flex items-center gap-1.5 shadow-sm shrink-0">
+                    <i class="fa-solid fa-boxes-stacked text-[11px]"></i><span class="font-black text-sm">${g.totalStok}</span>
                 </div>
             </div>
             
-            <div class="bg-slate-50 border border-slate-200 rounded-xl p-3 shadow-inner">
-                ${batchHtml}
-            </div>
-            
-            <div class="flex justify-between items-center bg-corporate-50 rounded-xl p-2.5 border border-corporate-100">
-                <span class="text-[10px] text-corporate-600 font-bold uppercase tracking-wider">Harga Jual Global</span>
-                <span class="text-sm font-black text-corporate-800">${rupiah(g.jual)}</span>
-            </div>
+            ${contentHtml}
 
-            <div class="flex gap-2 mt-1">
-                <button onclick="bukaModalTransferMobile('${g.batches[0].idBatch}')" class="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold py-3 rounded-xl flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-md shadow-emerald-500/20"><i class="fa-solid fa-truck-fast"></i> Ke Etalase</button>
-                <button onclick="bukaModalEditMobile('${g.batches[0].idBatch}')" class="w-12 bg-amber-500 hover:bg-amber-600 text-white rounded-xl flex items-center justify-center transition-transform active:scale-95 shadow-md shadow-amber-500/20 border border-amber-600"><i class="fa-solid fa-pen text-sm"></i></button>
-                <button onclick="prosesHapusObatMobile('${g.dnaInduk}', '${g.nama}')" class="w-10 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl flex items-center justify-center transition-transform active:scale-95 border border-red-100 shadow-sm"><i class="fa-solid fa-trash text-sm"></i></button>
+            <div class="flex gap-2.5 mt-4">
+                <button onclick="bukaModalTransferMobile('${g.batches[0].idBatch}')" class="flex-1 bg-[#10b981] hover:bg-[#059669] text-white text-sm font-bold py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-transform active:scale-95 shadow-sm">
+                    <i class="fa-solid fa-truck-fast"></i> Ke Etalase
+                </button>
+                <button onclick="bukaModalEditMobile('${g.batches[0].idBatch}')" class="w-14 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-2xl flex items-center justify-center transition-transform active:scale-95 border border-slate-200 shadow-sm">
+                    <i class="fa-solid fa-pen text-sm"></i>
+                </button>
+                <button onclick="prosesHapusObatMobile('${g.dnaInduk}', '${g.nama}')" class="w-14 bg-red-50 hover:bg-red-100 text-red-500 rounded-2xl flex items-center justify-center transition-transform active:scale-95 border border-red-100 shadow-sm">
+                    <i class="fa-solid fa-trash text-sm"></i>
+                </button>
             </div>
         </div>`;
     }).join('');
 }
+
 
 
 function renderEtalaseMobile() {
@@ -1339,6 +1388,311 @@ function prosesSimpanObatBaruMobile() {
     localStorage.setItem('apotek_masterItems', JSON.stringify(masterItems)); localStorage.setItem('apotek_siklusAktif', JSON.stringify(siklusAktif));
     tutupModalMobile('modalTambahObatMobile'); renderGudangMobile(document.getElementById('cariGudangMobile').value); renderBerandaMobile();
     alert('✅ Sukses! ' + nama + ' berhasil ditambahkan ke Gudang.');
+}
+// ==========================================
+// MESIN KASIR & KERANJANG (POINT OF SALE)
+// ==========================================
+let keranjangKasirMobile = [];
+
+function bukaModalKasirMobile() {
+    keranjangKasirMobile = []; renderKeranjangMobile();
+    const select = document.getElementById('kasirPilihObatMobile');
+    select.innerHTML = '<option value="">+ Pilih obat dari etalase...</option>';
+    let adaBarang = false;
+    etalaseItems.forEach(item => { if(item.stok > 0) { select.innerHTML += `<option value="${item.nama}">${item.nama} (Stok: ${item.stok})</option>`; adaBarang = true; } });
+    if(!adaBarang) return alert("Etalase masih kosong! Masuk ke menu Gudang lalu transfer stok ke Etalase.");
+    
+    document.querySelector('input[value="Tunai"]').checked = true; toggleFormKasbonMobile();
+    bukaModalMobile('modalKasirMobile', 'panelKasirMobile');
+}
+
+function tambahManualKeKeranjangMobile() {
+    const nama = document.getElementById('kasirPilihObatMobile').value;
+    if(nama) {
+        let barang = etalaseItems.find(e => e.nama === nama);
+        if(barang) masukkanKeKeranjangMobile(barang);
+        document.getElementById('kasirPilihObatMobile').value = ''; 
+    }
+}
+
+function masukkanKeKeranjangMobile(barang) {
+    let index = keranjangKasirMobile.findIndex(k => k.nama === barang.nama);
+    if(index !== -1) {
+        if(keranjangKasirMobile[index].qty < barang.stok) { keranjangKasirMobile[index].qty++; } else { alert("Sisa stok " + barang.nama + " tidak cukup!"); }
+    } else {
+        keranjangKasirMobile.push({ nama: barang.nama, varian: barang.varian, keterangan: barang.keterangan, jual: barang.jual, qty: 1, stokMax: barang.stok });
+    }
+    renderKeranjangMobile();
+}
+
+function ubahQtyKeranjangMobile(index, delta) {
+    let item = keranjangKasirMobile[index]; let newQty = item.qty + delta;
+    if(newQty > item.stokMax) return alert("Sisa stok hanya " + item.stokMax);
+    if(newQty <= 0) { keranjangKasirMobile.splice(index, 1); } else { item.qty = newQty; }
+    renderKeranjangMobile();
+}
+
+function renderKeranjangMobile() {
+    const tbody = document.getElementById('keranjangBodyMobile'); let total = 0;
+    if(keranjangKasirMobile.length === 0) {
+        tbody.innerHTML = `<div class="p-8 text-center text-slate-400"><i class="fa-solid fa-cart-arrow-down text-3xl mb-2 opacity-50"></i><p class="text-xs font-semibold">Keranjang kosong</p></div>`;
+    } else {
+        tbody.innerHTML = keranjangKasirMobile.map((k, i) => {
+            let sub = k.jual * k.qty; total += sub;
+            let ketTeks = (k.varian || k.keterangan) ? `<p class="text-[9px] text-slate-500 italic mt-0.5">${k.varian || ''} ${k.keterangan || ''}</p>` : '';
+            return `<div class="p-3 bg-white flex items-center justify-between gap-2"><div class="flex-1 pr-2"><h4 class="font-bold text-slate-800 text-xs leading-tight">${k.nama}</h4>${ketTeks}<p class="font-black text-corporate-600 text-sm mt-1">${rupiah(sub)}</p></div><div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-inner shrink-0"><button onclick="ubahQtyKeranjangMobile(${i}, -1)" class="w-7 h-7 rounded-lg bg-white shadow text-slate-600 font-bold active:bg-slate-100 transition">-</button><span class="w-4 text-center font-bold text-slate-800 text-xs">${k.qty}</span><button onclick="ubahQtyKeranjangMobile(${i}, 1)" class="w-7 h-7 rounded-lg bg-emerald-50 shadow text-emerald-600 font-bold active:bg-emerald-100 transition">+</button></div></div>`;
+        }).join('');
+    }
+    document.getElementById('kasirTotalMobile').textContent = rupiah(total);
+}
+
+function toggleFormKasbonMobile() {
+    const metode = document.querySelector('input[name="kasirMetodeMobile"]:checked').value;
+    const formIdentitas = document.getElementById('formKasbonMobile');
+    if(metode === 'Debt') { formIdentitas.classList.remove('hidden'); } else { formIdentitas.classList.add('hidden'); document.getElementById('kasbonNamaMobile').value = ''; document.getElementById('kasbonWaMobile').value = ''; }
+}
+
+function prosesBayarMobile() {
+    if(keranjangKasirMobile.length === 0) return alert('Keranjang masih kosong!');
+    const metode = document.querySelector('input[name="kasirMetodeMobile"]:checked').value;
+    let namaPelanggan = ''; let waPelanggan = '';
+    if(metode === 'Debt') {
+        namaPelanggan = document.getElementById('kasbonNamaMobile').value; waPelanggan = document.getElementById('kasbonWaMobile').value;
+        if(!namaPelanggan) return alert('Nama pelanggan wajib diisi untuk Kasbon!');
+    }
+
+    let totalBelanja = 0, totalLaba = 0, totalItem = 0; let namaObatGabungan = [];
+    keranjangKasirMobile.forEach(k => {
+        totalBelanja += (k.jual * k.qty); totalItem += k.qty; 
+        let namaLengkap = k.nama; if(k.varian || k.keterangan) namaLengkap += ` (${k.varian || ''} ${k.keterangan || ''})`; namaObatGabungan.push(namaLengkap);
+        let bEtalase = etalaseItems.find(e => e.nama === k.nama); let totalModalItemIni = 0; let sisaQtyDipotong = k.qty;
+        if(bEtalase) {
+            bEtalase.stok -= k.qty;
+            if(bEtalase.antreanFIFO && bEtalase.antreanFIFO.length > 0) {
+                for(let i = 0; i < bEtalase.antreanFIFO.length; i++) {
+                    let batch = bEtalase.antreanFIFO[i];
+                    if(batch.stok > 0) { let ambil = Math.min(sisaQtyDipotong, batch.stok); batch.stok -= ambil; sisaQtyDipotong -= ambil; totalModalItemIni += (ambil * batch.modal); if(sisaQtyDipotong <= 0) break; }
+                }
+                bEtalase.antreanFIFO = bEtalase.antreanFIFO.filter(b => b.stok > 0);
+            } else { let bMaster = masterItems.find(m => m.nama === k.nama); totalModalItemIni = (bMaster ? bMaster.modal : 0) * k.qty; }
+        }
+        totalLaba += ((k.jual * k.qty) - totalModalItemIni);
+        k.hppSatuan = Math.round(totalModalItemIni / k.qty); // SIMPAN HPP UNTUK RETUR
+    });
+
+    if (metode !== 'Debt') siklusAktif.uangMasuk += totalBelanja; 
+    const namaObatFinal = namaObatGabungan.length > 1 ? `${namaObatGabungan[0]} + ${namaObatGabungan.length - 1} lainnya` : namaObatGabungan[0];
+    const tglWaktu = new Date();
+
+    cashierHistory.unshift({ 
+        id: Date.now(), tanggal: getTanggalLokal(), waktu: tglWaktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }), 
+        obat: namaObatFinal, detailKeranjang: JSON.parse(JSON.stringify(keranjangKasirMobile)), // SIMPAN RINCIAN KERANJANG
+        kasir: 'Pemilik', item: totalItem, total: totalBelanja, metode: metode, laba: totalLaba, pelanggan: namaPelanggan, wa: waPelanggan, isPelunasan: false 
+    });
+
+    localStorage.setItem('apotek_etalaseItems', JSON.stringify(etalaseItems)); localStorage.setItem('apotek_cashierHistory', JSON.stringify(cashierHistory)); localStorage.setItem('apotek_siklusAktif', JSON.stringify(siklusAktif));
+    tutupModalMobile('modalKasirMobile'); renderBerandaMobile(); 
+    if(!document.getElementById('layar-gudang').classList.contains('hidden')) renderGudangMobile(document.getElementById('cariGudangMobile').value);
+    if(!document.getElementById('layar-etalase').classList.contains('hidden')) renderEtalaseMobile();
+    try { if (navigator.vibrate) navigator.vibrate([100, 50, 100]); } catch (e) {}
+    alert(`✅ Transaksi ${metode} Berhasil! Omzet telah masuk ke Beranda.`);
+}
+
+function prosesBatalTransaksiMobile(idTransaksi) {
+    tampilkanConfirmMobile("Batalkan transaksi ini?\n\nUang akan ditarik dari omzet dan seluruh item akan dikembalikan ke Etalase secara akurat.", function() {
+        const trx = cashierHistory.find(t => t.id === idTransaksi);
+        if (trx) {
+            if (!trx.isPelunasan && trx.metode !== 'Debt') { siklusAktif.uangMasuk -= (trx.total || 0); if (siklusAktif.uangMasuk < 0) siklusAktif.uangMasuk = 0; }
+            
+            if (trx.detailKeranjang && trx.detailKeranjang.length > 0) {
+                trx.detailKeranjang.forEach(itemRetur => {
+                    let bEtalase = etalaseItems.find(i => i.nama === itemRetur.nama);
+                    let idBatchRetur = 'RETUR-' + Date.now() + '-' + Math.floor(Math.random() * 1000); 
+                    if (bEtalase) { 
+                        bEtalase.stok += itemRetur.qty; if(!bEtalase.antreanFIFO) bEtalase.antreanFIFO = [];
+                        bEtalase.antreanFIFO.unshift({ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: itemRetur.qty, expired: '' });
+                    } else {
+                        etalaseItems.push({ dnaInduk: 'DNA-RETUR-' + Date.now(), nama: itemRetur.nama, kategori: '⚠️ Barang Retur', jual: itemRetur.jual, stok: itemRetur.qty, antreanFIFO: [{ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: itemRetur.qty, expired: '' }] }); 
+                    }
+                });
+            } else { 
+                let qty = trx.item || 1; let hppRetur = Math.round(((trx.total || 0) - (trx.laba || 0)) / qty);
+                etalaseItems.push({ dnaInduk: 'DNA-RETUR-OLD', nama: trx.obat, kategori: '⚠️ Barang Retur', jual: Math.round((trx.total || 0) / qty), stok: qty, antreanFIFO: [{ idBatch: 'RETUR-OLD', modal: hppRetur, stok: qty, expired: '' }] });
+            }
+            
+            cashierHistory = cashierHistory.filter(t => t.id !== idTransaksi);
+            localStorage.setItem('apotek_etalaseItems', JSON.stringify(etalaseItems)); localStorage.setItem('apotek_cashierHistory', JSON.stringify(cashierHistory)); localStorage.setItem('apotek_siklusAktif', JSON.stringify(siklusAktif));
+            renderRiwayatMobile(); renderBerandaMobile(); alert("✅ Transaksi Dibatalkan. Stok setiap item diretur ke Etalase.");
+        }
+    });
+}
+
+// ==========================================
+// MESIN LACAK STRUK & PENAGIHAN WA
+// ==========================================
+function bukaModalLacakMobile() {
+    document.getElementById('inputLacakIDMobile').value = ''; document.getElementById('hasilLacakAreaMobile').classList.add('hidden');
+    bukaModalMobile('modalLacakMobile', 'panelLacakMobile');
+}
+
+function prosesLacakIDMobile() {
+    const inputID = parseInt(document.getElementById('inputLacakIDMobile').value);
+    const area = document.getElementById('hasilLacakAreaMobile');
+    if(!inputID) return alert("⚠️ Ketik nomor ID transaksi yang valid!");
+    
+    const trx = cashierHistory.find(t => t.id === inputID);
+    area.classList.remove('hidden');
+    if(!trx) { area.innerHTML = `<div class="text-center p-4 bg-red-50 rounded-2xl border border-red-100"><i class="fa-solid fa-file-circle-xmark text-3xl text-red-300 mb-2 block"></i><p class="text-xs font-bold text-red-600">ID Transaksi tidak ditemukan.</p></div>`; return; }
+
+    let statusHtml = '';
+    if (trx.metode === 'Debt') {
+        if(trx.statusLunas) statusHtml = `<div class="bg-emerald-50 border border-emerald-200 p-3 rounded-xl mt-3"><p class="text-[9px] font-black text-emerald-600 uppercase mb-1 tracking-wider"><i class="fa-solid fa-check-circle"></i> SUDAH DILUNASI</p><p class="text-[11px] text-emerald-800 font-medium leading-tight">Utang telah dibayar via ${trx.idTerkait || '-'}</p></div>`;
+        else statusHtml = `<div class="bg-red-50 border border-red-200 p-3 rounded-xl mt-3"><p class="text-[9px] font-black text-red-600 uppercase mb-1 tracking-wider"><i class="fa-solid fa-triangle-exclamation"></i> BELUM BAYAR</p><p class="text-[11px] text-red-800 font-medium leading-tight">Faktur kasbon ini masih menunggak.</p></div>`;
+    } else if (trx.isPelunasan) {
+        statusHtml = `<div class="bg-blue-50 border border-blue-200 p-3 rounded-xl mt-3"><p class="text-[9px] font-black text-blue-600 uppercase mb-1 tracking-wider"><i class="fa-solid fa-link"></i> BUKTI PELUNASAN</p><p class="text-[11px] text-blue-800 font-medium leading-tight">Nota terima uang untuk Faktur ID: ${trx.idTerkait || '-'}</p></div>`;
+    } else {
+        statusHtml = `<div class="bg-slate-50 border border-slate-200 p-3 rounded-xl mt-3"><p class="text-[9px] font-black text-slate-600 uppercase mb-1 tracking-wider"><i class="fa-solid fa-check"></i> TRANSAKSI LUNAS</p><p class="text-[11px] text-slate-600 font-medium leading-tight">Pembelian putus via ${trx.metode}.</p></div>`;
+    }
+
+    area.innerHTML = `<div class="bg-white rounded-2xl border border-slate-200 p-4 shadow-sm"><h4 class="font-black text-corporate-900 text-sm mb-1 tracking-tight">Rincian Struk</h4><div class="flex justify-between items-center text-[10px] font-bold text-slate-400 mb-3 border-b border-slate-100 pb-2"><span><i class="fa-regular fa-clock"></i> ${trx.tanggal} (${trx.waktu})</span><span>Kasir: ${trx.kasir}</span></div><p class="text-xs font-bold text-slate-800 leading-tight">${trx.obat}</p><p class="text-2xl font-black text-corporate-700 mt-2">${rupiah(trx.total)}</p>${statusHtml}</div>`;
+}
+
+function tagihViaWAMobile(idTransaksi) {
+    const trx = cashierHistory.find(t => t.id === idTransaksi);
+    if (!trx || !trx.wa) return alert("⚠️ Nomor WhatsApp pelanggan tidak ditemukan!");
+
+    const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); canvas.width = 400; canvas.height = 460;
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#0f172a'; ctx.textAlign = 'center';
+    ctx.font = '900 24px monospace'; ctx.fillText(profilApotek.nama.toUpperCase().substring(0,25), 200, 45);
+    ctx.font = '600 14px monospace'; ctx.fillText((profilApotek.alamat || '').substring(0,40), 200, 70);
+    ctx.font = '14px monospace'; ctx.fillText('====================================', 200, 95);
+    ctx.font = '900 18px monospace'; ctx.fillText('BUKTI KASBON / PIUTANG', 200, 125);
+    ctx.font = '14px monospace'; ctx.fillText('====================================', 200, 145);
+    ctx.textAlign = 'left'; let y = 180; ctx.font = '600 14px monospace';
+    ctx.fillText(`No. Trx : ${trx.id}`, 25, y); y += 25; ctx.fillText(`Waktu   : ${trx.tanggal} (${trx.waktu})`, 25, y); y += 25;
+    ctx.fillText(`Kasir   : ${trx.kasir}`, 25, y); y += 30; ctx.fillText(`Yth.    : ${(trx.pelanggan || '').toUpperCase()}`, 25, y); y += 35;
+    ctx.textAlign = 'center'; ctx.fillText('------------------------------------', 200, y); y += 30;
+    ctx.textAlign = 'left'; ctx.font = '900 15px monospace'; ctx.fillText(`${trx.obat}`, 25, y); y += 25;
+    ctx.font = '600 14px monospace'; ctx.fillText(`${trx.item} Item Obat`, 25, y);
+    ctx.textAlign = 'right'; ctx.fillText(`${rupiah(trx.total)}`, 375, y); y += 35;
+    ctx.textAlign = 'center'; ctx.font = '14px monospace'; ctx.fillText('------------------------------------', 200, y); y += 35;
+    ctx.textAlign = 'left'; ctx.font = '900 18px monospace'; ctx.fillText('TOTAL TAGIHAN:', 25, y);
+    ctx.textAlign = 'right'; ctx.fillStyle = '#dc2626'; ctx.fillText(`${rupiah(trx.total)}`, 375, y); y += 45;
+    ctx.fillStyle = '#64748b'; ctx.textAlign = 'center'; ctx.font = 'italic 12px monospace';
+    ctx.fillText('Struk digital ini adalah bukti sah', 200, y); y += 20; ctx.fillText('dari ' + profilApotek.nama, 200, y);
+
+    let noWA = trx.wa.toString().replace(/\D/g, ''); if (noWA.startsWith('0')) { noWA = '62' + noWA.substring(1); } else if (noWA.startsWith('8')) { noWA = '62' + noWA; }
+    const pesanTeks = `Halo Bapak/Ibu *${trx.pelanggan || 'Pelanggan'}*,\n\nKami dari *${profilApotek.nama}* memohon izin mengingatkan catatan kasbon/piutang yang belum diselesaikan.\n*(Struk Terlampir)*\n\nMohon kerjasamanya untuk dapat melakukan pelunasan di tempat kami.\nTerima kasih! 🙏`;
+
+    canvas.toBlob(async (blob) => {
+        const namaFile = `Tagihan_${(trx.pelanggan || 'Apotek').replace(/\s+/g, '_')}.png`; const fileGambar = new File([blob], namaFile, { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [fileGambar] })) {
+            try { await navigator.share({ files: [fileGambar], title: 'Tagihan Apotek', text: pesanTeks }); } catch (err) { console.log(err); }
+        } else {
+            alert("✅ Gambar struk akan diunduh. Silakan kirim (Drag & Drop) gambar tersebut ke WhatsApp yang akan terbuka.");
+            const linkDownload = document.createElement('a'); linkDownload.href = URL.createObjectURL(blob); linkDownload.download = namaFile; linkDownload.click();
+            setTimeout(() => { window.open(`https://api.whatsapp.com/send?phone=${noWA}&text=${encodeURIComponent(pesanTeks)}`, '_blank'); }, 800);
+        }
+    }, 'image/png');
+}
+
+// ==========================================
+// MESIN TRUK LOGISTIK (TRANSFER MASAL)
+// ==========================================
+function bukaModalTransferMasalMobile() {
+    const list = document.getElementById('listTransferMasalBodyMobile');
+    let barangTersedia = masterItems.filter(o => o.stok > 0 && o.nama !== '___SYSTEM_AUTH___' && o.kategori !== '⚠️ Barang Retur');
+    
+    if(barangTersedia.length === 0) {
+        return alert("Gudang kosong! Tidak ada barang yang bisa ditransfer.");
+    }
+
+    list.innerHTML = barangTersedia.map((o, index) => {
+        let expTeks = o.expired ? `<span class="text-red-500 font-bold">${o.expired}</span>` : `<span class="text-slate-400">Tanpa Exp</span>`;
+        return `
+        <div class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-2xl shadow-sm mb-2">
+            <div class="flex-1 pr-2">
+                <p class="font-bold text-sm text-slate-800 leading-tight">${o.nama}</p>
+                <p class="text-[10px] text-slate-500 mt-1">Sisa Gudang: <span class="font-black text-emerald-600">${o.stok}</span> | Exp: ${expTeks}</p>
+            </div>
+            <div class="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-100 shrink-0">
+                <button type="button" onclick="ubahJumlahMasalMobile('masalM-${index}', -1)" class="h-8 w-8 rounded-lg bg-white shadow-sm text-slate-600 font-black active:bg-slate-200">-</button>
+                <input type="number" id="masalM-${index}" value="0" min="0" max="${o.stok}" class="w-10 bg-transparent text-center font-black text-slate-800 text-sm focus:outline-none">
+                <button type="button" onclick="ubahJumlahMasalMobile('masalM-${index}', 1)" class="h-8 w-8 rounded-lg bg-emerald-100 shadow-sm text-emerald-700 font-black active:bg-emerald-200">+</button>
+            </div>
+        </div>`;
+    }).join('');
+    
+    bukaModalMobile('modalTransferMasalMobile', 'panelTransferMasalMobile');
+}
+
+function ubahJumlahMasalMobile(id, delta) {
+    const input = document.getElementById(id); 
+    let val = parseInt(input.value) + delta;
+    if (val < 0) val = 0; 
+    if (val > parseInt(input.max)) val = parseInt(input.max); 
+    input.value = val;
+}
+
+function prosesTransferMasalMobile() {
+    let adaYangDitransfer = false;
+    let barangTersedia = masterItems.filter(o => o.stok > 0 && o.nama !== '___SYSTEM_AUTH___' && o.kategori !== '⚠️ Barang Retur');
+
+    barangTersedia.forEach((o, index) => {
+        let val = parseInt(document.getElementById(`masalM-${index}`).value) || 0;
+        if (val > 0 && o.stok >= val) {
+            adaYangDitransfer = true;
+            o.stok -= val; 
+            
+            let bEtalase = etalaseItems.find(i => i.dnaInduk === o.dnaInduk || i.nama === o.nama);
+            if(!bEtalase) { 
+                bEtalase = { dnaInduk: o.dnaInduk, nama: o.nama, kategori: o.kategori, jual: o.jual, stok: 0, antreanFIFO: [] };
+                etalaseItems.push(bEtalase); 
+            }
+            
+            bEtalase.stok += val;
+            if(!bEtalase.antreanFIFO) bEtalase.antreanFIFO = [];
+            
+            let batchSama = bEtalase.antreanFIFO.find(b => b.idBatch === o.idBatch);
+            if(batchSama) { batchSama.stok += val; } 
+            else { bEtalase.antreanFIFO.push({ idBatch: o.idBatch, modal: o.modal, stok: val, expired: o.expired }); }
+            
+            bEtalase.antreanFIFO.sort((a, b) => new Date(a.expired || '2099-12-31') - new Date(b.expired || '2099-12-31'));
+        }
+    });
+
+    if(adaYangDitransfer) {
+        localStorage.setItem('apotek_masterItems', JSON.stringify(masterItems)); 
+        localStorage.setItem('apotek_etalaseItems', JSON.stringify(etalaseItems));
+        tutupModalMobile('modalTransferMasalMobile');
+        renderGudangMobile(document.getElementById('cariGudangMobile').value); 
+        renderBerandaMobile();
+        try { if (navigator.vibrate) navigator.vibrate([100, 50, 100]); } catch (e) {}
+        alert("🚚 Barang berhasil diberangkatkan ke Etalase!");
+    } else { alert("Pilih minimal 1 barang untuk ditransfer."); }
+}
+
+// ==========================================
+// MESIN SETELAN PROFIL
+// ==========================================
+function bukaModalSetelanMobile() {
+    document.getElementById('setNamaMobile').value = profilApotek.nama; 
+    document.getElementById('setAlamatMobile').value = profilApotek.alamat || ''; 
+    document.getElementById('setTelpMobile').value = profilApotek.telepon || '';
+    bukaModalMobile('modalSetelanMobile', 'panelSetelanMobile');
+}
+
+function prosesSimpanSetelanMobile() {
+    let nama = document.getElementById('setNamaMobile').value; 
+    let alamat = document.getElementById('setAlamatMobile').value; 
+    let telp = document.getElementById('setTelpMobile').value;
+    if(!nama || !alamat) return alert("⚠️ Nama Apotek dan Alamat wajib diisi!");
+    
+    profilApotek.nama = nama; profilApotek.alamat = alamat; profilApotek.telepon = telp;
+    localStorage.setItem('apotek_profilData', JSON.stringify(profilApotek));
+    document.getElementById('namaApotekHeader').innerText = nama; 
+    tutupModalMobile('modalSetelanMobile'); alert("✅ Profil Apotek berhasil diperbarui!");
 }
 
 // ==========================================
