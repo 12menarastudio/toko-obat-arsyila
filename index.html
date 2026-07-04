@@ -200,12 +200,16 @@ tailwind.config = {
                     <i class="fa-solid fa-plus text-lg"></i>
                 </button>
             </div>
-            <div class="px-6 py-5">
+                      <div class="px-6 py-5 space-y-3">
                 <div class="relative group">
                     <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                    <input type="text" id="cariGudangMobile" placeholder="Cari nama atau kategori..." class="w-full bg-white border border-slate-200 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-semibold text-slate-800 shadow-sm focus:ring-2 focus:ring-corporate-500/20 focus:border-corporate-500 focus:outline-none transition-all">
+                    <input type="text" id="cariGudangMobile" placeholder="Cari nama atau kategori..." class="w-full bg-white border border-slate-200 rounded-2xl pl-11 pr-4 py-3.5 text-sm font-semibold text-slate-800 shadow-sm focus:outline-none transition-all">
                 </div>
+                <button onclick="bukaModalTransferMasalMobile()" class="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-bold py-3.5 rounded-2xl shadow-sm transition-transform active:scale-95 flex items-center justify-center gap-2 text-xs uppercase tracking-wider">
+                    <i class="fa-solid fa-truck-fast text-lg"></i> Kirim Masal ke Etalase
+                </button>
             </div>
+
             <div class="px-6 space-y-3" id="daftarGudangMobile"></div>
         </div> 
         
@@ -353,50 +357,59 @@ tailwind.config = {
         </div>
     </div>
 
-    <div id="modalEditMobile" class="absolute inset-0 z-[100] hidden flex items-end sm:items-center justify-center pointer-events-none">
+        <div id="modalEditMobile" class="absolute inset-0 z-[100] hidden flex items-end sm:items-center justify-center pointer-events-none">
         <div class="absolute inset-0 bg-slate-900/40 backdrop-blur-sm transition-opacity pointer-events-auto" onclick="tutupModalMobile('modalEditMobile')"></div>
-        <div class="bg-white w-full max-h-[85vh] rounded-t-3xl sm:rounded-3xl sm:w-[90%] sm:mb-10 shadow-2xl relative z-10 pointer-events-auto transform transition-transform translate-y-full flex flex-col" id="panelEditMobile">
-            <div class="flex justify-center pt-3 pb-2" onclick="tutupModalMobile('modalEditMobile')"><div class="w-12 h-1.5 bg-slate-200 rounded-full"></div></div>
-            <div class="px-6 pb-4 border-b border-slate-100 flex items-center gap-3">
-                <div class="h-10 w-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-500 border border-blue-100"><i class="fa-solid fa-pen"></i></div>
-                <div><h3 class="font-bold text-slate-800 text-lg leading-tight">Edit Data Obat</h3><p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Pembaruan Harga & Detail</p></div>
+        <div class="bg-[#f8fafc] w-full max-h-[85vh] rounded-t-3xl sm:rounded-3xl sm:w-[90%] sm:mb-10 shadow-2xl relative z-10 pointer-events-auto transform transition-transform translate-y-full flex flex-col overflow-hidden" id="panelEditMobile">
+            <div class="bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-5 flex items-center justify-between shadow-md relative z-20">
+                <h3 class="font-black text-white text-lg tracking-tight flex items-center gap-2">
+                    <i class="fa-solid fa-pen text-blue-300"></i> Edit Data Obat
+                </h3>
+                <button onclick="tutupModalMobile('modalEditMobile')" class="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
             </div>
+            
+            <div class="bg-white border-b border-slate-200 px-4 py-3 flex gap-2 overflow-x-auto hide-scrollbar shadow-sm z-10" id="editBatchNavMobile">
+                </div>
+
             <div class="p-6 overflow-y-auto hide-scrollbar flex-1 space-y-4">
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-600 mb-2 uppercase tracking-wider">Nama Obat</label>
+                    <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Nama Obat</label>
                     <input type="text" id="editNamaMobile" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:bg-white focus:outline-none transition-all">
                 </div>
                 <div>
-                    <label class="block text-[10px] font-bold text-slate-600 mb-2 uppercase tracking-wider">Kategori</label>
+                    <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Kategori</label>
                     <input type="text" id="editKategoriMobile" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:bg-white focus:outline-none transition-all">
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-600 mb-2 uppercase tracking-wider">Modal (HPP)</label>
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Modal (HPP)</label>
                         <input type="number" id="editModalMobile" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:bg-white focus:outline-none transition-all">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-600 mb-2 uppercase tracking-wider text-corporate-600">Harga Jual</label>
-                        <input type="number" id="editJualMobile" class="w-full bg-corporate-50 border border-corporate-200 rounded-xl px-4 py-3 text-sm font-black text-corporate-700 focus:bg-white focus:outline-none shadow-inner">
+                        <label class="block text-[10px] font-bold text-corporate-600 mb-1.5 uppercase tracking-wider pl-1">Harga Jual</label>
+                        <input type="number" id="editJualMobile" class="w-full bg-corporate-50 border border-corporate-200 rounded-xl px-4 py-3 text-sm font-black text-corporate-700 focus:bg-white focus:outline-none shadow-inner transition-all">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-600 mb-2 uppercase tracking-wider">Sisa Gudang</label>
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Sisa Gudang</label>
                         <input type="number" id="editStokMobile" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:bg-white focus:outline-none transition-all">
                     </div>
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-600 mb-2 uppercase tracking-wider">Kedaluwarsa</label>
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Kedaluwarsa</label>
                         <input type="date" id="editExpiredMobile" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-[11px] font-semibold text-slate-600 focus:bg-white focus:outline-none transition-all">
                     </div>
                 </div>
             </div>
-            <div class="p-6 border-t border-slate-100 bg-white grid grid-cols-2 gap-3">
-                <button onclick="tutupModalMobile('modalEditMobile')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3.5 rounded-2xl transition-colors">Batal</button>
-                <button onclick="prosesSimpanEditMobile()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 rounded-2xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-1"><i class="fa-solid fa-floppy-disk"></i> Simpan</button>
+            <div class="bg-white border-t border-slate-200 p-5 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] relative z-20">
+                <button onclick="prosesSimpanEditMobile()" id="btnSimpanEditMobile" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-600/30 transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm uppercase tracking-wider">
+                    <i class="fa-solid fa-save text-lg"></i> Simpan Perubahan
+                </button>
             </div>
         </div>
     </div>
+
 
     <div id="modalKasirMobile" class="absolute inset-0 z-[110] hidden flex items-end sm:items-center justify-center pointer-events-none">
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity pointer-events-auto" onclick="tutupModalMobile('modalKasirMobile')"></div>
@@ -611,6 +624,45 @@ tailwind.config = {
                 </div>
                 <button onclick="prosesLacakIDMobile()" class="w-full bg-corporate-600 hover:bg-corporate-700 text-white font-bold py-3.5 rounded-2xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm">Mulai Lacak</button>
                 <div id="hasilLacakAreaMobile" class="mt-4 hidden pt-4 border-t border-dashed border-slate-300"></div>
+            </div>
+        </div>
+    </div>
+    <div id="modalTransferMasalMobile" class="absolute inset-0 z-[145] hidden flex items-end sm:items-center justify-center pointer-events-none">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity pointer-events-auto" onclick="tutupModalMobile('modalTransferMasalMobile')"></div>
+        <div class="bg-[#f8fafc] w-full max-h-[90vh] rounded-t-3xl sm:rounded-3xl sm:w-[90%] sm:mb-10 shadow-2xl relative z-10 pointer-events-auto transform transition-transform translate-y-full flex flex-col overflow-hidden" id="panelTransferMasalMobile">
+            <div class="bg-gradient-to-r from-emerald-600 to-teal-700 px-6 py-5 flex items-center justify-between shadow-md relative z-20">
+                <h3 class="font-black text-white text-lg tracking-tight flex items-center gap-2"><i class="fa-solid fa-boxes-packing text-emerald-300"></i> Transfer Masal</h3>
+                <button onclick="tutupModalMobile('modalTransferMasalMobile')" class="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto hide-scrollbar p-6 space-y-3" id="listTransferMasalBodyMobile">
+                </div>
+            <div class="bg-white border-t border-slate-200 p-5 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] relative z-20">
+                <button onclick="prosesTransferMasalMobile()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-emerald-600/30 transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm uppercase tracking-wider">
+                    <i class="fa-solid fa-truck-fast text-lg"></i> Berangkatkan Sekarang
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="modalAlertPencegatanMobile" class="absolute inset-0 z-[155] hidden flex items-center justify-center pointer-events-none">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity pointer-events-auto"></div>
+        <div class="bg-white w-[85%] max-w-[320px] rounded-[2rem] shadow-2xl relative z-10 pointer-events-auto transform transition-transform scale-90 opacity-0 flex flex-col overflow-hidden" id="panelAlertPencegatanMobile">
+            <div class="bg-gradient-to-br from-amber-50 to-orange-50 px-6 py-6 border-b border-amber-100 flex flex-col items-center text-center relative">
+                <div class="h-20 w-20 rounded-full bg-white border-4 border-amber-100 shadow-md flex items-center justify-center mb-3 relative z-10">
+                    <i class="fa-solid fa-triangle-exclamation text-4xl text-amber-500 animate-bounce"></i>
+                </div>
+                <h3 class="text-xl font-black text-amber-900 tracking-tight leading-tight">BARANG SUDAH<br>TERDAFTAR!</h3>
+            </div>
+            <div class="px-6 py-5 bg-slate-50 text-center">
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Barcode ini milik obat:</p>
+                <p class="text-lg font-black text-corporate-700 leading-tight my-1" id="alertPencegatanNamaMobile">-</p>
+                <div id="alertPencegatanListMobile" class="mt-3 text-left max-h-32 overflow-y-auto hide-scrollbar text-[10px]"></div>
+                <p class="text-[10px] text-slate-500 mt-3 leading-tight font-medium">Sistem akan membuka formulir Edit agar Anda bisa memperbarui stoknya (Kulakan).</p>
+            </div>
+            <div class="bg-white px-6 py-4 border-t border-slate-100">
+                <button type="button" id="btnAlertPencegatanLanjutMobile" class="w-full inline-flex justify-center items-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-3.5 shadow-lg shadow-amber-500/30 transition transform active:scale-95">
+                    <i class="fa-solid fa-check-circle text-lg"></i> Mengerti, Buka Edit
+                </button>
             </div>
         </div>
     </div>
@@ -947,33 +999,163 @@ function prosesTransferMobile() {
     }
 }
 
+// ==========================================
+// MESIN EDIT MULTI-BATCH & DETEKSI KULAKAN (PIPA BARU)
+// ==========================================
+let currentEditBatchesMobile = [];
+let activeEditBatchIndexMobile = 0;
+let isAddingNewBatchMobile = false;
+
 function bukaModalEditMobile(idBatch) {
-    idBatchAktif = idBatch; let barang = masterItems.find(i => i.idBatch === idBatch);
+    idBatchAktif = idBatch; 
+    let barang = masterItems.find(i => i.idBatch === idBatch);
     if(barang) {
-        document.getElementById('editNamaMobile').value = barang.nama; document.getElementById('editKategoriMobile').value = barang.kategori; document.getElementById('editModalMobile').value = barang.modal; document.getElementById('editJualMobile').value = barang.jual; document.getElementById('editStokMobile').value = barang.stok; document.getElementById('editExpiredMobile').value = barang.expired || '';
+        // Cari semua kardus (Batch) yang ber-DNA sama
+        currentEditBatchesMobile = masterItems.filter(m => m.dnaInduk === barang.dnaInduk);
+        currentEditBatchesMobile.sort((a, b) => a.idBatch.localeCompare(b.idBatch));
+        
+        activeEditBatchIndexMobile = currentEditBatchesMobile.findIndex(b => b.idBatch === idBatch);
+        if(activeEditBatchIndexMobile === -1) activeEditBatchIndexMobile = 0;
+        isAddingNewBatchMobile = false;
+        
+        renderEditTabsMobile();
+        loadFormEditBatchMobile();
         bukaModalMobile('modalEditMobile', 'panelEditMobile');
     }
 }
 
+function renderEditTabsMobile() {
+    let html = currentEditBatchesMobile.map((b, index) => {
+        let isActive = (!isAddingNewBatchMobile && index === activeEditBatchIndexMobile) ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200';
+        return `<button type="button" onclick="pindahTabEditMobile(${index})" class="whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition ${isActive}">Batch ${index + 1}</button>`;
+    }).join('');
+    
+    let addActive = isAddingNewBatchMobile ? 'bg-blue-600 text-white shadow-md' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200';
+    html += `<button type="button" onclick="siapkanBatchBaruMobile()" class="whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 ${addActive}"><i class="fa-solid fa-plus"></i> Batch Baru</button>`;
+    
+    document.getElementById('editBatchNavMobile').innerHTML = html;
+}
+
+function pindahTabEditMobile(index) {
+    isAddingNewBatchMobile = false; activeEditBatchIndexMobile = index;
+    idBatchAktif = currentEditBatchesMobile[index].idBatch;
+    renderEditTabsMobile(); loadFormEditBatchMobile();
+}
+
+function siapkanBatchBaruMobile() {
+    isAddingNewBatchMobile = true; renderEditTabsMobile();
+    let referensi = currentEditBatchesMobile[0];
+    document.getElementById('editNamaMobile').value = referensi.nama; 
+    document.getElementById('editKategoriMobile').value = referensi.kategori;
+    document.getElementById('editModalMobile').value = '';
+    document.getElementById('editJualMobile').value = ''; 
+    document.getElementById('editStokMobile').value = '';
+    document.getElementById('editExpiredMobile').value = '';
+    
+    // Kunci Nama & Kategori karena DNA nya numpang
+    document.getElementById('editNamaMobile').readOnly = true; document.getElementById('editNamaMobile').classList.add('bg-slate-200');
+    document.getElementById('editKategoriMobile').readOnly = true; document.getElementById('editKategoriMobile').classList.add('bg-slate-200');
+    
+    document.getElementById('btnSimpanEditMobile').innerHTML = '<i class="fa-solid fa-plus-circle text-lg"></i> Simpan Batch Baru';
+    document.getElementById('btnSimpanEditMobile').classList.replace('bg-blue-600', 'bg-emerald-500');
+}
+
+function loadFormEditBatchMobile() {
+    let barang = currentEditBatchesMobile[activeEditBatchIndexMobile];
+    document.getElementById('editNamaMobile').value = barang.nama; 
+    document.getElementById('editKategoriMobile').value = barang.kategori;
+    document.getElementById('editModalMobile').value = barang.modal;
+    document.getElementById('editJualMobile').value = barang.jual; 
+    document.getElementById('editStokMobile').value = barang.stok;
+    document.getElementById('editExpiredMobile').value = barang.expired || '';
+    
+    // Buka Kunci
+    document.getElementById('editNamaMobile').readOnly = false; document.getElementById('editNamaMobile').classList.remove('bg-slate-200');
+    document.getElementById('editKategoriMobile').readOnly = false; document.getElementById('editKategoriMobile').classList.remove('bg-slate-200');
+    
+    document.getElementById('btnSimpanEditMobile').innerHTML = '<i class="fa-solid fa-save text-lg"></i> Simpan Perubahan';
+    document.getElementById('btnSimpanEditMobile').classList.replace('bg-emerald-500', 'bg-blue-600');
+}
+
+function eksekusiSimpanEditAkhirMobile(isKulakanBaru, nBaru, kBaru, mBaru, jBaru, sBaru, expBaru, selisihStok) {
+    let referensi = currentEditBatchesMobile[0];
+    let barang = masterItems.find(i => i.idBatch === idBatchAktif);
+
+    if (isKulakanBaru || isAddingNewBatchMobile) {
+        const idBatchBaru = 'B-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+        masterItems.unshift({ 
+            idBatch: idBatchBaru, dnaInduk: referensi.dnaInduk, barcode: referensi.barcode, qrcode: referensi.qrcode,
+            nama: nBaru, varian: '', keterangan: '', kategori: kBaru, modal: mBaru, jual: jBaru, stok: isAddingNewBatchMobile ? sBaru : selisihStok, expired: expBaru 
+        });
+        
+        let qtySuntikan = isAddingNewBatchMobile ? sBaru : selisihStok;
+        siklusAktif.qtyTambahan += qtySuntikan; 
+        siklusAktif.modalTambahan += (qtySuntikan * mBaru);
+        
+        if(isKulakanBaru && !isAddingNewBatchMobile) alert("🪄 Sukses! Sistem otomatis merakitkan Batch Kulakan Baru di Gudang.");
+        else alert("✅ Batch Baru berhasil disimpan!");
+    } else {
+        siklusAktif.qtyTambahan += selisihStok; 
+        siklusAktif.modalTambahan += (selisihStok * mBaru);
+        barang.modal = mBaru; barang.jual = jBaru; barang.stok = sBaru; barang.expired = expBaru;
+        alert("✅ Data berhasil diperbarui!");
+    }
+
+    // Selaraskan Nama & Kategori ke Semua DNA yang sama
+    masterItems.forEach(m => {
+        if (m.dnaInduk === referensi.dnaInduk) { 
+            m.nama = nBaru; m.kategori = kBaru; m.jual = jBaru; // Harga jual diseragamkan
+        }
+    });
+
+    let bEtalase = etalaseItems.find(i => i.dnaInduk === referensi.dnaInduk || i.nama === referensi.nama);
+    if(bEtalase) { 
+        bEtalase.dnaInduk = referensi.dnaInduk; bEtalase.nama = nBaru; 
+        bEtalase.kategori = kBaru; bEtalase.jual = jBaru; 
+    } 
+
+    localStorage.setItem('apotek_masterItems', JSON.stringify(masterItems));
+    localStorage.setItem('apotek_etalaseItems', JSON.stringify(etalaseItems));
+    localStorage.setItem('apotek_siklusAktif', JSON.stringify(siklusAktif));
+    
+    tutupModalMobile('modalEditMobile');
+    renderGudangMobile(document.getElementById('cariGudangMobile').value);
+    renderBerandaMobile();
+}
+
 function prosesSimpanEditMobile() {
-    let nBaru = document.getElementById('editNamaMobile').value; let kBaru = document.getElementById('editKategoriMobile').value; let mBaru = parseInt(document.getElementById('editModalMobile').value); let jBaru = parseInt(document.getElementById('editJualMobile').value); let sBaru = parseInt(document.getElementById('editStokMobile').value); let expBaru = document.getElementById('editExpiredMobile').value;
+    let nBaru = document.getElementById('editNamaMobile').value; 
+    let kBaru = document.getElementById('editKategoriMobile').value; 
+    let mBaru = parseInt(document.getElementById('editModalMobile').value); 
+    let jBaru = parseInt(document.getElementById('editJualMobile').value); 
+    let sBaru = parseInt(document.getElementById('editStokMobile').value); 
+    let expBaru = document.getElementById('editExpiredMobile').value;
 
     if(!nBaru || isNaN(mBaru) || isNaN(jBaru) || isNaN(sBaru)) return alert("Pastikan Nama dan semua Harga terisi angka yang valid!");
     if(mBaru >= jBaru) return alert("Peringatan: Harga Jual tidak boleh lebih kecil/sama dengan Harga Modal.");
 
-    let barang = masterItems.find(i => i.idBatch === idBatchAktif);
-    if(barang) {
+    let referensi = currentEditBatchesMobile[0];
+    
+    if (isAddingNewBatchMobile) {
+        eksekusiSimpanEditAkhirMobile(false, nBaru, kBaru, mBaru, jBaru, sBaru, expBaru, 0);
+    } else {
+        let barang = masterItems.find(i => i.idBatch === idBatchAktif);
+        if(!barang) return;
         let selisihStok = sBaru - barang.stok;
-        if(selisihStok > 0) { siklusAktif.qtyTambahan += selisihStok; siklusAktif.modalTambahan += (selisihStok * mBaru); }
-
-        barang.nama = nBaru; barang.kategori = kBaru; barang.modal = mBaru; barang.jual = jBaru; barang.stok = sBaru; barang.expired = expBaru;
-        let barangEtalase = etalaseItems.find(e => e.dnaInduk === barang.dnaInduk || e.nama === barang.nama);
-        if(barangEtalase) { barangEtalase.nama = nBaru; barangEtalase.kategori = kBaru; barangEtalase.jual = jBaru; }
-
-        localStorage.setItem('apotek_masterItems', JSON.stringify(masterItems)); localStorage.setItem('apotek_etalaseItems', JSON.stringify(etalaseItems)); localStorage.setItem('apotek_siklusAktif', JSON.stringify(siklusAktif));
-        tutupModalMobile('modalEditMobile'); renderGudangMobile(document.getElementById('cariGudangMobile').value); renderBerandaMobile();
+        
+        // SENSOR DETEKSI KULAKAN CERDAS
+        if (selisihStok > 0 && (expBaru !== barang.expired || mBaru !== barang.modal)) {
+            tampilkanConfirmMobile("🪄 DETEKSI KULAKAN BARU:\n\nSistem melihat Anda menambah stok (+ " + selisihStok + " Box) sekaligus merubah Tgl Kedaluwarsa/Harga Modal.\n\nApakah ini barang Kulakan Baru? (Klik 'Ya, Lanjut' agar sistem otomatis membuatkannya Batch/Kardus baru di Gudang tanpa merusak modal lama).", 
+            function() { // Jika YA, bikin kardus baru
+                eksekusiSimpanEditAkhirMobile(true, nBaru, kBaru, mBaru, jBaru, sBaru, expBaru, selisihStok);
+            });
+        } else {
+            // Jika BUKAN Kulakan Baru (Hanya koreksi biasa)
+            eksekusiSimpanEditAkhirMobile(false, nBaru, kBaru, mBaru, jBaru, sBaru, expBaru, selisihStok);
+        }
     }
 }
+
 
 function prosesHapusObatMobile(idBatch, namaObat) {
     tampilkanConfirmMobile(`Hapus permanen obat ${namaObat} dari Gudang?\n\nAksi ini tidak dapat dibatalkan.`, function() {
@@ -1231,7 +1413,88 @@ function tagihViaWAMobile(idTransaksi) {
 }
 
 // ==========================================
-// MESIN PEMINDAI BARCODE (KAMERA HTML5)
+// MESIN TRUK LOGISTIK (TRANSFER MASAL)
+// ==========================================
+function bukaModalTransferMasalMobile() {
+    const list = document.getElementById('listTransferMasalBodyMobile');
+    
+    // Hanya tampilkan obat yang stoknya > 0 di Gudang, dan abaikan barang retur
+    let barangTersedia = masterItems.filter(o => o.stok > 0 && o.nama !== '___SYSTEM_AUTH___' && o.kategori !== '⚠️ Barang Retur');
+    
+    if(barangTersedia.length === 0) {
+        return alert("Gudang kosong! Tidak ada barang yang bisa ditransfer.");
+    }
+
+    list.innerHTML = barangTersedia.map((o, index) => {
+        let expTeks = o.expired ? `<span class="text-red-500 font-bold">${o.expired}</span>` : `<span class="text-slate-400">Tanpa Exp</span>`;
+        return `
+        <div class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-2xl shadow-sm mb-2">
+            <div class="flex-1 pr-2">
+                <p class="font-bold text-sm text-slate-800 leading-tight">${o.nama}</p>
+                <p class="text-[10px] text-slate-500 mt-1">Sisa Gudang: <span class="font-black text-emerald-600">${o.stok}</span> | Exp: ${expTeks}</p>
+            </div>
+            <div class="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-100 shrink-0">
+                <button type="button" onclick="ubahJumlahMasalMobile('masalM-${index}', -1)" class="h-8 w-8 rounded-lg bg-white shadow-sm text-slate-600 font-black active:bg-slate-200">-</button>
+                <input type="number" id="masalM-${index}" value="0" min="0" max="${o.stok}" class="w-10 bg-transparent text-center font-black text-slate-800 text-sm focus:outline-none">
+                <button type="button" onclick="ubahJumlahMasalMobile('masalM-${index}', 1)" class="h-8 w-8 rounded-lg bg-emerald-100 shadow-sm text-emerald-700 font-black active:bg-emerald-200">+</button>
+            </div>
+        </div>`;
+    }).join('');
+    
+    bukaModalMobile('modalTransferMasalMobile', 'panelTransferMasalMobile');
+}
+
+function ubahJumlahMasalMobile(id, delta) {
+    const input = document.getElementById(id); 
+    let val = parseInt(input.value) + delta;
+    if (val < 0) val = 0; 
+    if (val > parseInt(input.max)) val = parseInt(input.max); 
+    input.value = val;
+}
+
+function prosesTransferMasalMobile() {
+    let adaYangDitransfer = false;
+    let barangTersedia = masterItems.filter(o => o.stok > 0 && o.nama !== '___SYSTEM_AUTH___' && o.kategori !== '⚠️ Barang Retur');
+
+    barangTersedia.forEach((o, index) => {
+        let val = parseInt(document.getElementById(`masalM-${index}`).value) || 0;
+        if (val > 0 && o.stok >= val) {
+            adaYangDitransfer = true;
+            o.stok -= val; 
+            
+            let bEtalase = etalaseItems.find(i => i.dnaInduk === o.dnaInduk || i.nama === o.nama);
+            if(!bEtalase) { 
+                bEtalase = { dnaInduk: o.dnaInduk, nama: o.nama, kategori: o.kategori, jual: o.jual, stok: 0, antreanFIFO: [] };
+                etalaseItems.push(bEtalase); 
+            }
+            
+            bEtalase.stok += val;
+            if(!bEtalase.antreanFIFO) bEtalase.antreanFIFO = [];
+            
+            let batchSama = bEtalase.antreanFIFO.find(b => b.idBatch === o.idBatch);
+            if(batchSama) { batchSama.stok += val; } 
+            else { bEtalase.antreanFIFO.push({ idBatch: o.idBatch, modal: o.modal, stok: val, expired: o.expired }); }
+            
+            // Pengurutan pintar berdasarkan kedaluwarsa terdekat
+            bEtalase.antreanFIFO.sort((a, b) => new Date(a.expired || '2099-12-31') - new Date(b.expired || '2099-12-31'));
+        }
+    });
+
+    if(adaYangDitransfer) {
+        localStorage.setItem('apotek_masterItems', JSON.stringify(masterItems)); 
+        localStorage.setItem('apotek_etalaseItems', JSON.stringify(etalaseItems));
+        tutupModalMobile('modalTransferMasalMobile');
+        renderGudangMobile(document.getElementById('cariGudangMobile').value); 
+        renderBerandaMobile();
+        try { if (navigator.vibrate) navigator.vibrate([100, 50, 100]); } catch (e) {}
+        alert("🚚 Barang berhasil diberangkatkan ke Etalase!");
+    } else {
+        alert("Pilih minimal 1 barang untuk ditransfer.");
+    }
+}
+
+// ==========================================
+// MESIN PEMINDAI BARCODE & SENSOR ANTI-DOUBLE
 // ==========================================
 let html5QrcodeScannerMobile = null;
 let senterMenyalaMobile = false;
@@ -1248,7 +1511,14 @@ function bukaScannerKameraMobile(target = 'kasir') {
         try { if (navigator.vibrate) navigator.vibrate(200); } catch (e) {} 
         
         if (targetScannerAktif === 'tambah_obat') {
-            document.getElementById('tambahBarcodeMobile').value = decodedText;
+            // SENSOR CEGAT BARANG DOUBLE
+            let barangSudahAda = masterItems.find(m => m.barcode === decodedText || m.qrcode === decodedText);
+            if (barangSudahAda) {
+                munculkanAlertPencegatanMobile(barangSudahAda.nama, barangSudahAda.dnaInduk);
+            } else {
+                document.getElementById('tambahBarcodeMobile').value = decodedText;
+                alert("Barcode " + decodedText + " berhasil direkam! Silakan lengkapi data obat baru ini.");
+            }
         } else if (targetScannerAktif === 'lacak') {
             let match = decodedText.match(/Trx:\s*(\d+)/);
             if(match && match[1]) { document.getElementById('inputLacakIDMobile').value = match[1]; prosesLacakIDMobile(); } else { alert("⚠️ QR Code bukan struk yang valid."); }
@@ -1260,6 +1530,40 @@ function bukaScannerKameraMobile(target = 'kasir') {
             } else { alert("GAGAL! Barcode " + decodedText + " tidak terdaftar!"); }
         }
     }).catch(err => { alert("Kamera gagal diakses! Pastikan izin kamera aktif."); tutupKameraScannerMobile(); });
+}
+
+function munculkanAlertPencegatanMobile(namaBarang, dnaInduk) {
+    document.getElementById('alertPencegatanNamaMobile').textContent = namaBarang;
+    let batches = masterItems.filter(m => m.dnaInduk === dnaInduk);
+    batches.sort((a, b) => a.idBatch.localeCompare(b.idBatch));
+    
+    let listHTML = batches.map((b, index) => {
+        let expText = b.expired ? `Exp: ${b.expired}` : 'Tanpa Exp';
+        return `
+        <div class="bg-white border border-slate-200 p-2 rounded-xl mb-1.5 flex justify-between items-center shadow-sm">
+            <span class="font-black text-slate-700">Batch ${index + 1}</span>
+            <span class="text-slate-500 font-medium">${expText} | Stok: <span class="font-black text-amber-600">${b.stok}</span></span>
+        </div>`;
+    }).join('');
+    
+    document.getElementById('alertPencegatanListMobile').innerHTML = listHTML;
+    
+    document.getElementById('btnAlertPencegatanLanjutMobile').onclick = function() {
+        // Hilangkan pop-up alert pencegatan
+        const panel = document.getElementById('panelAlertPencegatanMobile');
+        panel.classList.remove('scale-100', 'opacity-100'); panel.classList.add('scale-90', 'opacity-0');
+        setTimeout(() => { document.getElementById('modalAlertPencegatanMobile').classList.add('hidden'); }, 300);
+        
+        // Tutup otomatis form Tambah Obat dan buka form Edit
+        tutupModalMobile('modalTambahObatMobile');
+        if(batches.length > 0) setTimeout(() => { bukaModalEditMobile(batches[0].idBatch); }, 400);
+    };
+    
+    // Animasi tampil
+    const modalAlert = document.getElementById('modalAlertPencegatanMobile');
+    const panelAlert = document.getElementById('panelAlertPencegatanMobile');
+    modalAlert.classList.remove('hidden');
+    setTimeout(() => { panelAlert.classList.remove('scale-90', 'opacity-0'); panelAlert.classList.add('scale-100', 'opacity-100'); }, 10);
 }
 
 function tutupKameraScannerMobile() {
@@ -1279,6 +1583,7 @@ function toggleSenterMobile() {
         }).catch(e => alert("Senter tidak didukung pada browser ini."));
     }
 }
+
 
 // ==========================================
 // MESIN UI/UX (CUSTOM ALERT & CONFIRM)
