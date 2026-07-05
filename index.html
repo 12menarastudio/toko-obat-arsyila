@@ -686,6 +686,28 @@ tailwind.config = {
             </div>
         </div>
     </div>
+    <!-- MODAL HAPUS CERDAS (SMART DELETE) -->
+    <div id="modalHapusCerdasMobile" class="absolute inset-0 z-[160] hidden flex items-end sm:items-center justify-center pointer-events-none">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity pointer-events-auto" onclick="tutupModalMobile('modalHapusCerdasMobile')"></div>
+        <div class="bg-[#f8fafc] w-full max-h-[85vh] rounded-t-3xl sm:rounded-3xl sm:w-[90%] sm:mb-10 shadow-2xl relative z-10 pointer-events-auto transform transition-transform translate-y-full flex flex-col overflow-hidden" id="panelHapusCerdasMobile">
+            <div class="bg-gradient-to-r from-red-600 to-red-800 px-6 py-5 flex items-center justify-between shadow-md relative z-20">
+                <h3 class="font-black text-white text-lg tracking-tight flex items-center gap-2"><i class="fa-solid fa-trash-can text-red-300"></i> Hapus Data Obat</h3>
+                <button onclick="tutupModalMobile('modalHapusCerdasMobile')" class="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-6 bg-white border-b border-slate-100">
+                <p class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">Pilih Batch yang akan dihapus:</p>
+                <h4 class="font-black text-slate-800 text-lg leading-tight" id="hapusCerdasNamaObat">-</h4>
+            </div>
+            <div class="flex-1 overflow-y-auto hide-scrollbar p-6 space-y-3" id="listHapusCerdasBodyMobile">
+                <!-- Daftar batch akan disuntikkan oleh mesin kesini -->
+            </div>
+            <div class="bg-white border-t border-slate-200 p-5 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] relative z-20">
+                <button onclick="prosesHapusSemuaBatchMobile()" class="w-full bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-black py-4 rounded-2xl transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm uppercase tracking-wider">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Hapus Semua Batch (Total)
+                </button>
+            </div>
+        </div>
+    </div>
 
     <div id="modalAlertPencegatanMobile" class="absolute inset-0 z-[155] hidden flex items-center justify-center pointer-events-none">
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity pointer-events-auto"></div>
@@ -954,13 +976,13 @@ function renderGudangMobile(filter = '') {
             ${contentHtml}
 
             <div class="flex gap-2 mt-3">
-                <button onclick="bukaModalTransferMobile('${g.batches[0].idBatch}')" class="flex-1 h-11 bg-[#10b981] hover:bg-[#059669] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-sm">
+                <button onclick="bukaModalTransferMobile('${g.dnaInduk}')" class="flex-1 h-11 bg-[#10b981] hover:bg-[#059669] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-sm">
                     <i class="fa-solid fa-truck-fast text-[11px]"></i> Ke Etalase
                 </button>
                 <button onclick="bukaModalEditMobile('${g.batches[0].idBatch}')" class="w-11 h-11 bg-[#f97316] hover:bg-[#ea580c] text-white rounded-xl flex items-center justify-center transition-transform active:scale-95 shadow-sm">
                     <i class="fa-solid fa-pen text-sm"></i>
                 </button>
-                <button onclick="prosesHapusObatMobile('${g.dnaInduk}', '${g.nama}')" class="w-11 h-11 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl flex items-center justify-center transition-transform active:scale-95 border border-red-100 shadow-sm">
+                <button onclick="bukaModalHapusCerdas('${g.dnaInduk}', '${g.nama}')" class="w-11 h-11 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl flex items-center justify-center transition-transform active:scale-95 border border-red-100 shadow-sm">
                     <i class="fa-solid fa-trash text-sm"></i>
                 </button>
             </div>
@@ -1106,34 +1128,77 @@ function tutupModalMobile(idModal) {
     if(panel) panel.classList.add('translate-y-full'); setTimeout(() => { modal.classList.add('hidden'); }, 300);
 }
 
-function bukaModalTransferMobile(idBatch) {
-    idBatchAktif = idBatch; let barang = masterItems.find(i => i.idBatch === idBatch);
-    if(barang) { document.getElementById('transferNamaObat').textContent = barang.nama; document.getElementById('transferSisaGudang').textContent = barang.stok; document.getElementById('transferInputQty').value = ''; bukaModalMobile('modalTransferMobile', 'panelTransferMobile'); setTimeout(() => document.getElementById('transferInputQty').focus(), 350); }
+let dnaIndukTransferAktif = null;
+
+function bukaModalTransferMobile(dnaInduk) {
+    dnaIndukTransferAktif = dnaInduk;
+    let batches = masterItems.filter(i => i.dnaInduk === dnaInduk);
+    if(batches.length > 0) { 
+        let namaObat = batches[0].nama;
+        let totalStok = batches.reduce((sum, b) => sum + b.stok, 0);
+        
+        document.getElementById('transferNamaObat').textContent = namaObat; 
+        document.getElementById('transferSisaGudang').textContent = totalStok; 
+        document.getElementById('transferInputQty').value = ''; 
+        bukaModalMobile('modalTransferMobile', 'panelTransferMobile'); 
+        setTimeout(() => document.getElementById('transferInputQty').focus(), 350); 
+    }
 }
 
 function prosesTransferMobile() {
     let inputQty = parseInt(document.getElementById('transferInputQty').value);
     if(isNaN(inputQty) || inputQty <= 0) return alert("Masukkan jumlah yang benar!");
 
-    let barangGudang = masterItems.find(i => i.idBatch === idBatchAktif);
-    if(barangGudang) {
-        if(inputQty > barangGudang.stok) return alert("Gagal! Sisa di gudang tidak cukup.");
-        barangGudang.stok -= inputQty;
+    let batchesGudang = masterItems.filter(i => i.dnaInduk === dnaIndukTransferAktif && i.stok > 0);
+    let totalStokGudang = batchesGudang.reduce((sum, b) => sum + b.stok, 0);
 
-        let barangEtalase = etalaseItems.find(e => e.dnaInduk === barangGudang.dnaInduk || e.nama === barangGudang.nama);
-        if(!barangEtalase) { barangEtalase = { dnaInduk: barangGudang.dnaInduk, nama: barangGudang.nama, kategori: barangGudang.kategori, jual: barangGudang.jual, stok: 0, antreanFIFO: [] }; etalaseItems.push(barangEtalase); }
+    if(inputQty > totalStokGudang) return alert("Gagal! Sisa total di gudang tidak cukup.");
 
-        barangEtalase.stok += inputQty;
-        if(!barangEtalase.antreanFIFO) barangEtalase.antreanFIFO = [];
-        
-        let batchSama = barangEtalase.antreanFIFO.find(b => b.idBatch === barangGudang.idBatch);
-        if(batchSama) { batchSama.stok += inputQty; } else { barangEtalase.antreanFIFO.push({ idBatch: barangGudang.idBatch, modal: barangGudang.modal, stok: inputQty, expired: barangGudang.expired }); }
-        barangEtalase.antreanFIFO.sort((a, b) => new Date(a.expired || '2099-12-31') - new Date(b.expired || '2099-12-31'));
+    // Mesin Cerdas FIFO (Urutkan dari yang paling cepat expired)
+    batchesGudang.sort((a, b) => new Date(a.expired || '2099-12-31') - new Date(b.expired || '2099-12-31'));
 
-        localStorage.setItem('apotek_masterItems', JSON.stringify(masterItems)); localStorage.setItem('apotek_etalaseItems', JSON.stringify(etalaseItems));
-        tutupModalMobile('modalTransferMobile'); renderGudangMobile(document.getElementById('cariGudangMobile').value); renderBerandaMobile(); 
+    let sisaYgHarusDipindah = inputQty;
+    let namaObat = batchesGudang[0].nama;
+    let kategoriObat = batchesGudang[0].kategori;
+    let jualObat = batchesGudang[0].jual;
+
+    let barangEtalase = etalaseItems.find(e => e.dnaInduk === dnaIndukTransferAktif || e.nama === namaObat);
+    if(!barangEtalase) { 
+        barangEtalase = { dnaInduk: dnaIndukTransferAktif, nama: namaObat, kategori: kategoriObat, jual: jualObat, stok: 0, antreanFIFO: [] }; 
+        etalaseItems.push(barangEtalase); 
     }
+
+    // Proses Penyedotan per Batch
+    for (let i = 0; i < batchesGudang.length; i++) {
+        let batch = batchesGudang[i];
+        if (sisaYgHarusDipindah <= 0) break;
+
+        let jumlahDiambil = Math.min(batch.stok, sisaYgHarusDipindah);
+        batch.stok -= jumlahDiambil;
+        sisaYgHarusDipindah -= jumlahDiambil;
+        barangEtalase.stok += jumlahDiambil;
+
+        if(!barangEtalase.antreanFIFO) barangEtalase.antreanFIFO = [];
+        let batchSamaDiEtalase = barangEtalase.antreanFIFO.find(b => b.idBatch === batch.idBatch);
+        
+        if(batchSamaDiEtalase) { 
+            batchSamaDiEtalase.stok += jumlahDiambil; 
+        } else { 
+            barangEtalase.antreanFIFO.push({ idBatch: batch.idBatch, modal: batch.modal, stok: jumlahDiambil, expired: batch.expired }); 
+        }
+    }
+
+    barangEtalase.antreanFIFO.sort((a, b) => new Date(a.expired || '2099-12-31') - new Date(b.expired || '2099-12-31'));
+
+    localStorage.setItem('apotek_masterItems', JSON.stringify(masterItems)); 
+    localStorage.setItem('apotek_etalaseItems', JSON.stringify(etalaseItems));
+    tutupModalMobile('modalTransferMobile'); 
+    renderGudangMobile(document.getElementById('cariGudangMobile').value); 
+    renderBerandaMobile(); 
+    try { if (navigator.vibrate) navigator.vibrate([100, 50, 100]); } catch (e) {}
+    alert("🚚 " + inputQty + " " + namaObat + " berhasil dipindah ke Etalase!");
 }
+
 
 // ==========================================
 // MESIN EDIT MULTI-BATCH & KUNCI
@@ -1325,6 +1390,89 @@ function simpanEditLanjutanMobile() {
             function() { eksekusiSimpanEditLanjutanMobile(true, nBaru, vBaru, kBaru, mBaru, jBaru, sBaru, expBaru, selisihStok); });
         } else { eksekusiSimpanEditLanjutanMobile(false, nBaru, vBaru, kBaru, mBaru, jBaru, sBaru, expBaru, selisihStok); }
     }
+}
+// ==========================================
+// MESIN HAPUS CERDAS (SMART DELETE BATCH)
+// ==========================================
+let dnaIndukHapusAktif = null;
+let namaObatHapusAktif = null;
+
+function bukaModalHapusCerdas(dnaInduk, namaObat) {
+    dnaIndukHapusAktif = dnaInduk;
+    namaObatHapusAktif = namaObat;
+    
+    // Hitung ada berapa batch untuk obat ini
+    let batches = masterItems.filter(i => i.dnaInduk === dnaInduk);
+    
+    if (batches.length <= 1) {
+        // Jika obat cuma punya 1 batch, langsung buka konfirmasi hapus normal (langsung tembak)
+        prosesHapusObatMobile(dnaInduk, namaObat);
+    } else {
+        // Jika multi-batch, buka Modal Hapus Cerdas!
+        document.getElementById('hapusCerdasNamaObat').textContent = namaObat;
+        renderListHapusBatchMobile();
+        bukaModalMobile('modalHapusCerdasMobile', 'panelHapusCerdasMobile');
+    }
+}
+
+function renderListHapusBatchMobile() {
+    const list = document.getElementById('listHapusCerdasBodyMobile');
+    let batches = masterItems.filter(i => i.dnaInduk === dnaIndukHapusAktif);
+    
+    // Susun urutan berdasarkan ID agar Batch 1, Batch 2 selalu berurutan
+    batches.sort((a, b) => a.idBatch.localeCompare(b.idBatch));
+    
+    list.innerHTML = batches.map((b, index) => {
+        let expText = b.expired ? `<span class="text-red-500 font-bold">${b.expired}</span>` : `<span class="text-slate-400">Tanpa Exp</span>`;
+        return `
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex justify-between items-center shadow-sm">
+            <div>
+                <p class="font-black text-slate-800 text-sm mb-1 uppercase tracking-tight">Batch ${index + 1}</p>
+                <p class="text-[10px] text-slate-500 font-medium tracking-wider">Stok Sisa: <span class="font-black text-emerald-600 text-xs">${b.stok}</span> | Exp: ${expText}</p>
+            </div>
+            <button onclick="prosesHapusBatchSpesifikMobile('${b.idBatch}', ${index + 1})" class="h-10 px-4 bg-red-500 hover:bg-red-600 text-white rounded-xl text-xs font-bold transition-transform active:scale-95 shadow-sm flex items-center gap-1.5 shrink-0">
+                <i class="fa-solid fa-trash-can"></i> Hapus
+            </button>
+        </div>`;
+    }).join('');
+}
+
+function prosesHapusBatchSpesifikMobile(idBatch, urutanBatch) {
+    tampilkanConfirmMobile(`Hapus permanen Batch ${urutanBatch} dari obat ${namaObatHapusAktif}?\n\nModal dan stok dari batch ini akan dikeluarkan secara otomatis.`, function() {
+        
+        let barangYgDihapus = masterItems.find(i => i.idBatch === idBatch);
+        if (barangYgDihapus) {
+            // Pembersihan akuntansi (Mengurangi Modal dari Laporan)
+            let nilaiSuntikan = (barangYgDihapus.modal || 0) * (barangYgDihapus.stok || 0);
+            siklusAktif.qtyTambahan -= barangYgDihapus.stok;
+            siklusAktif.modalTambahan -= nilaiSuntikan;
+            if(siklusAktif.qtyTambahan < 0) siklusAktif.qtyTambahan = 0;
+            if(siklusAktif.modalTambahan < 0) siklusAktif.modalTambahan = 0;
+            localStorage.setItem('apotek_siklusAktif', JSON.stringify(siklusAktif));
+        }
+
+        // Hapus spesifik batch tersebut dari Master Data
+        masterItems = masterItems.filter(i => i.idBatch !== idBatch);
+        localStorage.setItem('apotek_masterItems', JSON.stringify(masterItems));
+        
+        let sisaBatches = masterItems.filter(i => i.dnaInduk === dnaIndukHapusAktif);
+        if (sisaBatches.length === 0) {
+            tutupModalMobile('modalHapusCerdasMobile');
+        } else {
+            renderListHapusBatchMobile(); // Update tampilan sisa batch
+        }
+        
+        renderGudangMobile(document.getElementById('cariGudangMobile').value); 
+        renderBerandaMobile();
+        alert(`✅ Batch ${urutanBatch} berhasil dihapus dari sistem.`);
+    });
+}
+
+function prosesHapusSemuaBatchMobile() {
+    tutupModalMobile('modalHapusCerdasMobile');
+    setTimeout(() => {
+        prosesHapusObatMobile(dnaIndukHapusAktif, namaObatHapusAktif);
+    }, 400); // Beri jeda animasi modal tertutup agar rapi
 }
 
 function prosesHapusObatMobile(dnaInduk, namaObat) {
@@ -1591,17 +1739,27 @@ function bukaModalTransferMasalMobile() {
         return alert("Gudang kosong! Tidak ada barang yang bisa ditransfer.");
     }
 
-    list.innerHTML = barangTersedia.map((o, index) => {
-        let expTeks = o.expired ? `<span class="text-red-500 font-bold">${o.expired}</span>` : `<span class="text-slate-400">Tanpa Exp</span>`;
+    // Kelompokkan berdasarkan Induk (DNA) agar tidak dobel di layar
+    let grouped = {};
+    barangTersedia.forEach(o => {
+        if(!grouped[o.dnaInduk]) {
+            grouped[o.dnaInduk] = { dnaInduk: o.dnaInduk, nama: o.nama, kategori: o.kategori, jual: o.jual, totalStok: 0 };
+        }
+        grouped[o.dnaInduk].totalStok += o.stok;
+    });
+
+    let groupedArray = Object.values(grouped);
+
+    list.innerHTML = groupedArray.map((g, index) => {
         return `
         <div class="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-2xl shadow-sm mb-2">
             <div class="flex-1 pr-2">
-                <p class="font-bold text-sm text-slate-800 leading-tight">${o.nama}</p>
-                <p class="text-[10px] text-slate-500 mt-1">Sisa Gudang: <span class="font-black text-emerald-600">${o.stok}</span> | Exp: ${expTeks}</p>
+                <p class="font-bold text-sm text-slate-800 leading-tight">${g.nama}</p>
+                <p class="text-[10px] text-slate-500 mt-1">Total di Gudang: <span class="font-black text-emerald-600">${g.totalStok}</span></p>
             </div>
             <div class="flex items-center gap-2 bg-slate-50 p-1 rounded-xl border border-slate-100 shrink-0">
                 <button type="button" onclick="ubahJumlahMasalMobile('masalM-${index}', -1)" class="h-8 w-8 rounded-lg bg-white shadow-sm text-slate-600 font-black active:bg-slate-200">-</button>
-                <input type="number" id="masalM-${index}" value="0" min="0" max="${o.stok}" class="w-10 bg-transparent text-center font-black text-slate-800 text-sm focus:outline-none">
+                <input type="number" id="masalM-${index}" data-dna="${g.dnaInduk}" value="0" min="0" max="${g.totalStok}" class="w-10 bg-transparent text-center font-black text-slate-800 text-sm focus:outline-none input-masal-transfer">
                 <button type="button" onclick="ubahJumlahMasalMobile('masalM-${index}', 1)" class="h-8 w-8 rounded-lg bg-emerald-100 shadow-sm text-emerald-700 font-black active:bg-emerald-200">+</button>
             </div>
         </div>`;
@@ -1610,38 +1768,54 @@ function bukaModalTransferMasalMobile() {
     bukaModalMobile('modalTransferMasalMobile', 'panelTransferMasalMobile');
 }
 
-function ubahJumlahMasalMobile(id, delta) {
-    const input = document.getElementById(id); 
-    let val = parseInt(input.value) + delta;
-    if (val < 0) val = 0; 
-    if (val > parseInt(input.max)) val = parseInt(input.max); 
-    input.value = val;
-}
-
 function prosesTransferMasalMobile() {
     let adaYangDitransfer = false;
-    let barangTersedia = masterItems.filter(o => o.stok > 0 && o.nama !== '___SYSTEM_AUTH___' && o.kategori !== '⚠️ Barang Retur');
+    let inputs = document.querySelectorAll('.input-masal-transfer'); // Ambil semua kotak angka
 
-    barangTersedia.forEach((o, index) => {
-        let val = parseInt(document.getElementById(`masalM-${index}`).value) || 0;
-        if (val > 0 && o.stok >= val) {
-            adaYangDitransfer = true;
-            o.stok -= val; 
+    inputs.forEach(input => {
+        let val = parseInt(input.value) || 0;
+        let dnaInduk = input.getAttribute('data-dna');
+
+        if (val > 0) {
+            let batchesGudang = masterItems.filter(i => i.dnaInduk === dnaInduk && i.stok > 0);
+            let totalStokGudang = batchesGudang.reduce((sum, b) => sum + b.stok, 0);
             
-            let bEtalase = etalaseItems.find(i => i.dnaInduk === o.dnaInduk || i.nama === o.nama);
-            if(!bEtalase) { 
-                bEtalase = { dnaInduk: o.dnaInduk, nama: o.nama, kategori: o.kategori, jual: o.jual, stok: 0, antreanFIFO: [] };
-                etalaseItems.push(bEtalase); 
+            if (val <= totalStokGudang) {
+                adaYangDitransfer = true;
+                
+                // Mesin Cerdas FIFO
+                batchesGudang.sort((a, b) => new Date(a.expired || '2099-12-31') - new Date(b.expired || '2099-12-31'));
+
+                let sisaYgHarusDipindah = val;
+                let namaObat = batchesGudang[0].nama;
+                
+                let barangEtalase = etalaseItems.find(e => e.dnaInduk === dnaInduk || e.nama === namaObat);
+                if(!barangEtalase) { 
+                    barangEtalase = { dnaInduk: dnaInduk, nama: namaObat, kategori: batchesGudang[0].kategori, jual: batchesGudang[0].jual, stok: 0, antreanFIFO: [] };
+                    etalaseItems.push(barangEtalase); 
+                }
+
+                // Sedot per batch
+                for (let i = 0; i < batchesGudang.length; i++) {
+                    let batch = batchesGudang[i];
+                    if (sisaYgHarusDipindah <= 0) break;
+
+                    let jumlahDiambil = Math.min(batch.stok, sisaYgHarusDipindah);
+                    batch.stok -= jumlahDiambil;
+                    sisaYgHarusDipindah -= jumlahDiambil;
+                    barangEtalase.stok += jumlahDiambil;
+
+                    if(!barangEtalase.antreanFIFO) barangEtalase.antreanFIFO = [];
+                    let batchSamaDiEtalase = barangEtalase.antreanFIFO.find(b => b.idBatch === batch.idBatch);
+                    
+                    if(batchSamaDiEtalase) { 
+                        batchSamaDiEtalase.stok += jumlahDiambil; 
+                    } else { 
+                        barangEtalase.antreanFIFO.push({ idBatch: batch.idBatch, modal: batch.modal, stok: jumlahDiambil, expired: batch.expired }); 
+                    }
+                }
+                barangEtalase.antreanFIFO.sort((a, b) => new Date(a.expired || '2099-12-31') - new Date(b.expired || '2099-12-31'));
             }
-            
-            bEtalase.stok += val;
-            if(!bEtalase.antreanFIFO) bEtalase.antreanFIFO = [];
-            
-            let batchSama = bEtalase.antreanFIFO.find(b => b.idBatch === o.idBatch);
-            if(batchSama) { batchSama.stok += val; } 
-            else { bEtalase.antreanFIFO.push({ idBatch: o.idBatch, modal: o.modal, stok: val, expired: o.expired }); }
-            
-            bEtalase.antreanFIFO.sort((a, b) => new Date(a.expired || '2099-12-31') - new Date(b.expired || '2099-12-31'));
         }
     });
 
@@ -1652,7 +1826,7 @@ function prosesTransferMasalMobile() {
         renderGudangMobile(document.getElementById('cariGudangMobile').value); 
         renderBerandaMobile();
         try { if (navigator.vibrate) navigator.vibrate([100, 50, 100]); } catch (e) {}
-        alert("🚚 Barang berhasil diberangkatkan ke Etalase!");
+        alert("🚚 Barang berhasil diberangkatkan ke Etalase secara Cerdas!");
     } else { alert("Pilih minimal 1 barang untuk ditransfer."); }
 }
 
