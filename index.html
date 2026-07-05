@@ -214,20 +214,42 @@ tailwind.config = {
         </div> 
         
         <div id="layar-riwayat" class="layar-app hidden pb-6">
-            <div class="sticky top-0 bg-[#f1f5f9]/90 backdrop-blur-md z-20 px-6 pt-10 pb-4 border-b border-slate-200/60 flex items-center gap-3">
+            <div id="headerNormalRiwayat" class="sticky top-0 bg-[#f1f5f9]/90 backdrop-blur-md z-20 px-6 pt-10 pb-4 border-b border-slate-200/60 flex items-center gap-3 transition-all">
                 <button onclick="bukaLayar('beranda')" class="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm active:scale-95 transition-transform"><i class="fa-solid fa-arrow-left"></i></button>
                 <div class="flex-1">
                     <h2 class="font-black text-corporate-900 text-2xl tracking-tight">Riwayat</h2>
                     <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Catatan Penjualan</p>
                 </div>
-                <button onclick="bukaModalLacakMobile()" class="w-10 h-10 rounded-2xl bg-corporate-50 text-corporate-600 flex items-center justify-center shadow-sm active:scale-95 transition-transform border border-corporate-100">
-                    <i class="fa-solid fa-magnifying-glass"></i>
+                <button onclick="bukaModalLacakMobile()" class="h-10 px-4 rounded-2xl bg-corporate-50 text-corporate-600 flex items-center justify-center gap-2 shadow-sm active:scale-95 transition-transform border border-corporate-100">
+                    <i class="fa-solid fa-magnifying-glass"></i><span class="text-[11px] font-black tracking-wide">Lacak ID</span>
                 </button>
             </div>
-            <div class="px-6 py-4">
-                <input type="date" id="filterTglRiwayatMobile" onchange="renderRiwayatMobile()" class="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 shadow-sm text-slate-500">
+
+            <div id="headerSeleksiRiwayat" class="sticky top-0 bg-blue-600 z-30 px-4 pt-10 pb-4 hidden flex items-center justify-between shadow-md transition-all">
+                <button onclick="batalSeleksiRiwayat()" class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white active:scale-95 transition-transform"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <div class="font-black text-white text-lg tracking-tight" id="teksJumlahSeleksi">0 Dipilih</div>
+                <div class="flex items-center gap-2">
+                    <button onclick="pilihSemuaRiwayat()" class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white active:scale-95 transition-transform shadow-sm"><i class="fa-solid fa-check-double"></i></button>
+                    <button onclick="prosesBintangMasalRiwayat()" class="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-white active:scale-95 transition-transform shadow-sm"><i class="fa-solid fa-star"></i></button>
+                    <button onclick="prosesArsipMasalRiwayat()" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-white active:scale-95 transition-transform shadow-sm" id="btnArsipHeaderSeleksi"><i class="fa-solid fa-eye-slash"></i></button>
+                </div>
             </div>
-            <div class="px-6 space-y-3" id="daftarRiwayatMobile"></div>
+
+            <div class="px-6 py-4 flex justify-between items-center bg-[#f8fafc] border-b border-slate-100 shadow-sm sticky top-[88px] z-10">
+                <div class="flex gap-1 bg-slate-200/60 p-1.5 rounded-2xl shadow-inner">
+                    <button onclick="ubahTabRiwayat('semua')" id="tabRiwayat-semua" class="px-4 py-2 rounded-xl text-[11px] font-black bg-white text-corporate-700 shadow-sm transition-all uppercase tracking-wider">Semua</button>
+                    <button onclick="ubahTabRiwayat('bintang')" id="tabRiwayat-bintang" class="px-3.5 py-2 rounded-xl text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-all"><i class="fa-solid fa-star text-amber-400 text-sm"></i></button>
+                    <button onclick="ubahTabRiwayat('arsip')" id="tabRiwayat-arsip" class="px-3.5 py-2 rounded-xl text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-all"><i class="fa-solid fa-eye-slash text-sm"></i></button>
+                </div>
+                <div class="relative">
+                    <input type="date" id="filterTglRiwayatMobile" onchange="renderRiwayatMobile()" class="absolute opacity-0 w-full h-full cursor-pointer top-0 left-0 z-10">
+                    <div class="w-10 h-10 bg-corporate-50 border border-corporate-200 text-corporate-600 rounded-xl flex items-center justify-center shadow-sm relative z-0 hover:bg-corporate-100 transition-colors">
+                        <i class="fa-regular fa-calendar-days text-lg"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="px-6 pt-5 pb-8 space-y-3" id="daftarRiwayatMobile"></div>
         </div>
 
         <div id="layar-piutang" class="layar-app hidden pb-6">
@@ -1006,6 +1028,94 @@ function renderEtalaseMobile() {
     }).join('');
 }
 
+// ==========================================
+// MESIN RIWAYAT CERDAS (SELEKSI, BINTANG & ARSIP)
+// ==========================================
+let riwayatTabAktifMobile = 'semua';
+let modeSeleksiRiwayatAktif = false;
+let itemTerpilihRiwayat = [];
+let timerLongPressRiwayat;
+
+function ubahTabRiwayat(tab) {
+    riwayatTabAktifMobile = tab;
+    batalSeleksiRiwayat(); 
+    
+    ['semua', 'bintang', 'arsip'].forEach(t => {
+        let btn = document.getElementById('tabRiwayat-' + t);
+        if(t === tab) {
+            btn.className = (t === 'semua') ? "px-4 py-2 rounded-xl text-[11px] font-black bg-white text-corporate-700 shadow-sm transition-all uppercase tracking-wider" : "px-3.5 py-2 rounded-xl text-[11px] font-bold bg-white shadow-sm transition-all";
+        } else {
+            btn.className = (t === 'semua') ? "px-4 py-2 rounded-xl text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-all uppercase tracking-wider" : "px-3.5 py-2 rounded-xl text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-all";
+        }
+    });
+    renderRiwayatMobile();
+}
+
+function mulaiTekanRiwayat(id) {
+    if(modeSeleksiRiwayatAktif) return; 
+    timerLongPressRiwayat = setTimeout(() => {
+        try { if (navigator.vibrate) navigator.vibrate(100); } catch (e) {}
+        aktifkanModeSeleksiRiwayat(id);
+    }, 500); // 0.5 detik ditahan langsung memicu seleksi
+}
+
+function lepasTekanRiwayat() { clearTimeout(timerLongPressRiwayat); }
+
+function klikItemRiwayat(id) {
+    if(modeSeleksiRiwayatAktif) { togglePilihRiwayat(id); }
+}
+
+function aktifkanModeSeleksiRiwayat(idPertama) {
+    modeSeleksiRiwayatAktif = true; itemTerpilihRiwayat = [idPertama];
+    document.getElementById('headerNormalRiwayat').classList.add('hidden');
+    document.getElementById('headerSeleksiRiwayat').classList.remove('hidden');
+    renderRiwayatMobile();
+}
+
+function batalSeleksiRiwayat() {
+    modeSeleksiRiwayatAktif = false; itemTerpilihRiwayat = [];
+    document.getElementById('headerSeleksiRiwayat').classList.add('hidden');
+    document.getElementById('headerNormalRiwayat').classList.remove('hidden');
+    renderRiwayatMobile();
+}
+
+function togglePilihRiwayat(id) {
+    let idx = itemTerpilihRiwayat.indexOf(id);
+    if(idx !== -1) itemTerpilihRiwayat.splice(idx, 1);
+    else itemTerpilihRiwayat.push(id);
+    
+    if(itemTerpilihRiwayat.length === 0) batalSeleksiRiwayat();
+    else { document.getElementById('teksJumlahSeleksi').textContent = itemTerpilihRiwayat.length + " Dipilih"; renderRiwayatMobile(); }
+}
+
+function pilihSemuaRiwayat() {
+    let tglFilter = document.getElementById('filterTglRiwayatMobile').value;
+    let dataTampil = cashierHistory.filter(t => t.tanggal === tglFilter);
+    if(riwayatTabAktifMobile === 'semua') dataTampil = dataTampil.filter(t => !t.isArsip);
+    else if(riwayatTabAktifMobile === 'bintang') dataTampil = dataTampil.filter(t => t.isBintang && !t.isArsip);
+    else if(riwayatTabAktifMobile === 'arsip') dataTampil = dataTampil.filter(t => t.isArsip);
+
+    itemTerpilihRiwayat = dataTampil.map(t => t.id);
+    document.getElementById('teksJumlahSeleksi').textContent = itemTerpilihRiwayat.length + " Dipilih";
+    renderRiwayatMobile();
+}
+
+function prosesBintangMasalRiwayat() {
+    if(itemTerpilihRiwayat.length === 0) return;
+    cashierHistory.forEach(t => { if(itemTerpilihRiwayat.includes(t.id)) t.isBintang = !t.isBintang; });
+    localStorage.setItem('apotek_cashierHistory', JSON.stringify(cashierHistory));
+    batalSeleksiRiwayat();
+}
+
+function prosesArsipMasalRiwayat() {
+    if(itemTerpilihRiwayat.length === 0) return;
+    let isKeArsip = riwayatTabAktifMobile !== 'arsip'; 
+    cashierHistory.forEach(t => { if(itemTerpilihRiwayat.includes(t.id)) t.isArsip = isKeArsip; });
+    localStorage.setItem('apotek_cashierHistory', JSON.stringify(cashierHistory));
+    batalSeleksiRiwayat();
+    try { if (navigator.vibrate) navigator.vibrate([100, 50, 100]); } catch (e) {}
+}
+
 function renderRiwayatMobile() {
     const wadah = document.getElementById('daftarRiwayatMobile');
     let tglFilter = document.getElementById('filterTglRiwayatMobile').value;
@@ -1013,9 +1123,20 @@ function renderRiwayatMobile() {
 
     let dataTampil = cashierHistory.filter(t => t.tanggal === tglFilter);
 
+    // Filter by Tab Active
+    if(riwayatTabAktifMobile === 'semua') dataTampil = dataTampil.filter(t => !t.isArsip);
+    else if(riwayatTabAktifMobile === 'bintang') dataTampil = dataTampil.filter(t => t.isBintang && !t.isArsip);
+    else if(riwayatTabAktifMobile === 'arsip') dataTampil = dataTampil.filter(t => t.isArsip);
+
     if (dataTampil.length === 0) {
-        wadah.innerHTML = `<div class="bg-white border border-slate-200 rounded-3xl p-8 text-center shadow-sm mt-4"><i class="fa-solid fa-file-invoice text-4xl text-slate-300 mb-3 block"></i><p class="font-bold text-slate-600">Belum ada transaksi.</p><p class="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">Tanggal: ${tglFilter}</p></div>`;
+        let pesanKosong = riwayatTabAktifMobile === 'arsip' ? 'Gudang Arsip Kosong.' : (riwayatTabAktifMobile === 'bintang' ? 'Belum ada struk ditandai bintang.' : 'Belum ada transaksi di tanggal ini.');
+        wadah.innerHTML = `<div class="bg-white border border-slate-200 rounded-3xl p-8 text-center shadow-sm mt-4"><i class="fa-solid fa-file-invoice text-4xl text-slate-300 mb-3 block"></i><p class="font-bold text-slate-600">${pesanKosong}</p></div>`;
         return;
+    }
+
+    if(modeSeleksiRiwayatAktif) {
+        document.getElementById('teksJumlahSeleksi').textContent = itemTerpilihRiwayat.length + " Dipilih";
+        document.getElementById('btnArsipHeaderSeleksi').innerHTML = riwayatTabAktifMobile === 'arsip' ? '<i class="fa-solid fa-eye"></i>' : '<i class="fa-solid fa-eye-slash"></i>';
     }
 
     wadah.innerHTML = dataTampil.map(t => {
@@ -1024,9 +1145,38 @@ function renderRiwayatMobile() {
         if(t.metode === 'Debt' && t.statusLunas) teksStatus = 'Lunas / Ditutup';
         if(t.isPelunasan) teksStatus = 'Uang Masuk (Kasbon)';
 
-        return `<div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col gap-3 transition-all"><div class="flex justify-between items-start border-b border-slate-100 pb-3"><div class="pr-2 flex-1"><p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mb-1"><i class="fa-regular fa-clock"></i> ${t.waktu}</p><h3 class="font-bold text-slate-800 text-sm leading-tight">${t.obat}</h3><p class="text-[10px] text-slate-500 font-medium mt-1">Oleh: ${t.kasir}</p></div><div class="text-right shrink-0"><p class="font-black text-corporate-700 text-base">${rupiah(t.total)}</p><span class="inline-block mt-1.5 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider ${badgeWarna}">${teksStatus}</span></div></div><div class="flex items-center justify-between border-t border-slate-100 pt-3 mt-1"><span class="text-xs font-semibold text-slate-500">${t.item} Item</span><div class="flex gap-2"><button onclick="prosesBatalTransaksiMobile(${t.id})" class="text-[10px] text-red-500 hover:bg-red-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-red-100 shadow-sm active:scale-95"><i class="fa-solid fa-rotate-left"></i> Batal</button><button onclick="prosesCetakStrukMobile(${t.id}, this)" class="text-[10px] text-blue-600 hover:bg-blue-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-blue-100 shadow-sm active:scale-95"><i class="fa-solid fa-print"></i> Cetak</button></div></div></div>`;
+        let isSelected = itemTerpilihRiwayat.includes(t.id);
+        let bgCard = isSelected ? 'bg-blue-50 border-blue-400 shadow-md transform scale-[0.98]' : 'bg-white border-slate-200 shadow-sm';
+        let starIcon = t.isBintang ? `<i class="fa-solid fa-star text-amber-400 text-xs drop-shadow-sm ml-1.5 align-middle -mt-0.5"></i>` : '';
+
+        // Sembunyikan tombol aksi kalau lagi masuk mode seleksi
+        let tombolAksi = modeSeleksiRiwayatAktif ? '' : `
+            <div class="flex gap-2 relative z-10">
+                <button onclick="event.stopPropagation(); prosesBatalTransaksiMobile(${t.id})" class="text-[10px] text-red-500 hover:bg-red-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-red-100 shadow-sm active:scale-95"><i class="fa-solid fa-rotate-left"></i> Batal</button>
+                <button onclick="event.stopPropagation(); prosesCetakStrukMobile(${t.id}, this)" class="text-[10px] text-blue-600 hover:bg-blue-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-blue-100 shadow-sm active:scale-95"><i class="fa-solid fa-print"></i> Cetak</button>
+            </div>`;
+
+        return `
+        <div onpointerdown="mulaiTekanRiwayat(${t.id})" onpointerup="lepasTekanRiwayat()" onpointerleave="lepasTekanRiwayat()" onclick="klikItemRiwayat(${t.id})" class="${bgCard} select-none border rounded-2xl p-4 flex flex-col gap-3 transition-all cursor-pointer relative overflow-hidden group">
+            <div class="flex justify-between items-start border-b ${isSelected ? 'border-blue-200' : 'border-slate-100'} pb-3 pointer-events-none">
+                <div class="pr-2 flex-1">
+                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mb-1"><i class="fa-regular fa-clock"></i> ${t.waktu}</p>
+                    <h3 class="font-bold text-slate-800 text-sm leading-tight inline-block">${t.obat} ${starIcon}</h3>
+                    <p class="text-[10px] text-slate-500 font-medium mt-1">Oleh: ${t.kasir}</p>
+                </div>
+                <div class="text-right shrink-0">
+                    <p class="font-black ${isSelected ? 'text-blue-700' : 'text-corporate-700'} text-base">${rupiah(t.total)}</p>
+                    <span class="inline-block mt-1.5 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider ${badgeWarna}">${teksStatus}</span>
+                </div>
+            </div>
+            <div class="flex items-center justify-between border-t ${isSelected ? 'border-blue-200' : 'border-slate-100'} pt-3 mt-1 pointer-events-none">
+                <span class="text-xs font-semibold ${isSelected ? 'text-blue-600' : 'text-slate-500'}">${t.item} Item</span>
+            </div>
+            <div class="absolute bottom-4 right-4">${tombolAksi}</div>
+        </div>`;
     }).join('');
 }
+
 
 function renderPiutangMobile() {
     const wadah = document.getElementById('daftarPiutangMobile');
