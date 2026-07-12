@@ -37,17 +37,21 @@ tailwind.config = {
             <div class="bg-gradient-to-b from-corporate-600 to-corporate-800 rounded-b-[2.5rem] pt-10 pb-24 px-6 relative overflow-hidden">
                 <div class="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-2xl -translate-y-1/3 translate-x-1/3"></div>
                 <div class="flex justify-between items-center relative z-10">
-                    <div class="flex items-center gap-3">
-                        <div class="h-11 w-11 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-inner border border-white/20">
+                    <!-- Lingkaran Kiri (Logo & Nama) Dibuat Clickable -->
+                    <div class="flex items-center gap-3 cursor-pointer group" onclick="bukaSidebarKiriMobile()">
+                        <div class="h-11 w-11 bg-white/20 group-active:scale-95 transition-transform backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-inner border border-white/20 relative">
                             <i class="fa-solid fa-mortar-pestle text-xl text-white"></i>
                         </div>
-                        <div>
+                        <div class="group-active:opacity-80 transition-opacity">
                             <h1 class="text-white font-bold text-lg tracking-tight" id="namaApotekHeader">Apotek Arsyila</h1>
                             <p class="text-corporate-100 text-[10px] mt-0.5 font-medium tracking-wide uppercase"><i class="fa-solid fa-location-dot mr-1"></i>Sistem Kasir</p>
                         </div>
                     </div>
-                    <div class="h-10 w-10 bg-white/10 transition cursor-pointer backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20 relative">
-                        <i class="fa-solid fa-bell text-white"></i>
+                    <!-- Lingkaran Kanan (Bel Notifikasi) Dibuat Clickable -->
+                    <div onclick="bukaNotifikasiMobile()" class="h-10 w-10 bg-white/10 active:scale-95 transition-transform cursor-pointer backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20 relative group">
+                        <i class="fa-solid fa-bell text-white group-hover:animate-wiggle"></i>
+                        <span id="badgeNotifPing" class="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 border border-corporate-800 rounded-full animate-ping hidden"></span>
+                        <span id="badgeNotifSolid" class="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 border-2 border-corporate-800 rounded-full hidden"></span>
                     </div>
                 </div>
             </div>
@@ -71,61 +75,57 @@ tailwind.config = {
             </div>
 
             <div class="flex gap-3 px-6 mt-5">
-                <button onclick="bukaModalKasirMobile()" class="flex-1 bg-corporate-600 hover:bg-corporate-700 text-white rounded-2xl py-3 flex items-center justify-center gap-2 font-bold text-xs shadow-md transition-transform active:scale-95">
-                    <i class="fa-solid fa-cash-register"></i> Mesin Kasir
+                <button onclick="bukaModalTambahObatMobile()" class="flex-1 bg-corporate-600 hover:bg-corporate-700 text-white rounded-2xl py-3 flex items-center justify-center gap-2 font-bold text-xs shadow-md transition-transform active:scale-95">
+                    <i class="fa-solid fa-plus"></i> Tambah Obat
                 </button>
-                <button onclick="bukaLayar('piutang')" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl py-3 flex items-center justify-center gap-2 font-bold text-xs shadow-md transition-transform active:scale-95">
-                    <i class="fa-solid fa-book-open"></i> Buku Piutang
+                <button onclick="bukaLayar('laporan')" class="flex-1 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl py-3 flex items-center justify-center gap-2 font-bold text-xs shadow-md transition-transform active:scale-95">
+                    <i class="fa-solid fa-chart-pie"></i> Laporan Keuangan
                 </button>
             </div>
 
-            <div class="px-6 mt-8">
+           <div class="px-6 mt-8">
                 <h3 class="text-xs font-bold text-slate-700 mb-4 uppercase tracking-wider">Layanan Utama</h3>
                 <div class="grid grid-cols-4 gap-y-6 gap-x-2">
-                    <div onclick="bukaLayar('etalase')" class="flex flex-col items-center gap-2 cursor-pointer group">
-                        <div class="w-12 h-12 rounded-full bg-slate-100 text-corporate-600 flex items-center justify-center text-xl shadow-sm border border-slate-200 group-hover:bg-corporate-600 group-hover:text-white transition-colors"><i class="fa-solid fa-store"></i></div>
-                        <span class="text-[9px] font-bold text-slate-600 text-center leading-tight">Etalase<br>Depan</span>
+                    <div onclick="bukaLayar('piutang')" class="flex flex-col items-center gap-2 cursor-pointer group">
+                        <div class="w-12 h-12 rounded-full bg-slate-100 text-corporate-600 flex items-center justify-center text-xl shadow-sm border border-slate-200 group-hover:bg-corporate-600 group-hover:text-white transition-colors"><i class="fa-solid fa-book-open"></i></div>
+                        <span class="text-[9px] font-bold text-slate-600 text-center leading-tight">Buku<br>Piutang</span>
                     </div>
-                    <div onclick="bukaLayar('gudang')" class="flex flex-col items-center gap-2 cursor-pointer group">
-                        <div class="w-12 h-12 rounded-full bg-slate-100 text-corporate-600 flex items-center justify-center text-xl shadow-sm border border-slate-200 group-hover:bg-corporate-600 group-hover:text-white transition-colors"><i class="fa-solid fa-warehouse"></i></div>
-                        <span class="text-[9px] font-bold text-slate-600 text-center leading-tight">Master<br>Gudang</span>
-                    </div>
-                    <div onclick="bukaLayar('riwayat')" class="flex flex-col items-center gap-2 cursor-pointer group">
-                        <div class="w-12 h-12 rounded-full bg-slate-100 text-corporate-600 flex items-center justify-center text-xl shadow-sm border border-slate-200 group-hover:bg-corporate-600 group-hover:text-white transition-colors"><i class="fa-solid fa-file-invoice"></i></div>
-                        <span class="text-[9px] font-bold text-slate-600 text-center leading-tight">Riwayat<br>Transaksi</span>
-                    </div>
-                    <div onclick="bukaLayar('laporan')" class="flex flex-col items-center gap-2 cursor-pointer group">
-                        <div class="w-12 h-12 rounded-full bg-slate-100 text-corporate-600 flex items-center justify-center text-xl shadow-sm border border-slate-200 group-hover:bg-corporate-600 group-hover:text-white transition-colors"><i class="fa-solid fa-chart-pie"></i></div>
-                        <span class="text-[9px] font-bold text-slate-600 text-center leading-tight">Laporan<br>Keuangan</span>
-                    </div>
+
                     <div onclick="bukaLayar('karyawan')" class="flex flex-col items-center gap-2 cursor-pointer group">
                         <div class="w-12 h-12 rounded-full bg-slate-100 text-corporate-600 flex items-center justify-center text-xl shadow-sm border border-slate-200 group-hover:bg-corporate-600 group-hover:text-white transition-colors"><i class="fa-solid fa-users"></i></div>
                         <span class="text-[9px] font-bold text-slate-600 text-center leading-tight">Akses<br>Karyawan</span>
-                    </div>
-                    <div onclick="bukaModalSetelanMobile()" class="flex flex-col items-center gap-2 cursor-pointer group">
-                        <div class="w-12 h-12 rounded-full bg-slate-100 text-corporate-600 flex items-center justify-center text-xl shadow-sm border border-slate-200 group-hover:bg-corporate-600 group-hover:text-white transition-colors"><i class="fa-solid fa-gear"></i></div>
-                        <span class="text-[9px] font-bold text-slate-600 text-center leading-tight">Setelan<br>Apotek</span>
                     </div>
 
                     <div class="col-span-2 bg-white rounded-2xl p-3 shadow-md border border-slate-200 flex flex-col justify-between relative overflow-hidden group">
                         <div class="flex justify-between items-start mb-1">
                             <div>
                                 <h4 class="text-[10px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-1.5"><i class="fa-solid fa-boxes-packing text-corporate-600"></i> Aset Obat</h4>
-                                <p class="text-[9px] text-slate-500 font-medium mt-0.5" id="berandaJenisObat">0 Obat Terdaftar</p>
+                                <p class="text-[9px] text-slate-500 font-bold mt-0.5" id="berandaTotalStokMasuk">0 Stok Dibeli</p>
                             </div>
                             <div id="indikatorCloudMobile" class="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-50 border border-red-100 text-red-500 text-[8px] font-black tracking-widest uppercase transition-colors duration-500">
                                 <i class="fa-solid fa-circle text-[5px] animate-pulse"></i> <span id="teksCloudMobile">Live</span>
                             </div>
                         </div>
-                        <div class="mt-1 mb-2"><span class="text-2xl font-black text-corporate-700 tracking-tight" id="berandaAset">Rp 0</span></div>
+                        
+                        <div class="mt-1 mb-2">
+                            <span class="text-sm font-bold text-corporate-700 tracking-tight block truncate" id="berandaAset">Rp 0</span>
+                        </div>
+                        
                         <div class="mt-auto border-t border-slate-100 pt-2">
-                            <div class="flex justify-between items-end mb-1.5">
-                                <span class="text-[9px] font-bold text-slate-500" id="berandaStatusSiklus">Defisit: <span class="text-red-500">-0</span></span>
-                                <button onclick="eksekusiTutupBukuMobile()" class="bg-amber-500 hover:bg-amber-600 text-white text-[9px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 shadow-sm transition-transform active:scale-95"><i class="fa-solid fa-lock text-[8px]"></i> Tutup Buku</button>
+                            <div class="flex justify-between items-center mb-1.5 min-h-[18px]">
+                                <span class="text-[9px] font-bold text-slate-600 flex items-center gap-1 w-full" id="berandaStatusSiklus">
+                                    Sisa Modal: <span class="text-red-500 font-black">Rp 0</span>
+                                </span>
                             </div>
-                            <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+                            <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner mb-1">
                                 <div id="berandaProgressSiklus" class="h-full bg-gradient-to-r from-red-500 to-amber-400 w-[0%] rounded-full transition-all duration-1000"></div>
                             </div>
+                        </div>
+
+                        <div class="border-t border-slate-100 pt-1.5 mt-1">
+                            <button onclick="eksekusiTutupBukuMobile()" class="w-full bg-amber-500 hover:bg-amber-600 text-white text-[9px] font-black py-1.5 rounded-lg flex items-center justify-center gap-1 shadow-sm transition-transform active:scale-95">
+                                <i class="fa-solid fa-lock text-[8px]"></i> Tutup Buku Siklus
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -136,9 +136,56 @@ tailwind.config = {
                 <div id="wadahObatTerlaris" class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden divide-y divide-slate-100"></div>
             </div>
 
-            <div class="px-6 mt-8 mb-4">
+           <div class="px-6 mt-8 mb-4">
                 <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Pantauan Sistem</h3>
-                <div class="flex gap-3 overflow-x-auto pb-6 hide-scrollbar snap-x">
+                <!-- Tambahan ID wadahPantauanSistem untuk kontrol scroll JS -->
+                <div id="wadahPantauanSistem" class="flex gap-3 overflow-x-auto pb-6 hide-scrollbar snap-x scroll-smooth">
+                    
+                    <!-- 1. Sisa Stok (Semua Obat di Sistem) -->
+                    <div class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden">
+                        <div class="absolute right-[-10px] top-0 bottom-0 w-20 bg-blue-50/60 rounded-l-full -z-0"></div>
+                        <div class="flex justify-between items-start mb-4 relative z-10">
+                            <div class="h-9 w-9 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center text-lg"><i class="fa-solid fa-boxes-stacked"></i></div>
+                            <span class="text-3xl font-black text-blue-600" id="berandaSisaStok">0</span>
+                        </div>
+                        <span class="text-[11px] font-black text-slate-800 uppercase mt-auto relative z-10 leading-tight">Sisa Stok</span>
+                        <span class="text-[10px] font-medium text-slate-500 relative z-10 mt-0.5">Gudang & Etalase</span>
+                    </div>
+
+                    <!-- 2. Jumlah Obat Terjual -->
+                    <div class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden">
+                        <div class="absolute right-[-10px] top-0 bottom-0 w-20 bg-emerald-50/60 rounded-l-full -z-0"></div>
+                        <div class="flex justify-between items-start mb-4 relative z-10">
+                            <div class="h-9 w-9 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-lg"><i class="fa-solid fa-pills"></i></div>
+                            <span class="text-3xl font-black text-emerald-600" id="berandaObatTerjual">0</span>
+                        </div>
+                        <span class="text-[11px] font-black text-slate-800 uppercase mt-auto relative z-10 leading-tight">Obat Terjual</span>
+                        <span class="text-[10px] font-medium text-slate-500 relative z-10 mt-0.5">Hari Ini</span>
+                    </div>
+
+                    <!-- 3. Jumlah Pembeli -->
+                    <div class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden">
+                        <div class="absolute right-[-10px] top-0 bottom-0 w-20 bg-indigo-50/60 rounded-l-full -z-0"></div>
+                        <div class="flex justify-between items-start mb-4 relative z-10">
+                            <div class="h-9 w-9 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center text-lg"><i class="fa-solid fa-users"></i></div>
+                            <span class="text-3xl font-black text-indigo-600" id="berandaPembeli">0</span>
+                        </div>
+                        <span class="text-[11px] font-black text-slate-800 uppercase mt-auto relative z-10 leading-tight">Pembeli</span>
+                        <span class="text-[10px] font-medium text-slate-500 relative z-10 mt-0.5">Hari Ini</span>
+                    </div>
+
+                    <!-- 4. Jenis Obat (Varian Terdaftar) -->
+                    <div class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden">
+                        <div class="absolute right-[-10px] top-0 bottom-0 w-20 bg-teal-50/60 rounded-l-full -z-0"></div>
+                        <div class="flex justify-between items-start mb-4 relative z-10">
+                            <div class="h-9 w-9 rounded-full bg-teal-50 text-teal-500 flex items-center justify-center text-lg"><i class="fa-solid fa-tags"></i></div>
+                            <span class="text-3xl font-black text-teal-600" id="berandaJenis">0</span>
+                        </div>
+                        <span class="text-[11px] font-black text-slate-800 uppercase mt-auto relative z-10 leading-tight">Jenis Obat</span>
+                        <span class="text-[10px] font-medium text-slate-500 relative z-10 mt-0.5">Total Terdaftar</span>
+                    </div>
+
+                    <!-- 5. Stok Kritis -->
                     <div class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden">
                         <div class="absolute right-[-10px] top-0 bottom-0 w-20 bg-red-50/60 rounded-l-full -z-0"></div>
                         <div class="flex justify-between items-start mb-4 relative z-10">
@@ -148,6 +195,8 @@ tailwind.config = {
                         <span class="text-[11px] font-black text-slate-800 uppercase mt-auto relative z-10 leading-tight">Stok Kritis</span>
                         <span class="text-[10px] font-medium text-slate-500 relative z-10 mt-0.5">Butuh dipesan</span>
                     </div>
+
+                    <!-- 6. Kasbon Aktif -->
                     <div class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden">
                         <div class="absolute right-[-10px] top-0 bottom-0 w-20 bg-amber-50/60 rounded-l-full -z-0"></div>
                         <div class="flex justify-between items-start mb-4 relative z-10">
@@ -157,6 +206,8 @@ tailwind.config = {
                         <span class="text-[11px] font-black text-slate-800 uppercase mt-auto relative z-10 leading-tight">Kasbon Aktif</span>
                         <span class="text-[10px] font-medium text-slate-500 relative z-10 mt-0.5">Belum dilunasi</span>
                     </div>
+
+                    <!-- 7. Kedaluwarsa -->
                     <div class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden">
                         <div class="absolute right-[-10px] top-0 bottom-0 w-20 bg-purple-50/60 rounded-l-full -z-0"></div>
                         <div class="flex justify-between items-start mb-4 relative z-10">
@@ -322,8 +373,8 @@ tailwind.config = {
         <button onclick="bukaLayar('gudang')" class="nav-btn flex flex-col items-center justify-center text-slate-400 hover:text-corporate-600 w-12 pt-1 ml-6 transition-colors" data-target="gudang">
             <i class="fa-solid fa-boxes-stacked mb-1 text-lg"></i><span class="text-[9px] font-bold">Gudang</span>
         </button>
-        <button onclick="bukaModalSetelanMobile()" class="flex flex-col items-center justify-center text-slate-400 hover:text-corporate-600 w-12 pt-1 transition-colors">
-            <i class="fa-solid fa-user mb-1 text-lg"></i><span class="text-[9px] font-bold">Profil</span>
+        <button onclick="bukaLayar('riwayat')" class="nav-btn flex flex-col items-center justify-center text-slate-400 hover:text-corporate-600 w-12 pt-1 group transition-colors" data-target="riwayat">
+            <i class="fa-solid fa-file-invoice mb-1 text-lg"></i><span class="text-[9px] font-bold">Riwayat</span>
         </button>
     </div>
     <div id="modalTransferMobile" class="absolute inset-0 z-[100] hidden flex items-end sm:items-center justify-center pointer-events-none">
@@ -724,6 +775,76 @@ tailwind.config = {
                 <button onclick="tutupConfirmMobile()" class="w-full bg-white border border-slate-300 text-slate-600 font-bold py-3 rounded-2xl transition-colors">Batal</button>
                 <button onclick="eksekusiConfirmMobile()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-2xl shadow-md transition-transform active:scale-95">Ya, Lanjut</button>
             </div>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- SIDEBAR KIRI (MANAJEMEN AKUN & PENGATURAN) -->
+    <!-- ============================================== -->
+    <div id="sidebarKiriOverlay" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-[250] hidden opacity-0 transition-opacity duration-300" onclick="tutupSidebarKiriMobile()"></div>
+    <div id="sidebarKiriMobile" class="absolute top-0 left-0 h-full w-[280px] bg-[#f8fafc] z-[260] shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col rounded-r-[2.5rem] overflow-hidden border-r border-slate-200">
+        <div class="bg-gradient-to-br from-corporate-600 to-corporate-800 p-7 pt-12 text-white relative shadow-md">
+            <!-- Edit Mangkuk / Logo -->
+            <div class="relative inline-block cursor-pointer group" onclick="bukaModalSetelanMobile(); tutupSidebarKiriMobile()">
+                <div class="h-16 w-16 bg-white/20 backdrop-blur-md rounded-[1.25rem] flex items-center justify-center shadow-inner border border-white/30 group-active:scale-95 transition-transform">
+                    <i class="fa-solid fa-mortar-pestle text-3xl text-white drop-shadow-md"></i>
+                </div>
+                <!-- Ikon Pulpen Elegan -->
+                <div class="absolute -bottom-2 -right-2 bg-emerald-500 rounded-full w-7 h-7 flex items-center justify-center border-2 border-corporate-700 shadow-lg">
+                    <i class="fa-solid fa-pen text-[10px] text-white"></i>
+                </div>
+            </div>
+            <!-- Edit Nama -->
+            <div class="mt-5 relative inline-block cursor-pointer group w-full" onclick="bukaModalSetelanMobile(); tutupSidebarKiriMobile()">
+                <h2 class="font-black text-[22px] tracking-tight pr-6 leading-none" id="namaApotekSidebar">Apotek Arsyila</h2>
+                <p class="text-corporate-100 text-[10px] mt-1 font-bold tracking-widest uppercase opacity-80">Ketuk untuk ubah profil</p>
+                <div class="absolute top-0 right-0 text-white/40 group-hover:text-white transition-colors">
+                    <i class="fa-solid fa-pen text-xs"></i>
+                </div>
+            </div>
+        </div>
+        <div class="flex-1 p-5 space-y-3 overflow-y-auto hide-scrollbar bg-slate-50">
+            <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2 mb-2 mt-2">Menu Sistem</p>
+            
+            <button onclick="alert('Buku Panduan Aplikasi Sedang Dipersiapkan.')" class="w-full flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-blue-200 transition-all active:scale-95 text-left group">
+                <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors"><i class="fa-solid fa-book-open"></i></div>
+                <div><span class="block text-sm font-black text-slate-700 mb-0.5">Panduan Aplikasi</span><span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider">Buku Manual Kasir</span></div>
+            </button>
+            
+            <button onclick="bukaModalSetelanMobile(); tutupSidebarKiriMobile()" class="w-full flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-corporate-200 transition-all active:scale-95 text-left group">
+                <div class="w-10 h-10 rounded-xl bg-corporate-50 text-corporate-600 flex items-center justify-center group-hover:bg-corporate-600 group-hover:text-white transition-colors"><i class="fa-solid fa-gear"></i></div>
+                <div><span class="block text-sm font-black text-slate-700 mb-0.5">Setelan Akun</span><span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider">Ubah Header Struk</span></div>
+            </button>
+            
+            <button onclick="alert('Pusat Bantuan Teknis IT Akan Segera Aktif.') " class="w-full flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-emerald-200 transition-all active:scale-95 text-left group">
+                <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors"><i class="fa-solid fa-headset"></i></div>
+                <div><span class="block text-sm font-black text-slate-700 mb-0.5">Kontak Server</span><span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider">Bantuan Teknis IT</span></div>
+            </button>
+            
+            <div class="h-px w-full bg-slate-200 my-4"></div>
+
+            <button onclick="tutupSidebarKiriMobile(); setTimeout(()=> resetSistemMobile(), 300);" class="w-full flex items-center gap-4 bg-red-50 p-4 rounded-2xl shadow-sm border border-red-100 hover:bg-red-100 transition-colors active:scale-95 text-left group">
+                <div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div><span class="block text-sm font-black text-red-600 mb-0.5">Kembalikan ke Awal</span><span class="block text-[9px] text-red-500 font-bold uppercase tracking-wider">Reset Semua Data</span></div>
+            </button>
+        </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- SIDEBAR KANAN (NOTIFIKASI ALA CHAT) -->
+    <!-- ============================================== -->
+    <div id="sidebarKananOverlay" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-[250] hidden opacity-0 transition-opacity duration-300" onclick="tutupNotifikasiMobile()"></div>
+    <div id="sidebarKananMobile" class="absolute top-0 right-0 h-full w-[85%] max-w-[320px] bg-[#f1f5f9] z-[260] shadow-2xl transform translate-x-full transition-transform duration-300 flex flex-col rounded-l-[2.5rem] overflow-hidden border-l border-slate-200">
+        <div class="bg-white px-6 py-6 flex items-center justify-between border-b border-slate-100 shadow-sm relative z-10">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-blue-50 border border-blue-100 text-blue-600 flex items-center justify-center shadow-inner"><i class="fa-solid fa-bell text-lg animate-wiggle"></i></div>
+                <div><h3 class="font-black text-slate-800 text-lg tracking-tight leading-none">Pemberitahuan</h3><p class="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-widest">Sistem Kasir</p></div>
+            </div>
+            <button onclick="tutupNotifikasiMobile()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center hover:bg-slate-200 transition-colors active:scale-90"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <!-- Wadah Desain Chat -->
+        <div class="flex-1 overflow-y-auto hide-scrollbar p-5 space-y-5" id="wadahListNotifikasiMobile">
+            <!-- Balon Chat Muncul di Sini dari JS -->
         </div>
     </div>
 
