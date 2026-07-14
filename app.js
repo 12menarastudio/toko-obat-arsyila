@@ -61,6 +61,7 @@ function bukaLayar(targetLayar) {
 
     // Jalankan fungsi render sesuai layar yang dibuka
     if (targetLayar === 'beranda') renderBerandaMobile();
+    if (targetLayar === 'rekap') renderRekapMobile();
     if (targetLayar === 'gudang') renderGudangMobile(document.getElementById('cariGudangMobile').value);
     if (targetLayar === 'riwayat') renderRiwayatMobile();
     if (targetLayar === 'piutang') renderPiutangMobile();
@@ -538,6 +539,101 @@ function renderLaporanMobile() {
         </div>
     `;
 }
+// ==========================================
+// 6.5. MESIN REKAPITULASI (TUNAI & DIGITAL)
+// ==========================================
+let metodeRekapAktif = 'Tunai';
+
+function bukaLayarRekapMobile(metode) {
+    metodeRekapAktif = metode;
+    bukaLayar('rekap');
+}
+
+function renderRekapMobile() {
+    const wadah = document.getElementById('daftarRekapMobile');
+    let tglHariIni = getTanggalLokal();
+    
+    // Setting Header Sesuai Metode
+    document.getElementById('judulLayarRekap').textContent = metodeRekapAktif === 'Tunai' ? 'REKAP TUNAI' : 'REKAP DIGITAL';
+    document.getElementById('tanggalLayarRekap').textContent = 'Hari Ini: ' + tglHariIni;
+
+    // Filter Transaksi (Hanya hari ini, sesuai metode, bukan pelunasan utang)
+    let dataPeriode = cashierHistory.filter(t => t.tanggal === tglHariIni && t.metode === metodeRekapAktif && !t.isPelunasan);
+    
+    let rekapItem = {};
+    let grandTotalBiji = 0;
+    let grandTotalModal = 0;
+    let grandTotalJual = 0;
+
+    // Mesin Penggiling & Pengelompokan Data
+    dataPeriode.forEach(trx => {
+        if (trx.detailKeranjang && trx.detailKeranjang.length > 0) {
+            trx.detailKeranjang.forEach(item => {
+                let namaFinal = item.nama;
+                
+                if(!rekapItem[namaFinal]) {
+                    rekapItem[namaFinal] = { nama: namaFinal, qty: 0, modal: 0, jual: 0 };
+                }
+                
+                let hpp = item.hppSatuan || Math.round(item.jual * 0.8); 
+                let subModal = hpp * item.qty;
+                let subJual = item.jual * item.qty;
+                
+                rekapItem[namaFinal].qty += item.qty;
+                rekapItem[namaFinal].modal += subModal;
+                rekapItem[namaFinal].jual += subJual;
+                
+                grandTotalBiji += item.qty;
+                grandTotalModal += subModal;
+                grandTotalJual += subJual;
+            });
+        } else {
+            // Skema Fallback untuk data lama sebelum ada sistem keranjang
+            let qty = trx.item || 1;
+            let hpp = ((trx.total || 0) - (trx.laba || 0));
+            let jual = trx.total || 0;
+            
+            if(!rekapItem[trx.obat]) {
+                rekapItem[trx.obat] = { nama: trx.obat, qty: 0, modal: 0, jual: 0 };
+            }
+            
+            rekapItem[trx.obat].qty += qty;
+            rekapItem[trx.obat].modal += hpp;
+            rekapItem[trx.obat].jual += jual;
+            
+            grandTotalBiji += qty;
+            grandTotalModal += hpp;
+            grandTotalJual += jual;
+        }
+    });
+
+    if (Object.keys(rekapItem).length === 0) {
+        wadah.innerHTML = `<div class="bg-white border border-slate-200 rounded-3xl p-8 text-center shadow-sm mt-4"><i class="fa-solid fa-box-open text-4xl text-slate-300 mb-3 block"></i><p class="font-bold text-slate-600">Belum ada item terjual via ${metodeRekapAktif} hari ini.</p></div>`;
+    } else {
+        let urut = 1;
+        wadah.innerHTML = Object.values(rekapItem).map(r => {
+            return `
+            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-start gap-3 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-16 h-16 bg-slate-50 rounded-bl-full -z-0 opacity-50"></div>
+                <div class="w-7 h-7 rounded-full bg-slate-100 text-slate-500 flex items-center justify-center font-black text-xs shrink-0 border border-slate-200 relative z-10">${urut++}</div>
+                <div class="flex-1 relative z-10">
+                    <h4 class="font-black text-slate-800 text-sm leading-tight mb-2">${r.nama}</h4>
+                    <p class="text-[11px] font-bold text-slate-600 leading-relaxed">
+                        <span class="bg-slate-100 px-2 py-0.5 rounded text-slate-700">${r.qty} Biji</span> <span class="text-slate-300 mx-0.5">|</span> 
+                        Modal: <span class="text-red-500">${rupiah(r.modal)}</span> <span class="text-slate-300 mx-0.5">|</span> 
+                        Jual: <span class="text-emerald-600">${rupiah(r.jual)}</span>
+                    </p>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // Suntik Angka Kesimpulan ke Bottom Summary
+    document.getElementById('rekapTotalBiji').textContent = grandTotalBiji + " Biji";
+    document.getElementById('rekapTotalModal').textContent = rupiah(grandTotalModal);
+    document.getElementById('rekapTotalJual').textContent = rupiah(grandTotalJual);
+}
+
 // ==========================================
 // 7. MESIN MODAL UMUM
 // ==========================================

@@ -34,43 +34,46 @@ tailwind.config = {
     <div class="flex-1 overflow-y-auto hide-scrollbar pb-24">
         
         <div id="layar-beranda" class="layar-app">
-            <div class="bg-gradient-to-b from-corporate-600 to-corporate-800 rounded-b-[2.5rem] pt-10 pb-24 px-6 relative overflow-hidden">
-                <div class="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-2xl -translate-y-1/3 translate-x-1/3"></div>
-                <div class="flex justify-between items-center relative z-10">
-                    <!-- Lingkaran Kiri (Logo & Nama) Dibuat Clickable -->
-                    <div class="flex items-center gap-3 cursor-pointer group" onclick="bukaSidebarKiriMobile()">
-                        <div class="h-11 w-11 bg-white/20 group-active:scale-95 transition-transform backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-inner border border-white/20 relative">
-                            <i class="fa-solid fa-mortar-pestle text-xl text-white"></i>
+            <!-- KAPSUL STICKY (Amplop Terselip) -->
+            <div class="sticky top-0 z-40 bg-[#f8fafc] pb-1">
+                <div class="bg-gradient-to-b from-corporate-600 to-corporate-800 rounded-b-[2.5rem] pt-10 pb-24 px-6 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-2xl -translate-y-1/3 translate-x-1/3"></div>
+                    <div class="flex justify-between items-center relative z-10">
+                        <!-- Lingkaran Kiri (Logo & Nama) Dibuat Clickable -->
+                        <div class="flex items-center gap-3 cursor-pointer group" onclick="bukaSidebarKiriMobile()">
+                            <div class="h-11 w-11 bg-white/20 group-active:scale-95 transition-transform backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-inner border border-white/20 relative">
+                                <i class="fa-solid fa-mortar-pestle text-xl text-white"></i>
+                            </div>
+                            <div class="group-active:opacity-80 transition-opacity">
+                                <h1 class="text-white font-bold text-lg tracking-tight" id="namaApotekHeader">Apotek Arsyila</h1>
+                                <p class="text-corporate-100 text-[10px] mt-0.5 font-medium tracking-wide uppercase"><i class="fa-solid fa-location-dot mr-1"></i>Sistem Kasir</p>
+                            </div>
                         </div>
-                        <div class="group-active:opacity-80 transition-opacity">
-                            <h1 class="text-white font-bold text-lg tracking-tight" id="namaApotekHeader">Apotek Arsyila</h1>
-                            <p class="text-corporate-100 text-[10px] mt-0.5 font-medium tracking-wide uppercase"><i class="fa-solid fa-location-dot mr-1"></i>Sistem Kasir</p>
+                        <!-- Lingkaran Kanan (Bel Notifikasi) Dibuat Clickable -->
+                        <div onclick="bukaNotifikasiMobile()" class="h-10 w-10 bg-white/10 active:scale-95 transition-transform cursor-pointer backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20 relative group">
+                            <i class="fa-solid fa-bell text-white group-hover:animate-wiggle"></i>
+                            <span id="badgeNotifPing" class="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 border border-corporate-800 rounded-full animate-ping hidden"></span>
+                            <span id="badgeNotifSolid" class="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 border-2 border-corporate-800 rounded-full hidden"></span>
                         </div>
-                    </div>
-                    <!-- Lingkaran Kanan (Bel Notifikasi) Dibuat Clickable -->
-                    <div onclick="bukaNotifikasiMobile()" class="h-10 w-10 bg-white/10 active:scale-95 transition-transform cursor-pointer backdrop-blur-sm rounded-full flex items-center justify-center border border-white/20 relative group">
-                        <i class="fa-solid fa-bell text-white group-hover:animate-wiggle"></i>
-                        <span id="badgeNotifPing" class="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 border border-corporate-800 rounded-full animate-ping hidden"></span>
-                        <span id="badgeNotifSolid" class="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 border-2 border-corporate-800 rounded-full hidden"></span>
                     </div>
                 </div>
-            </div>
 
-            <div class="mx-6 -mt-16 bg-white rounded-3xl p-6 shadow-md relative z-10 border border-slate-200">
-                <h2 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                    <i class="fa-solid fa-wallet text-slate-400"></i> Laporan Hari Ini
-                </h2>
-                <div class="flex justify-between items-center mb-3">
-                    <span class="text-sm font-semibold text-slate-600">Pemasukan (Omzet)</span>
-                    <span class="text-sm font-bold text-corporate-700" id="berandaOmzet">Rp 0</span>
-                </div>
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-sm font-semibold text-slate-600">Modal Barang (HPP)</span>
-                    <span class="text-sm font-bold text-red-500" id="berandaHPP">-Rp 0</span>
-                </div>
-                <div class="border-t border-dashed border-slate-200 pt-4 mt-2 flex justify-between items-center">
-                    <span class="text-sm font-bold text-slate-800">Laba Bersih</span>
-                    <span class="text-xl font-black text-emerald-600" id="berandaLaba">Rp 0</span>
+                <div class="mx-6 -mt-16 bg-white rounded-3xl p-6 shadow-md relative z-10 border border-slate-200">
+                    <h2 class="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <i class="fa-solid fa-wallet text-slate-400"></i> Laporan Hari Ini
+                    </h2>
+                    <div class="flex justify-between items-center mb-3">
+                        <span class="text-sm font-semibold text-slate-600">Pemasukan (Omzet)</span>
+                        <span class="text-sm font-bold text-corporate-700" id="berandaOmzet">Rp 0</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-sm font-semibold text-slate-600">Modal Barang (HPP)</span>
+                        <span class="text-sm font-bold text-red-500" id="berandaHPP">-Rp 0</span>
+                    </div>
+                    <div class="border-t border-dashed border-slate-200 pt-4 mt-2 flex justify-between items-center">
+                        <span class="text-sm font-bold text-slate-800">Laba Bersih</span>
+                        <span class="text-xl font-black text-emerald-600" id="berandaLaba">Rp 0</span>
+                    </div>
                 </div>
             </div>
 
@@ -96,11 +99,11 @@ tailwind.config = {
                         <span class="text-[9px] font-bold text-slate-600 text-center leading-tight">Akses<br>Karyawan</span>
                     </div>
 
-                    <div class="col-span-2 bg-white rounded-2xl p-3 shadow-md border border-slate-200 flex flex-col justify-between relative overflow-hidden group">
+                    <div class="col-span-2 row-span-2 bg-white rounded-2xl p-3 shadow-md border border-slate-200 flex flex-col justify-between relative overflow-hidden group">
                         <div class="flex justify-between items-start mb-1">
                             <div>
                                 <h4 class="text-[10px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-1.5"><i class="fa-solid fa-boxes-packing text-corporate-600"></i> Aset Obat</h4>
-                                <p class="text-[9px] text-slate-500 font-bold mt-0.5" id="berandaTotalStokMasuk">0 Stok Dibeli</p>
+                                <p class="text-[9px] text-slate-500 font-bold mt-0.5" id="berandaTotalStokMasuk">0 Stok Modal</p>
                             </div>
                             <div id="indikatorCloudMobile" class="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-50 border border-red-100 text-red-500 text-[8px] font-black tracking-widest uppercase transition-colors duration-500">
                                 <i class="fa-solid fa-circle text-[5px] animate-pulse"></i> <span id="teksCloudMobile">Live</span>
@@ -127,6 +130,18 @@ tailwind.config = {
                                 <i class="fa-solid fa-lock text-[8px]"></i> Tutup Buku Siklus
                             </button>
                         </div>
+                    </div>
+
+                    <!-- Tombol Baru 1: Rekap Tunai -->
+                    <div onclick="bukaLayarRekapMobile('Tunai')" class="flex flex-col items-center gap-2 cursor-pointer group mt-2">
+                        <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-sm border border-emerald-200 group-hover:bg-emerald-600 group-hover:text-white transition-colors"><i class="fa-solid fa-money-bill-wave"></i></div>
+                        <span class="text-[9px] font-bold text-slate-600 text-center leading-tight">Rekap<br>Tunai</span>
+                    </div>
+
+                    <!-- Tombol Baru 2: Rekap Digital -->
+                    <div onclick="bukaLayarRekapMobile('QRIS')" class="flex flex-col items-center gap-2 cursor-pointer group mt-2">
+                        <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl shadow-sm border border-blue-200 group-hover:bg-blue-600 group-hover:text-white transition-colors"><i class="fa-solid fa-mobile-screen"></i></div>
+                        <span class="text-[9px] font-bold text-slate-600 text-center leading-tight">Rekap<br>Digital</span>
                     </div>
                 </div>
             </div>
@@ -220,6 +235,37 @@ tailwind.config = {
                 </div>
             </div>
         </div>
+                <div id="layar-rekap" class="layar-app hidden pb-6">
+            <div class="sticky top-0 bg-[#f1f5f9]/90 backdrop-blur-md z-20 px-6 pt-10 pb-4 border-b border-slate-200/60 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <button onclick="bukaLayar('beranda')" class="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm active:scale-95 transition-transform"><i class="fa-solid fa-arrow-left"></i></button>
+                    <div>
+                        <h2 class="font-black text-corporate-900 text-2xl tracking-tight uppercase" id="judulLayarRekap">Rekap Tunai</h2>
+                        <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5" id="tanggalLayarRekap">Hari Ini: -</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="px-6 py-5 space-y-3" id="daftarRekapMobile">
+                <!-- Data Obat Meluncur Kesini dari JS -->
+            </div>
+
+            <!-- KOTAK KESIMPULAN REKAPAN TOTAL -->
+            <div class="px-6 pb-6">
+                <div class="bg-slate-800 rounded-3xl p-5 text-white shadow-xl border border-slate-700 relative overflow-hidden">
+                    <div class="absolute -right-6 -bottom-6 text-slate-700/50"><i class="fa-solid fa-calculator text-8xl"></i></div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-600 pb-2 relative z-10">TOTAL REKAPAN (SELURUH ITEM)</p>
+                    <div class="flex justify-between items-end relative z-10">
+                        <span class="text-2xl font-black text-white" id="rekapTotalBiji">0 Biji</span>
+                        <div class="text-right">
+                            <p class="text-xs text-red-300 font-bold leading-tight mb-1">Modal: <span id="rekapTotalModal" class="text-red-400">Rp 0</span></p>
+                            <p class="text-sm font-black text-emerald-400">Jual: <span id="rekapTotalJual">Rp 0</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div id="layar-gudang" class="layar-app hidden pb-6">
             <div class="sticky top-0 bg-[#f1f5f9]/90 backdrop-blur-md z-20 px-6 pt-10 pb-4 border-b border-slate-200/60 flex items-center justify-between">
                 <div>
