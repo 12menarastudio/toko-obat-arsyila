@@ -1028,26 +1028,89 @@ function prosesHapusObatMobile(dnaInduk, namaObat) {
     });
 }
 // ==========================================
-// 11. MESIN TAMBAH OBAT BARU
+// 11. MESIN TAMBAH OBAT BARU (SMART CALCULATOR)
 // ==========================================
 function bukaModalTambahObatMobile() {
+    // Reset Form Input
     document.getElementById('tambahBarcodeMobile').value = ''; document.getElementById('tambahQrcodeMobile').value = ''; 
-    document.getElementById('tambahNamaMobile').value = ''; document.getElementById('tambahVarianMobile').value = '';
-    document.getElementById('tambahKategoriMobile').value = ''; document.getElementById('tambahModalMobile').value = ''; 
-    document.getElementById('tambahJualMobile').value = ''; document.getElementById('tambahStokMobile').value = ''; 
+    document.getElementById('tambahNamaMobile').value = ''; document.getElementById('tambahKategoriMobile').value = 'Sakit Kepala';
+    document.getElementById('tambahSatuanEceran').value = 'Pak'; document.getElementById('tambahSatuanBesar').value = 'Dos';
+    document.getElementById('tambahQtyBeli').value = ''; document.getElementById('tambahIsiPerSatuan').value = '';
+    document.getElementById('tambahToggleBulk').checked = true;
+    document.getElementById('tambahModalKotor').value = ''; document.getElementById('tambahJualEceran').value = ''; 
     document.getElementById('tambahExpiredMobile').value = '';
+    
+    // Jalankan Kalkulasi Awal (Reset Label)
+    kalkulasiTambahObatCerdas();
     bukaModalMobile('modalTambahObatMobile', 'panelTambahObatMobile');
 }
 
-function prosesSimpanObatBaruMobile() {
-    const barcode = document.getElementById('tambahBarcodeMobile').value.trim(); const qrcode = document.getElementById('tambahQrcodeMobile').value.trim(); 
-    const nama = document.getElementById('tambahNamaMobile').value.trim(); const varian = document.getElementById('tambahVarianMobile').value.trim(); 
-    const kategori = document.getElementById('tambahKategoriMobile').value.trim(); const modal = parseInt(document.getElementById('tambahModalMobile').value); 
-    const jual = parseInt(document.getElementById('tambahJualMobile').value); const stok = parseInt(document.getElementById('tambahStokMobile').value); 
-    const expired = document.getElementById('tambahExpiredMobile').value;
+// MESIN PENGGERAK LOGIKA (Dipanggil setiap kali user mengetik)
+function kalkulasiTambahObatCerdas() {
+    let isBulk = document.getElementById('tambahToggleBulk').checked;
+    
+    // Ambil Data Input
+    let satEcer = document.getElementById('tambahSatuanEceran').value || 'Pak';
+    let satBesar = document.getElementById('tambahSatuanBesar').value || 'Dos';
+    let qtyBeli = parseFloat(document.getElementById('tambahQtyBeli').value) || 0;
+    let isiPerSatuan = parseFloat(document.getElementById('tambahIsiPerSatuan').value) || 1;
+    let modalKotor = parseFloat(document.getElementById('tambahModalKotor').value) || 0;
+    let jualEceran = parseFloat(document.getElementById('tambahJualEceran').value) || 0;
 
-    if(!nama || !kategori || isNaN(modal) || isNaN(jual) || isNaN(stok)) return alert('├в┼б┬а├п┬╕┬П Wajib diisi: Nama, Kategori, Modal, Jual, dan Stok!');
-    if(modal >= jual) return alert('├в┼б┬а├п┬╕┬П Peringatan: Harga Jual harus lebih tinggi dari Modal/HPP.');
+    // UI Saklar Logic (Sembunyikan/Tampilkan Multiplier)
+    const wadahMultiplier = document.getElementById('wadahMultiplier');
+    const labelModalKotor = document.getElementById('labelModalKotor');
+    const labelJualEceran = document.getElementById('labelJualEceran');
+    const labelMultiplier = document.getElementById('labelMultiplier');
+    const knob = document.querySelector('.toggle-knob');
+
+    if (isBulk) {
+        wadahMultiplier.classList.remove('opacity-30', 'pointer-events-none');
+        labelMultiplier.textContent = `1 ${satBesar} isi brp ${satEcer}?`;
+        labelModalKotor.innerHTML = `Modal (per ${satBesar}) <span class="text-red-500">*</span>`;
+        if(knob) knob.style.transform = 'translateX(24px)';
+    } else {
+        wadahMultiplier.classList.add('opacity-30', 'pointer-events-none');
+        labelModalKotor.innerHTML = `Modal (per ${satEcer}) <span class="text-red-500">*</span>`;
+        if(knob) knob.style.transform = 'translateX(0px)';
+    }
+    labelJualEceran.innerHTML = `Jual (per ${satEcer}) <span class="text-red-500">*</span>`;
+
+    // Mesin Hitung Arsitektur Cerdas
+    let totalStokEceran = isBulk ? (qtyBeli * isiPerSatuan) : qtyBeli;
+    let hppEceran = isBulk ? (modalKotor / (isiPerSatuan || 1)) : modalKotor;
+    let tagihanTotal = isBulk ? (qtyBeli * modalKotor) : (qtyBeli * modalKotor);
+    let profitEceran = jualEceran - hppEceran;
+
+    // Injeksi Hasil ke Layar (Fact Sheet & Label Otomatis)
+    document.getElementById('teksHppOtomatis').textContent = `Otomatis: HPP = ${rupiah(Math.round(hppEceran))} / ${satEcer}`;
+    let warnaUntung = profitEceran > 0 ? 'text-[#657e65]' : 'text-red-500';
+    document.getElementById('teksEstimasiUntung').innerHTML = `<span class="${warnaUntung}">Est. Keuntungan: ${rupiah(Math.round(profitEceran))} / ${satEcer}</span>`;
+    
+    document.getElementById('teksVisualStok').textContent = `${totalStokEceran} ${satEcer}`;
+    document.getElementById('factSheetStok').textContent = `Total Stok Masuk: ${totalStokEceran} ${satEcer}`;
+    document.getElementById('factSheetTagihan').textContent = `Total Tagihan Modal: ${rupiah(tagihanTotal)}`;
+
+    // Simpan data kalkulasi ini ke atribut elemen untuk dihisap oleh prosesSimpanObatBaruMobile
+    document.getElementById('tambahQtyBeli').dataset.calculatedStok = totalStokEceran;
+    document.getElementById('tambahModalKotor').dataset.calculatedHpp = Math.round(hppEceran);
+}
+
+function prosesSimpanObatBaruMobile() {
+    const barcode = document.getElementById('tambahBarcodeMobile').value.trim(); 
+    const qrcode = document.getElementById('tambahQrcodeMobile').value.trim(); 
+    const nama = document.getElementById('tambahNamaMobile').value.trim(); 
+    const kategori = document.getElementById('tambahKategoriMobile').value.trim(); 
+    const jual = parseFloat(document.getElementById('tambahJualEceran').value) || 0; 
+    const expired = document.getElementById('tambahExpiredMobile').value;
+    
+    // Tarik data hasil kalkulator jenius
+    const modal = parseFloat(document.getElementById('tambahModalKotor').dataset.calculatedHpp) || 0;
+    const stok = parseFloat(document.getElementById('tambahQtyBeli').dataset.calculatedStok) || 0;
+    const satEcer = document.getElementById('tambahSatuanEceran').value || 'Pcs';
+
+    if(!nama || !kategori || isNaN(modal) || isNaN(jual) || stok === 0) return alert('⚠️ Wajib diisi: Nama, Jumlah, Modal, dan Jual!');
+    if(modal >= jual) return alert('⚠️ Peringatan: Harga Jual Eceran harus lebih tinggi dari HPP Eceran.');
     
     const idBatch = 'B-' + Date.now(); 
     let dnaInduk = '';
@@ -1057,8 +1120,10 @@ function prosesSimpanObatBaruMobile() {
         if (cekGudang && cekGudang.dnaInduk) { dnaInduk = cekGudang.dnaInduk; } else { dnaInduk = 'DNA-' + Date.now(); }
     }
 
-    masterItems.unshift({ idBatch, dnaInduk, barcode, qrcode, nama, varian, keterangan: '', kategori, modal, jual, stok, expired });
-                // --- SAKLAR RESET KULAKAN BARU ---
+    // Variabel "varian" diubah fungsinya untuk menyimpan informasi Satuan
+    masterItems.unshift({ idBatch, dnaInduk, barcode, qrcode, nama, varian: satEcer, keterangan: '', kategori, modal, jual, stok, expired });
+    
+    // --- SAKLAR RESET KULAKAN BARU ---
     if (stok > 0 && (siklusAktif.isLikuidasi || siklusAktif.isLanjutanDefisit)) {
         siklusAktif.isLikuidasi = false;
         siklusAktif.isLanjutanDefisit = false;
@@ -1067,13 +1132,13 @@ function prosesSimpanObatBaruMobile() {
         siklusAktif.modalTambahan = 0; siklusAktif.qtyTambahan = 0;
     }
 
-    let nilaiSuntikan = modal * stok;
+    let nilaiSuntikan = modal * stok; // Uang Murni
     if (siklusAktif.qtyAwal === 0 && siklusAktif.qtyTambahan === 0) { siklusAktif.modalAwal += nilaiSuntikan; siklusAktif.qtyAwal += stok; } 
     else { siklusAktif.modalTambahan += nilaiSuntikan; siklusAktif.qtyTambahan += stok; }
 
     localStorage.setItem('apotek_masterItems', JSON.stringify(masterItems)); localStorage.setItem('apotek_siklusAktif', JSON.stringify(siklusAktif));
     tutupModalMobile('modalTambahObatMobile'); renderGudangMobile(document.getElementById('cariGudangMobile').value); renderBerandaMobile();
-    alert('├в┼УтАж Sukses! ' + nama + ' berhasil ditambahkan ke Gudang.');
+    alert('✅ Sukses! ' + stok + ' ' + satEcer + ' ' + nama + ' berhasil ditambahkan ke Gudang.');
 }
 
 // ==========================================
