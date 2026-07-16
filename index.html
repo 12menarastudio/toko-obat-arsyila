@@ -620,7 +620,7 @@ tailwind.config = {
         </div>
     </div>
 
-        <div id="modalTambahObatMobile" class="absolute inset-0 z-[130] hidden flex items-end sm:items-center justify-center pointer-events-none">
+            <div id="modalTambahObatMobile" class="absolute inset-0 z-[130] hidden flex items-end sm:items-center justify-center pointer-events-none">
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity pointer-events-auto" onclick="tutupModalMobile('modalTambahObatMobile')"></div>
         <div class="bg-leather-green w-full h-[95vh] sm:h-[90vh] rounded-t-3xl sm:rounded-3xl sm:w-[90%] shadow-2xl relative z-10 pointer-events-auto transform transition-transform translate-y-full flex flex-col overflow-hidden" id="panelTambahObatMobile">
             
@@ -640,21 +640,32 @@ tailwind.config = {
                     <div class="mb-4">
                         <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Nama Obat <span class="text-red-500">*</span></label>
                         <div class="flex gap-2">
-                            <input type="text" id="tambahNamaMobile" placeholder="Cth: Bodrex" class="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:border-[#d97706] transition-all">
+                            <input type="text" id="tambahNamaMobile" onfocus="tampilkanKolomVarianMobile()" placeholder="Cth: Bodrex" class="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:border-[#d97706] transition-all">
                             <button onclick="bukaScannerKameraMobile('tambah_qr')" class="w-12 h-12 bg-white text-[#d97706] rounded-2xl flex items-center justify-center shrink-0 border border-slate-200 shadow-sm active:scale-95 transition-all"><i class="fa-solid fa-qrcode text-xl"></i></button>
                             <button onclick="bukaScannerKameraMobile('tambah_barcode')" class="w-12 h-12 bg-white text-[#d97706] rounded-2xl flex items-center justify-center shrink-0 border border-slate-200 shadow-sm active:scale-95 transition-all"><i class="fa-solid fa-barcode text-xl"></i></button>
+                        </div>
+                        
+                        <div id="wadahVarianMobile" class="hidden mt-2 overflow-hidden transition-all duration-300">
+                            <div class="flex items-center gap-2">
+                                <div class="w-4 h-4 border-l-2 border-b-2 border-slate-300 rounded-bl-lg ml-4 -mt-3 opacity-70"></div>
+                                <input type="text" id="tambahVarianMobile" placeholder="Varian Opsional (Cth: Sirup 60ml)" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-[#d97706]">
+                            </div>
                         </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Kategori <span class="text-red-500">*</span></label>
-                            <select id="tambahKategoriMobile" class="w-full bg-white border border-slate-200 rounded-2xl px-3 py-3 text-sm font-bold text-slate-700 focus:outline-none appearance-none">
+                            <select id="tambahKategoriMobile" onchange="toggleKategoriKustomMobile()" class="w-full bg-white border border-slate-200 rounded-2xl px-3 py-3 text-sm font-bold text-slate-700 focus:outline-none appearance-none">
                                 <option value="Sakit Kepala">Sakit Kepala</option>
                                 <option value="Vitamin">Vitamin</option>
                                 <option value="Sirup">Sirup</option>
-                                <option value="Lainnya">Lainnya...</option>
+                                <option value="Analgesik">Analgesik</option>
+                                <option value="Antibiotik">Antibiotik</option>
+                                <option value="Salep">Salep</option>
+                                <option value="kustom">Kustom (Manual)...</option>
                             </select>
+                            <input type="text" id="tambahKategoriKustom" placeholder="Ketik Kategori..." class="hidden w-full bg-slate-50 border border-[#d97706]/40 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 focus:outline-none mt-2 shadow-inner transition-all">
                         </div>
                         <div>
                             <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Satuan Eceran <span class="text-red-500">*</span></label>
@@ -663,6 +674,7 @@ tailwind.config = {
                                 <option value="Strip">Strip</option>
                                 <option value="Botol">Botol</option>
                                 <option value="Biji">Biji / Pcs</option>
+                                <option value="Tube">Tube</option>
                             </select>
                         </div>
                     </div>
@@ -682,7 +694,7 @@ tailwind.config = {
                                 <option value="Dos">Dos</option>
                                 <option value="Karton">Karton</option>
                                 <option value="Box">Box</option>
-                            </select>
+                                <option value="Strip">Strip</option> </select>
                         </div>
                     </div>
 
@@ -763,6 +775,7 @@ tailwind.config = {
 
         </div>
     </div>
+
 
 
     <div id="modalSetelanMobile" class="absolute inset-0 z-[140] hidden flex items-end sm:items-center justify-center pointer-events-none">

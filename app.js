@@ -1030,16 +1030,39 @@ function prosesHapusObatMobile(dnaInduk, namaObat) {
 // ==========================================
 // 11. MESIN TAMBAH OBAT BARU (SMART CALCULATOR)
 // ==========================================
+
+function tampilkanKolomVarianMobile() {
+    document.getElementById('wadahVarianMobile').classList.remove('hidden');
+}
+
+function toggleKategoriKustomMobile() {
+    const selectKategori = document.getElementById('tambahKategoriMobile');
+    const inputKustom = document.getElementById('tambahKategoriKustom');
+    
+    if (selectKategori.value === 'kustom') {
+        inputKustom.classList.remove('hidden');
+        inputKustom.focus();
+    } else {
+        inputKustom.classList.add('hidden');
+        inputKustom.value = ''; // Bersihkan input jika kembali ke pilihan standar
+    }
+}
+
 function bukaModalTambahObatMobile() {
     // Reset Form Input
     document.getElementById('tambahBarcodeMobile').value = ''; document.getElementById('tambahQrcodeMobile').value = ''; 
-    document.getElementById('tambahNamaMobile').value = ''; document.getElementById('tambahKategoriMobile').value = 'Sakit Kepala';
+    document.getElementById('tambahNamaMobile').value = ''; document.getElementById('tambahVarianMobile').value = '';
+    document.getElementById('tambahKategoriMobile').value = 'Sakit Kepala'; document.getElementById('tambahKategoriKustom').value = '';
     document.getElementById('tambahSatuanEceran').value = 'Pak'; document.getElementById('tambahSatuanBesar').value = 'Dos';
     document.getElementById('tambahQtyBeli').value = ''; document.getElementById('tambahIsiPerSatuan').value = '';
     document.getElementById('tambahToggleBulk').checked = true;
     document.getElementById('tambahModalKotor').value = ''; document.getElementById('tambahJualEceran').value = ''; 
     document.getElementById('tambahExpiredMobile').value = '';
     
+    // Sembunyikan elemen kondisional di awal
+    document.getElementById('wadahVarianMobile').classList.add('hidden');
+    document.getElementById('tambahKategoriKustom').classList.add('hidden');
+
     // Jalankan Kalkulasi Awal (Reset Label)
     kalkulasiTambahObatCerdas();
     bukaModalMobile('modalTambahObatMobile', 'panelTambahObatMobile');
@@ -1100,14 +1123,26 @@ function prosesSimpanObatBaruMobile() {
     const barcode = document.getElementById('tambahBarcodeMobile').value.trim(); 
     const qrcode = document.getElementById('tambahQrcodeMobile').value.trim(); 
     const nama = document.getElementById('tambahNamaMobile').value.trim(); 
-    const kategori = document.getElementById('tambahKategoriMobile').value.trim(); 
+    
+    // TANGKAP NILAI VARIAN DARI INPUT
+    const varian = document.getElementById('tambahVarianMobile').value.trim(); 
+    
+    // LOGIKA KATEGORI KUSTOM
+    let kategori = document.getElementById('tambahKategoriMobile').value;
+    if (kategori === 'kustom') {
+        kategori = document.getElementById('tambahKategoriKustom').value.trim();
+        if (!kategori) return alert('⚠️ Kategori manual tidak boleh kosong!');
+    }
+    
     const jual = parseFloat(document.getElementById('tambahJualEceran').value) || 0; 
     const expired = document.getElementById('tambahExpiredMobile').value;
     
-    // Tarik data hasil kalkulator jenius
+    // Tarik data hasil kalkulator
     const modal = parseFloat(document.getElementById('tambahModalKotor').dataset.calculatedHpp) || 0;
     const stok = parseFloat(document.getElementById('tambahQtyBeli').dataset.calculatedStok) || 0;
-    const satEcer = document.getElementById('tambahSatuanEceran').value || 'Pcs';
+    
+    // satEcer hanya dipakai untuk notifikasi "Sukses" di bawah, tidak disimpan ke database identitas
+    const satEcer = document.getElementById('tambahSatuanEceran').value || 'Pcs'; 
 
     if(!nama || !kategori || isNaN(modal) || isNaN(jual) || stok === 0) return alert('⚠️ Wajib diisi: Nama, Jumlah, Modal, dan Jual!');
     if(modal >= jual) return alert('⚠️ Peringatan: Harga Jual Eceran harus lebih tinggi dari HPP Eceran.');
@@ -1120,10 +1155,9 @@ function prosesSimpanObatBaruMobile() {
         if (cekGudang && cekGudang.dnaInduk) { dnaInduk = cekGudang.dnaInduk; } else { dnaInduk = 'DNA-' + Date.now(); }
     }
 
-    // Variabel "varian" diubah fungsinya untuk menyimpan informasi Satuan
-    masterItems.unshift({ idBatch, dnaInduk, barcode, qrcode, nama, varian: satEcer, keterangan: '', kategori, modal, jual, stok, expired });
+    // SIMPAN KE MEMORI: `varian` murni mengambil teks varian yang diketik, bukan "Pak/Strip"
+    masterItems.unshift({ idBatch, dnaInduk, barcode, qrcode, nama, varian: varian, keterangan: '', kategori, modal, jual, stok, expired });
     
-    // --- SAKLAR RESET KULAKAN BARU ---
     if (stok > 0 && (siklusAktif.isLikuidasi || siklusAktif.isLanjutanDefisit)) {
         siklusAktif.isLikuidasi = false;
         siklusAktif.isLanjutanDefisit = false;
@@ -1132,7 +1166,7 @@ function prosesSimpanObatBaruMobile() {
         siklusAktif.modalTambahan = 0; siklusAktif.qtyTambahan = 0;
     }
 
-    let nilaiSuntikan = modal * stok; // Uang Murni
+    let nilaiSuntikan = modal * stok; 
     if (siklusAktif.qtyAwal === 0 && siklusAktif.qtyTambahan === 0) { siklusAktif.modalAwal += nilaiSuntikan; siklusAktif.qtyAwal += stok; } 
     else { siklusAktif.modalTambahan += nilaiSuntikan; siklusAktif.qtyTambahan += stok; }
 
