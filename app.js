@@ -295,26 +295,21 @@ function renderGudangMobile(filter = '') {
         }).join('<div class="h-1"></div>');
 
         return `
-                    <div class="bg-white border border-slate-200 rounded-xl p-3 mb-4 grid grid-cols-3 gap-2 divide-x divide-slate-100 shadow-sm relative">
-                <div class="absolute -top-1 -right-1 w-8 h-8 bg-slate-50 rounded-full blur-md -z-10"></div>
-                <div class="text-center">
-                    <p class="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-boxes-stacked text-slate-400"></i> Modal Stok</p>
-                    <p class="text-sm font-black text-slate-700 leading-none">${qtyAwal}</p>
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 mb-4 shadow-sm relative overflow-hidden group">
+            <div class="flex justify-between items-start mb-3 border-b border-slate-100 pb-3">
+                <div class="flex-1 pr-2">
+                    <h3 class="font-black text-slate-800 text-lg leading-tight flex items-center gap-2">${g.nama} ${subTeks}</h3>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">${g.kategori || 'Tanpa Kategori'}</p>
                 </div>
-                <div class="text-center px-1">
-                    <p class="text-[8px] font-black text-amber-600 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-cart-arrow-down text-amber-500"></i> Terjual</p>
-                    <p class="text-sm font-black text-amber-500 leading-none drop-shadow-sm">${qtyTerjual}</p>
-                </div>
-                <div class="text-center">
-                    <p class="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-check-circle text-emerald-500"></i> Sisa Stok Gudang</p>
-                    <p class="text-sm font-black text-emerald-600 leading-none drop-shadow-sm">${g.totalStok}</p>
+                <div class="text-right shrink-0">
+                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Harga Jual</p>
+                    <p class="font-black text-corporate-700 text-base leading-none">${rupiah(g.jual)}</p>
                 </div>
             </div>
 
-
             <div class="flex items-center justify-between border-y border-slate-100 py-2.5 my-3">
                 <div class="flex-1 text-center border-r border-slate-100">
-                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-boxes-stacked"></i> Awal</p>
+                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-boxes-stacked"></i> Stok Modal</p>
                     <p class="text-sm font-black text-slate-700 leading-none">${qtyAwal}</p>
                 </div>
                 <div class="flex-1 text-center border-r border-slate-100">
@@ -322,11 +317,10 @@ function renderGudangMobile(filter = '') {
                     <p class="text-sm font-black text-amber-600 leading-none drop-shadow-sm">${qtyTerjual}</p>
                 </div>
                 <div class="flex-1 text-center">
-                    <p class="text-[8px] font-black text-emerald-500 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-check-circle"></i> Sisa</p>
+                    <p class="text-[8px] font-black text-emerald-500 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-check-circle"></i> Stok Gudang</p>
                     <p class="text-sm font-black text-emerald-600 leading-none drop-shadow-sm">${g.totalStok}</p>
                 </div>
             </div>
-
             <div class="mb-4">
                 ${batchHtml}
             </div>
