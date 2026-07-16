@@ -238,14 +238,27 @@ function renderBerandaMobile() {
 function renderGudangMobile(filter = '') {
     const wadah = document.getElementById('daftarGudangMobile');
     const f = filter.toLowerCase().trim();
-    let dataTampil = masterItems.filter(i => i.nama !== '___SYSTEM_AUTH___' && i.kategori !== '├в┼б┬а├п┬╕┬П Barang Retur' && (
+    let dataTampil = masterItems.filter(i => i.nama !== '___SYSTEM_AUTH___' && i.kategori !== '⚠️ Barang Retur' && (
         i.nama.toLowerCase().includes(f) || (i.kategori && i.kategori.toLowerCase().includes(f)) || (i.varian && i.varian.toLowerCase().includes(f))
     ));
 
     if (dataTampil.length === 0) {
-        wadah.innerHTML = `<div class="bg-white border border-slate-200 rounded-2xl p-8 text-center shadow-sm mt-4"><i class="fa-solid fa-box-open text-4xl text-slate-300 mb-3 block"></i><p class="font-bold text-slate-600">Tidak ada obat ditemukan.</p></div>`;
+        wadah.innerHTML = `<div class="bg-white border border-slate-200 rounded-3xl p-8 text-center shadow-sm mt-4"><i class="fa-solid fa-box-open text-4xl text-slate-300 mb-3 block"></i><p class="text-sm font-bold text-slate-500">Tidak ada obat ditemukan.</p></div>`;
         return;
     }
+
+    // --- LOGIKA MESIN: PENGUMPUL DATA TERJUAL & ETALASE ---
+    let terjualGlobal = {};
+    cashierHistory.filter(t => !t.isPelunasan).forEach(trx => {
+        if(trx.detailKeranjang) {
+            trx.detailKeranjang.forEach(item => { terjualGlobal[item.nama] = (terjualGlobal[item.nama] || 0) + item.qty; });
+        } else {
+            terjualGlobal[trx.obat] = (terjualGlobal[trx.obat] || 0) + (trx.item || 1);
+        }
+    });
+
+    let stokEtalaseGlobal = {};
+    etalaseItems.forEach(e => { stokEtalaseGlobal[e.nama] = (stokEtalaseGlobal[e.nama] || 0) + e.stok; });
 
     let grouped = {};
     dataTampil.forEach(i => {
@@ -259,75 +272,70 @@ function renderGudangMobile(filter = '') {
     wadah.innerHTML = Object.values(grouped).map(g => {
         g.batches.sort((a, b) => new Date(a.expired || '2099-12-31') - new Date(b.expired || '2099-12-31'));
         
-        let isMulti = g.batches.length > 1;
-        let stokWarna = g.totalStok <= 5 ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100';
-        let subTeks = g.varian ? `<p class="text-[10px] text-slate-500 italic mt-0.5 leading-tight">${g.varian}</p>` : '';
+        let subTeks = g.varian ? `<span class="text-[9px] text-slate-400 font-medium ml-1.5 border-l border-slate-300 pl-1.5">${g.varian}</span>` : '';
         
-        let contentHtml = '';
-
-        let generateBatchCard = (b, idx) => {
+        // --- KALKULASI TIGA SERANGKAI STOK ---
+        let qtyTerjual = terjualGlobal[g.nama] || 0;
+        let qtyEtalase = stokEtalaseGlobal[g.nama] || 0;
+        let qtyAwal = g.totalStok + qtyEtalase + qtyTerjual; 
+        
+        // Cetakan Daftar Batch (Dibuat lebih langsing dan transparan)
+        let batchHtml = g.batches.map((b, idx) => {
             let expTeks = b.expired ? b.expired : 'Tanpa Exp';
-            let expColor = b.expired ? 'text-red-500' : 'text-slate-600';
+            let expColor = b.expired ? 'text-red-500 font-bold' : 'text-slate-400';
             return `
-            <div class="bg-slate-50 border border-slate-100 rounded-xl p-2.5 flex justify-between items-center">
-                <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
-                    BATCH ${idx+1} <span class="text-slate-300 mx-1">|</span> Exp: <span class="${expColor}">${expTeks}</span>
-                </div>
-                <div class="text-[10px] font-bold text-slate-600 tracking-wide">
-                    Stok: <span class="text-emerald-600">${b.stok}</span> <span class="text-slate-300 mx-1">|</span> Beli: ${rupiah(b.modal)}
+            <div class="flex items-center justify-between text-[10px] bg-slate-50/50 border border-slate-100 px-3 py-1.5 rounded-lg">
+                <div class="text-slate-500 font-semibold"><span class="text-slate-400 mr-1 text-[9px]">BATCH ${idx+1}</span> <span class="text-slate-300 mx-1">|</span> Exp: <span class="${expColor}">${expTeks}</span></div>
+                <div class="text-slate-600 font-bold flex gap-2">
+                    <span>Sisa: <span class="text-emerald-600">${b.stok}</span></span>
+                    <span class="text-slate-300">|</span>
+                    <span>Beli: <span class="text-red-400">${rupiah(b.modal)}</span></span>
                 </div>
             </div>`;
-        };
-
-        if (isMulti) {
-            let batchHtml = g.batches.map((b, idx) => generateBatchCard(b, idx)).join('<div class="h-1.5"></div>');
-            contentHtml = `
-            <div class="flex mt-3">
-                <div class="w-1.5 bg-[#10b981] rounded-full mr-2.5 shrink-0"></div>
-                <div class="flex-1">
-                    ${batchHtml}
-                </div>
-            </div>
-            <div class="flex justify-between items-center bg-blue-50/60 rounded-xl p-3 mt-2.5 border border-blue-100">
-                <span class="text-[10px] text-blue-800 font-bold uppercase tracking-wider">Harga Jual Global</span>
-                <span class="text-base font-black text-blue-900">${rupiah(g.jual)}</span>
-            </div>
-            `;
-        } else {
-            let b = g.batches[0];
-            contentHtml = `
-            <div class="mt-3">
-                ${generateBatchCard(b, 0)}
-            </div>
-            <div class="flex justify-between items-center bg-blue-50/60 rounded-xl p-3 mt-2.5 border border-blue-100">
-                <span class="text-[10px] text-blue-800 font-bold uppercase tracking-wider">Harga Jual Global</span>
-                <span class="text-base font-black text-blue-900">${rupiah(g.jual)}</span>
-            </div>
-            `;
-        }
+        }).join('<div class="h-1"></div>');
 
         return `
-        <div class="bg-white border border-slate-200 rounded-[20px] p-4 shadow-sm flex flex-col mb-3">
-            <div class="flex justify-between items-start">
+        <div class="bg-white border border-slate-200 rounded-[1.5rem] p-5 shadow-sm flex flex-col mb-4 transition-all">
+            
+            <div class="flex justify-between items-start mb-1">
                 <div class="pr-2">
-                    <h3 class="font-black text-slate-900 text-[15px] leading-tight mb-0.5">${g.nama}</h3>
-                    ${subTeks}
-                    <p class="text-[9px] text-slate-400 font-black uppercase tracking-widest mt-1">${g.kategori || 'Tanpa Kategori'}</p>
+                    <h3 class="font-black text-[#0f2057] text-lg leading-tight tracking-tight">${g.nama}${subTeks}</h3>
+                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">${g.kategori || 'Tanpa Kategori'}</p>
                 </div>
-                <div class="px-2 py-1 rounded-lg border ${stokWarna} flex items-center gap-1 shadow-sm shrink-0">
-                    <i class="fa-solid fa-boxes-stacked text-[10px]"></i><span class="font-black text-xs">${g.totalStok}</span>
+                <div class="text-right">
+                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Harga Jual</p>
+                    <p class="font-black text-[#1e40af] text-base leading-none">${rupiah(g.jual)}</p>
                 </div>
             </div>
-            ${contentHtml}
-            <div class="flex gap-2 mt-3">
-                <button onclick="bukaModalTransferMobile('${g.dnaInduk}')" class="flex-1 h-11 bg-[#10b981] hover:bg-[#059669] text-white text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-transform active:scale-95 shadow-sm">
-                    <i class="fa-solid fa-truck-fast text-[11px]"></i> Ke Etalase
+
+            <div class="flex items-center justify-between border-y border-slate-100 py-2.5 my-3">
+                <div class="flex-1 text-center border-r border-slate-100">
+                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-boxes-stacked"></i> Awal</p>
+                    <p class="text-sm font-black text-slate-700 leading-none">${qtyAwal}</p>
+                </div>
+                <div class="flex-1 text-center border-r border-slate-100">
+                    <p class="text-[8px] font-black text-amber-500 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-cart-arrow-down"></i> Terjual</p>
+                    <p class="text-sm font-black text-amber-600 leading-none drop-shadow-sm">${qtyTerjual}</p>
+                </div>
+                <div class="flex-1 text-center">
+                    <p class="text-[8px] font-black text-emerald-500 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-check-circle"></i> Sisa</p>
+                    <p class="text-sm font-black text-emerald-600 leading-none drop-shadow-sm">${g.totalStok}</p>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                ${batchHtml}
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="bukaModalTransferMobile('${g.dnaInduk}')" class="flex-1 h-10 bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-500 hover:text-white text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm">
+                    <i class="fa-solid fa-truck-fast text-sm"></i> Ke Etalase
                 </button>
-                <button onclick="bukaModalEditMobile('${g.batches[0].idBatch}')" class="w-11 h-11 bg-[#f97316] hover:bg-[#ea580c] text-white rounded-xl flex items-center justify-center transition-transform active:scale-95 shadow-sm">
-                    <i class="fa-solid fa-pen text-sm"></i>
+                <button onclick="bukaModalEditMobile('${g.batches[0].idBatch}')" class="w-12 h-10 bg-white text-corporate-600 hover:bg-corporate-50 border border-slate-200 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm">
+                    <i class="fa-solid fa-pen"></i>
                 </button>
-                <button onclick="bukaModalHapusCerdas('${g.dnaInduk}', '${g.nama}')" class="w-11 h-11 bg-red-50 hover:bg-red-100 text-red-500 rounded-xl flex items-center justify-center transition-transform active:scale-95 border border-red-100 shadow-sm">
-                    <i class="fa-solid fa-trash text-sm"></i>
+                <button onclick="bukaModalHapusCerdas('${g.dnaInduk}', '${g.nama}')" class="w-12 h-10 bg-white text-red-500 hover:bg-red-50 border border-slate-200 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm">
+                    <i class="fa-solid fa-trash"></i>
                 </button>
             </div>
         </div>`;
