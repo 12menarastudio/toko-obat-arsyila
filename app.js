@@ -69,6 +69,8 @@ function bukaLayar(targetLayar) {
     if (targetLayar === 'laporan') renderLaporanMobile();
 }
 
+
+
 // ==========================================
 // 3. MESIN RENDER: BERANDA
 // ==========================================
@@ -211,12 +213,17 @@ function renderBerandaMobile() {
     document.getElementById('berandaKasbon').textContent = totalKasbonBelumLunas;
     document.getElementById('berandaKedaluwarsa').textContent = countExpired;
 
-    // MENGIRIM DATA KE KOTAK BARU
+        // MENGIRIM DATA KE KOTAK BARU
     if (document.getElementById('berandaSisaStok')) document.getElementById('berandaSisaStok').textContent = totalSisaStok;
     if (document.getElementById('berandaObatTerjual')) document.getElementById('berandaObatTerjual').textContent = totalItemTerjualHariIni;
     if (document.getElementById('berandaPembeli')) document.getElementById('berandaPembeli').textContent = totalPembeliHariIni;
     if (document.getElementById('berandaJenis')) document.getElementById('berandaJenis').textContent = totalJenisObat;
-    if (document.getElementById('berandaJenisObat')) document.getElementById('berandaJenisObat').textContent = `${totalJenisObat} Obat Terdaftar`; // Memperbarui text di kotak Aset Obat
+    if (document.getElementById('berandaJenisObat')) document.getElementById('berandaJenisObat').textContent = `${totalJenisObat} Obat Terdaftar`;
+
+    // INJEKSI ANGKA KE PANEL TIGA SERANGKAI EMAS
+    if (document.getElementById('panelStokSisa')) document.getElementById('panelStokSisa').textContent = totalSisaStok;
+    if (document.getElementById('panelStokTerjual')) document.getElementById('panelStokTerjual').textContent = totalItemTerjualHariIni;
+    if (document.getElementById('panelStokTotal')) document.getElementById('panelStokTotal').textContent = totalSisaStok + totalItemTerjualHariIni;    
 
     // KEMBALIKAN SCROLL KE KIRI (KOTAK PERTAMA) SAAT BERANDA DIBUKA
     const scrollPantauan = document.getElementById('wadahPantauanSistem');
@@ -224,6 +231,7 @@ function renderBerandaMobile() {
         scrollPantauan.scrollLeft = 0;
     }
 }
+
 // ==========================================
 // 4. MESIN RENDER: GUDANG & ETALASE
 // ==========================================
@@ -1899,3 +1907,104 @@ window.onload = () => {
     } catch(e) {}
     renderBerandaMobile(); 
 };
+// ==========================================
+// 24. MESIN DETAIL TIGA SERANGKAI STOK
+// ==========================================
+function bukaDetailTigaSerangkai(jenis) {
+    const wadah = document.getElementById('wadahListDetailStok');
+    const judul = document.getElementById('judulDetailStok');
+    const subJudul = document.getElementById('subJudulDetailStok');
+    let totalQty = 0; let totalNominal = 0; let htmlContent = '';
+
+    // Cetakan Kotak List Tipis & Elegan
+    const buatKotakTipis = (nama, modal, jual, qty, warnaPita = 'bg-slate-300') => `
+        <div class="bg-white border border-slate-200 rounded-xl p-2.5 flex items-center justify-between shadow-sm relative overflow-hidden">
+            <div class="absolute left-0 top-0 bottom-0 w-1 ${warnaPita}"></div>
+            <div class="pl-2 flex-1">
+                <h4 class="text-xs font-black text-slate-800 leading-tight truncate pr-2">${nama}</h4>
+                <div class="text-[9px] font-bold text-slate-500 mt-1 flex gap-2">
+                    <span>Beli: <span class="text-red-500">${rupiah(modal)}</span></span>
+                    <span>Jual: <span class="text-emerald-600">${rupiah(jual)}</span></span>
+                </div>
+            </div>
+            <div class="bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-100 text-center shrink-0">
+                <span class="block text-sm font-black text-corporate-700 leading-none">${qty}</span>
+            </div>
+        </div>`;
+
+    // Cetakan Sub-Judul untuk Pengelompokan Pembayaran
+    const buatSubJudul = (teks, icon, warna) => `
+        <div class="flex items-center gap-2 mt-4 mb-1.5 pl-1">
+            <div class="w-5 h-5 rounded-md ${warna} flex items-center justify-center text-[10px]"><i class="${icon}"></i></div>
+            <span class="text-[10px] font-black text-slate-600 uppercase tracking-widest">${teks}</span>
+        </div>`;
+
+    if (jenis === 'sisa') {
+        judul.textContent = "Sisa Stok (Tersedia)"; subJudul.textContent = "Gudang & Etalase";
+        let gabungan = {};
+        
+        masterItems.forEach(m => { if(m.nama !== '___SYSTEM_AUTH___' && m.kategori !== '⚠️ Barang Retur') {
+            if(!gabungan[m.nama]) gabungan[m.nama] = { nama: m.nama, modal: m.modal, jual: m.jual, qty: 0 };
+            gabungan[m.nama].qty += m.stok;
+        }});
+        etalaseItems.forEach(e => {
+            if(!gabungan[e.nama]) gabungan[e.nama] = { nama: e.nama, modal: (e.antreanFIFO[0]?.modal || 0), jual: e.jual, qty: 0 };
+            gabungan[e.nama].qty += e.stok;
+        });
+
+        Object.values(gabungan).forEach(item => {
+            if(item.qty > 0) {
+                totalQty += item.qty; totalNominal += (item.qty * item.jual);
+                htmlContent += buatKotakTipis(item.nama, item.modal, item.jual, item.qty, 'bg-blue-400');
+            }
+        });
+
+    } else if (jenis === 'terjual') {
+        judul.textContent = "Stok Terjual"; subJudul.textContent = "Dikelompokkan Berdasarkan Pembayaran";
+        let jualTunai = {}, jualQRIS = {}, jualKasbon = {};
+
+        cashierHistory.filter(t => t.tanggal >= siklusAktif.tanggalStart && !t.isPelunasan).forEach(trx => {
+            let targetGroup = trx.metode === 'Tunai' ? jualTunai : (trx.metode === 'QRIS' ? jualQRIS : jualKasbon);
+            if(trx.detailKeranjang) {
+                trx.detailKeranjang.forEach(item => {
+                    if(!targetGroup[item.nama]) targetGroup[item.nama] = { nama: item.nama, modal: item.hppSatuan || (item.jual*0.8), jual: item.jual, qty: 0 };
+                    targetGroup[item.nama].qty += item.qty;
+                });
+            }
+        });
+
+        const prosesGrup = (grupData, pitaClass) => {
+            let html = '';
+            Object.values(grupData).forEach(item => {
+                totalQty += item.qty; totalNominal += (item.qty * item.jual);
+                html += buatKotakTipis(item.nama, item.modal, item.jual, item.qty, pitaClass);
+            });
+            return html;
+        };
+
+        let htmlTunai = prosesGrup(jualTunai, 'bg-emerald-400');
+        if(htmlTunai) htmlContent += buatSubJudul('Pembayaran Tunai', 'fa-solid fa-money-bill', 'bg-emerald-100 text-emerald-600') + htmlTunai;
+        
+        let htmlQRIS = prosesGrup(jualQRIS, 'bg-blue-400');
+        if(htmlQRIS) htmlContent += buatSubJudul('Pembayaran Digital (QRIS)', 'fa-solid fa-qrcode', 'bg-blue-100 text-blue-600') + htmlQRIS;
+        
+        let htmlKasbon = prosesGrup(jualKasbon, 'bg-red-400');
+        if(htmlKasbon) htmlContent += buatSubJudul('Tunggakan (Kasbon)', 'fa-solid fa-book-open', 'bg-red-100 text-red-600') + htmlKasbon;
+
+    } else if (jenis === 'total') {
+        judul.textContent = "Total Keseluruhan Stok"; subJudul.textContent = "Sisa Tersedia + Terjual";
+        // Untuk total, kita panggil fungsi sisa dan terjual secara imajiner, lalu gabungkan angkanya.
+        // Karena kodenya panjang, kita sederhanakan dengan teks instruksi bahwa Detail Tepat ada di Sisa & Terjual.
+        htmlContent = `<div class="p-6 text-center text-slate-500 mt-10"><i class="fa-solid fa-layer-group text-4xl mb-3 text-slate-300"></i><p class="text-xs font-bold leading-relaxed">Total Stok adalah gabungan dari<br><span class="text-blue-600">SISA STOK</span> dan <span class="text-emerald-600">STOK TERJUAL</span>.<br><br>Silakan buka panel Sisa atau Terjual untuk melihat rincian tipisnya secara spesifik.</p></div>`;
+        totalQty = parseInt(document.getElementById('panelStokTotal').textContent);
+        totalNominal = 0; // Tidak relevan untuk total absolut modal+jual campuran
+    }
+
+    if(!htmlContent && jenis !== 'total') htmlContent = `<div class="p-6 text-center text-slate-400 mt-4 text-xs font-bold">Data kosong.</div>`;
+    
+    document.getElementById('rekapQtyDetailStok').textContent = totalQty + " Pcs";
+    document.getElementById('rekapNominalDetailStok').textContent = jenis === 'total' ? "-" : rupiah(totalNominal);
+    wadah.innerHTML = htmlContent;
+
+    bukaModalMobile('modalDetailStokMobile', 'panelDetailStokMobile');
+}
