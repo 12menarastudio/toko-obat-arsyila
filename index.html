@@ -86,7 +86,7 @@ tailwind.config = {
             <div class="px-6 mt-4">
                 <div class="flex rounded-xl btn-gold-3d overflow-hidden border border-[#b45309] h-12 shadow-md">
                     <button onclick="bukaDetailTigaSerangkai('total')" class="flex-1 btn-gold-3d-active border-r border-[#b45309]/40 flex flex-col items-center justify-center transition-all">
-                        <span class="text-[8px] font-black uppercase tracking-widest opacity-80 leading-none mb-0.5">Total Stok</span>
+                        <span class="text-[8px] font-black uppercase tracking-widest opacity-80 leading-none mb-0.5 flex items-center gap-1"><i class="fa-solid fa-boxes-stacked"></i> Total Modal Stok</span>
                         <span class="text-sm font-black leading-none" id="panelStokTotal">0</span>
                     </button>
                     <button onclick="bukaDetailTigaSerangkai('sisa')" class="flex-1 btn-gold-3d-active border-r border-[#b45309]/40 flex flex-col items-center justify-center transition-all">
@@ -778,6 +778,39 @@ tailwind.config = {
         </div>
     </div>
 
+    <!-- MODAL RINGKASAN STOK (POP-UP TENGAH ELEGAN) -->
+    <div id="modalRingkasanStokMobile" class="absolute inset-0 z-[145] hidden flex items-center justify-center pointer-events-none transition-opacity duration-300 opacity-0">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity pointer-events-auto" onclick="tutupModalRingkasanMobile()"></div>
+        <div class="bg-white w-[85%] max-w-[320px] rounded-[2rem] shadow-2xl relative z-10 pointer-events-auto transform transition-transform duration-300 scale-90 flex flex-col overflow-hidden" id="panelRingkasanStokMobile">
+            
+            <div class="bg-gradient-to-br from-corporate-50 to-white px-6 py-6 border-b border-corporate-100 flex flex-col items-center text-center relative">
+                <button onclick="tutupModalRingkasanMobile()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"><i class="fa-solid fa-xmark text-lg"></i></button>
+                <div class="h-16 w-16 rounded-full bg-white border-4 border-corporate-50 shadow-sm flex items-center justify-center mb-3 relative z-10 text-corporate-600 text-2xl" id="iconRingkasanStok">
+                    <i class="fa-solid fa-boxes-stacked"></i>
+                </div>
+                <h3 class="text-xl font-black text-slate-800 tracking-tight leading-tight" id="judulRingkasanStok">Sisa Stok</h3>
+                <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-1" id="subJudulRingkasanStok">Gudang & Etalase</p>
+            </div>
+            
+            <div class="px-6 py-5 bg-slate-50" id="areaRincianRingkasan">
+                <!-- Data Gudang & Etalase akan disuntik dari JS -->
+            </div>
+            
+            <div class="px-6 pb-5 bg-slate-50 border-b border-slate-100">
+                <div class="border-t border-dashed border-slate-300 pt-3 flex justify-between items-center">
+                    <span class="text-sm font-black text-corporate-700 uppercase tracking-wider">Total</span>
+                    <span class="text-3xl font-black text-corporate-600 tracking-tighter drop-shadow-sm" id="angkaRingkasanTotal">0</span>
+                </div>
+            </div>
+            
+            <div class="bg-white px-6 py-4">
+                <button type="button" id="btnLanjutRincianStok" class="w-full inline-flex justify-center items-center gap-2 rounded-xl bg-corporate-600 hover:bg-corporate-700 text-white font-black uppercase tracking-wider py-3.5 shadow-md transition transform active:scale-95 text-[11px]">
+                    Cek Daftar Rincian <i class="fa-solid fa-arrow-right text-sm"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    
 
     <div id="modalDetailStokMobile" class="absolute inset-0 z-[140] hidden flex items-end sm:items-center justify-center pointer-events-none">
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity pointer-events-auto" onclick="tutupModalMobile('modalDetailStokMobile')"></div>

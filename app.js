@@ -295,18 +295,22 @@ function renderGudangMobile(filter = '') {
         }).join('<div class="h-1"></div>');
 
         return `
-        <div class="bg-white border border-slate-200 rounded-[1.5rem] p-5 shadow-sm flex flex-col mb-4 transition-all">
-            
-            <div class="flex justify-between items-start mb-1">
-                <div class="pr-2">
-                    <h3 class="font-black text-[#0f2057] text-lg leading-tight tracking-tight">${g.nama}${subTeks}</h3>
-                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest mt-1">${g.kategori || 'Tanpa Kategori'}</p>
+                    <div class="bg-white border border-slate-200 rounded-xl p-3 mb-4 grid grid-cols-3 gap-2 divide-x divide-slate-100 shadow-sm relative">
+                <div class="absolute -top-1 -right-1 w-8 h-8 bg-slate-50 rounded-full blur-md -z-10"></div>
+                <div class="text-center">
+                    <p class="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-boxes-stacked text-slate-400"></i> Modal Stok</p>
+                    <p class="text-sm font-black text-slate-700 leading-none">${qtyAwal}</p>
                 </div>
-                <div class="text-right">
-                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Harga Jual</p>
-                    <p class="font-black text-[#1e40af] text-base leading-none">${rupiah(g.jual)}</p>
+                <div class="text-center px-1">
+                    <p class="text-[8px] font-black text-amber-600 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-cart-arrow-down text-amber-500"></i> Terjual</p>
+                    <p class="text-sm font-black text-amber-500 leading-none drop-shadow-sm">${qtyTerjual}</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-check-circle text-emerald-500"></i> Sisa Stok Gudang</p>
+                    <p class="text-sm font-black text-emerald-600 leading-none drop-shadow-sm">${g.totalStok}</p>
                 </div>
             </div>
+
 
             <div class="flex items-center justify-between border-y border-slate-100 py-2.5 my-3">
                 <div class="flex-1 text-center border-r border-slate-100">
@@ -1916,15 +1920,98 @@ window.onload = () => {
     renderBerandaMobile(); 
 };
 // ==========================================
-// 24. MESIN DETAIL TIGA SERANGKAI STOK
+// 24. MESIN DETAIL TIGA SERANGKAI STOK (POPUP & RINCIAN)
 // ==========================================
+function tutupModalRingkasanMobile() {
+    const modal = document.getElementById('modalRingkasanStokMobile');
+    const panel = document.getElementById('panelRingkasanStokMobile');
+    modal.classList.add('opacity-0'); panel.classList.add('scale-90');
+    setTimeout(() => { modal.classList.add('hidden'); }, 300);
+}
+
 function bukaDetailTigaSerangkai(jenis) {
+    let totalGudang = 0, totalEtalase = 0;
+    let terjualTunai = 0, terjualQRIS = 0, terjualKasbon = 0;
+    
+    // Mesin Hitung Sisa
+    masterItems.forEach(m => { if(m.nama !== '___SYSTEM_AUTH___' && m.kategori !== '⚠️ Barang Retur') totalGudang += m.stok; });
+    etalaseItems.forEach(e => { totalEtalase += e.stok; });
+    
+    // Mesin Hitung Terjual
+    cashierHistory.filter(t => t.tanggal >= siklusAktif.tanggalStart && !t.isPelunasan).forEach(trx => {
+        let qty = 0;
+        if(trx.detailKeranjang) { trx.detailKeranjang.forEach(i => qty += i.qty); } else { qty = trx.item || 1; }
+        if(trx.metode === 'Tunai') terjualTunai += qty;
+        else if(trx.metode === 'QRIS') terjualQRIS += qty;
+        else if(trx.metode === 'Debt') terjualKasbon += qty;
+    });
+
+    let sisaTotal = totalGudang + totalEtalase;
+    let terjualTotal = terjualTunai + terjualQRIS + terjualKasbon;
+    let absolutTotal = sisaTotal + terjualTotal;
+
+        // --- LOMPATAN LOGIKA UNTUK TOTAL MODAL STOK ---
+    if (jenis === 'total') {
+        tampilkanConfirmMobile(`Modal Stok pembukuan Baru sebanyak ${absolutTotal} stok.\n\nCek rincian di Master Gudang?`, function() {
+            bukaLayar('gudang');
+        });
+        return; // Hentikan fungsi di sini agar pop-up tengah tidak muncul
+    }
+
+    const icon = document.getElementById('iconRingkasanStok');
+    const judul = document.getElementById('judulRingkasanStok');
+    const subJudul = document.getElementById('subJudulRingkasanStok');
+    const rincianArea = document.getElementById('areaRincianRingkasan');
+    const totalAngka = document.getElementById('angkaRingkasanTotal');
+    const btnLanjut = document.getElementById('btnLanjutRincianStok');
+
+    // Desain Pop-up Tengah Dinamis (Pcs diganti Stok)
+    if (jenis === 'sisa') {
+        icon.innerHTML = '<i class="fa-solid fa-boxes-stacked"></i>';
+        icon.className = 'h-16 w-16 rounded-full bg-blue-50 border-4 border-white shadow-sm flex items-center justify-center mb-3 relative z-10 text-blue-500 text-2xl';
+        judul.textContent = "Sisa Stok (Tersedia)"; subJudul.textContent = "Gudang & Etalase";
+        rincianArea.innerHTML = `
+            <div class="flex justify-between items-center mb-3"><span class="text-xs font-bold text-slate-500 flex items-center gap-2"><i class="fa-solid fa-box text-slate-400 w-4 text-center"></i> Stok Gudang</span><span class="text-sm font-black text-slate-700">${totalGudang} Stok</span></div>
+            <div class="flex justify-between items-center mb-2"><span class="text-xs font-bold text-slate-500 flex items-center gap-2"><i class="fa-solid fa-store text-slate-400 w-4 text-center"></i> Stok Etalase</span><span class="text-sm font-black text-slate-700">${totalEtalase} Stok</span></div>
+        `;
+        totalAngka.textContent = sisaTotal; totalAngka.className = "text-3xl font-black text-blue-600 tracking-tighter drop-shadow-sm";
+    } else if (jenis === 'terjual') {
+        icon.innerHTML = '<i class="fa-solid fa-cart-arrow-down"></i>';
+        icon.className = 'h-16 w-16 rounded-full bg-amber-50 border-4 border-white shadow-sm flex items-center justify-center mb-3 relative z-10 text-amber-500 text-2xl';
+        judul.textContent = "Stok Terjual"; subJudul.textContent = "Berdasarkan Pembayaran";
+        rincianArea.innerHTML = `
+            <div class="flex justify-between items-center mb-2"><span class="text-xs font-bold text-slate-500 flex items-center gap-2"><i class="fa-solid fa-money-bill-wave text-emerald-400 w-4 text-center"></i> Tunai</span><span class="text-sm font-black text-slate-700">${terjualTunai} Stok</span></div>
+            <div class="flex justify-between items-center mb-2"><span class="text-xs font-bold text-slate-500 flex items-center gap-2"><i class="fa-solid fa-qrcode text-blue-400 w-4 text-center"></i> QRIS</span><span class="text-sm font-black text-slate-700">${terjualQRIS} Stok</span></div>
+            <div class="flex justify-between items-center mb-2"><span class="text-xs font-bold text-slate-500 flex items-center gap-2"><i class="fa-solid fa-book-open text-red-400 w-4 text-center"></i> Kasbon</span><span class="text-sm font-black text-slate-700">${terjualKasbon} Stok</span></div>
+        `;
+        totalAngka.textContent = terjualTotal; totalAngka.className = "text-3xl font-black text-amber-500 tracking-tighter drop-shadow-sm";
+    }
+
+    // Sambungkan tombol Lanjut
+    btnLanjut.setAttribute('onclick', `lanjutBukaDaftarRincian('${jenis}')`);
+    
+    // Tampilkan Modal Popup Tengah
+    const modal = document.getElementById('modalRingkasanStokMobile');
+    const panel = document.getElementById('panelRingkasanStokMobile');
+    modal.classList.remove('hidden');
+    setTimeout(() => { modal.classList.remove('opacity-0'); panel.classList.remove('scale-90'); }, 10);
+}
+
+// Transisi Halus dari Pop-up ke Layar Bawah
+function lanjutBukaDaftarRincian(jenis) {
+    tutupModalRingkasanMobile();
+    setTimeout(() => {
+        prosesRenderDetailTigaSerangkai(jenis);
+    }, 250);
+}
+
+// Ini adalah proses Render Layar Bawah (Gambar 2)
+function prosesRenderDetailTigaSerangkai(jenis) {
     const wadah = document.getElementById('wadahListDetailStok');
     const judul = document.getElementById('judulDetailStok');
     const subJudul = document.getElementById('subJudulDetailStok');
     let totalQty = 0; let totalNominal = 0; let htmlContent = '';
 
-    // Cetakan Kotak List Tipis & Elegan
     const buatKotakTipis = (nama, modal, jual, qty, warnaPita = 'bg-slate-300') => `
         <div class="bg-white border border-slate-200 rounded-xl p-2.5 flex items-center justify-between shadow-sm relative overflow-hidden">
             <div class="absolute left-0 top-0 bottom-0 w-1 ${warnaPita}"></div>
@@ -1940,7 +2027,6 @@ function bukaDetailTigaSerangkai(jenis) {
             </div>
         </div>`;
 
-    // Cetakan Sub-Judul untuk Pengelompokan Pembayaran
     const buatSubJudul = (teks, icon, warna) => `
         <div class="flex items-center gap-2 mt-4 mb-1.5 pl-1">
             <div class="w-5 h-5 rounded-md ${warna} flex items-center justify-center text-[10px]"><i class="${icon}"></i></div>
@@ -1956,7 +2042,7 @@ function bukaDetailTigaSerangkai(jenis) {
             gabungan[m.nama].qty += m.stok;
         }});
         etalaseItems.forEach(e => {
-            if(!gabungan[e.nama]) gabungan[e.nama] = { nama: e.nama, modal: (e.antreanFIFO[0]?.modal || 0), jual: e.jual, qty: 0 };
+            if(!gabungan[e.nama]) gabungan[e.nama] = { nama: e.nama, modal: (e.antreanFIFO && e.antreanFIFO[0]?.modal) || 0, jual: e.jual, qty: 0 };
             gabungan[e.nama].qty += e.stok;
         });
 
@@ -1978,6 +2064,9 @@ function bukaDetailTigaSerangkai(jenis) {
                     if(!targetGroup[item.nama]) targetGroup[item.nama] = { nama: item.nama, modal: item.hppSatuan || (item.jual*0.8), jual: item.jual, qty: 0 };
                     targetGroup[item.nama].qty += item.qty;
                 });
+            } else {
+                if(!targetGroup[trx.obat]) targetGroup[trx.obat] = { nama: trx.obat, modal: ((trx.total||0)-(trx.laba||0))/(trx.item||1), jual: (trx.total||0)/(trx.item||1), qty: 0 };
+                targetGroup[trx.obat].qty += (trx.item||1);
             }
         });
 
@@ -2001,11 +2090,9 @@ function bukaDetailTigaSerangkai(jenis) {
 
     } else if (jenis === 'total') {
         judul.textContent = "Total Keseluruhan Stok"; subJudul.textContent = "Sisa Tersedia + Terjual";
-        // Untuk total, kita panggil fungsi sisa dan terjual secara imajiner, lalu gabungkan angkanya.
-        // Karena kodenya panjang, kita sederhanakan dengan teks instruksi bahwa Detail Tepat ada di Sisa & Terjual.
-        htmlContent = `<div class="p-6 text-center text-slate-500 mt-10"><i class="fa-solid fa-layer-group text-4xl mb-3 text-slate-300"></i><p class="text-xs font-bold leading-relaxed">Total Stok adalah gabungan dari<br><span class="text-blue-600">SISA STOK</span> dan <span class="text-emerald-600">STOK TERJUAL</span>.<br><br>Silakan buka panel Sisa atau Terjual untuk melihat rincian tipisnya secara spesifik.</p></div>`;
+        htmlContent = `<div class="p-6 text-center text-slate-500 mt-10"><i class="fa-solid fa-layer-group text-4xl mb-3 text-slate-300"></i><p class="text-xs font-bold leading-relaxed">Daftar Lengkap di Panel Spesifik<br><br>Silakan buka panel Sisa atau Terjual secara terpisah untuk melihat rincian daftarnya secara spesifik.</p></div>`;
         totalQty = parseInt(document.getElementById('panelStokTotal').textContent);
-        totalNominal = 0; // Tidak relevan untuk total absolut modal+jual campuran
+        totalNominal = 0; 
     }
 
     if(!htmlContent && jenis !== 'total') htmlContent = `<div class="p-6 text-center text-slate-400 mt-4 text-xs font-bold">Data kosong.</div>`;
