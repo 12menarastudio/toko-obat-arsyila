@@ -1235,16 +1235,25 @@ function ubahQtyKeranjangMobile(index, delta) {
 function renderKeranjangMobile() {
     const tbody = document.getElementById('keranjangBodyMobile'); let total = 0;
     if(keranjangKasirMobile.length === 0) {
-        tbody.innerHTML = `<div class="p-8 text-center text-slate-400"><i class="fa-solid fa-cart-arrow-down text-3xl mb-2 opacity-50"></i><p class="text-xs font-semibold">Keranjang kosong</p></div>`;
+        tbody.innerHTML = `
+            <div class="flex-1 flex flex-col items-center justify-center p-6 text-center bg-slate-50/50">
+                <div class="w-14 h-14 mx-auto bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100 mb-3">
+                    <i class="fa-solid fa-basket-shopping text-2xl text-slate-300"></i>
+                </div>
+                <p class="text-[11px] font-black text-slate-700 uppercase tracking-widest mb-1">Keranjang Kosong</p>
+                <p class="text-[9px] text-slate-500 font-medium">Pilih obat dari etalase atas atau<br>tekan tombol Scanner Scanner</p>
+            </div>`;
     } else {
         tbody.innerHTML = keranjangKasirMobile.map((k, i) => {
             let sub = k.jual * k.qty; total += sub;
             let ketTeks = (k.varian || k.keterangan) ? `<p class="text-[9px] text-slate-500 italic mt-0.5">${k.varian || ''} ${k.keterangan || ''}</p>` : '';
-            return `<div class="p-3 bg-white flex items-center justify-between gap-2"><div class="flex-1 pr-2"><h4 class="font-bold text-slate-800 text-xs leading-tight">${k.nama}</h4>${ketTeks}<p class="font-black text-corporate-600 text-sm mt-1">${rupiah(sub)}</p></div><div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-inner shrink-0"><button onclick="ubahQtyKeranjangMobile(${i}, -1)" class="w-7 h-7 rounded-lg bg-white shadow text-slate-600 font-bold active:bg-slate-100 transition">-</button><span class="w-4 text-center font-bold text-slate-800 text-xs">${k.qty}</span><button onclick="ubahQtyKeranjangMobile(${i}, 1)" class="w-7 h-7 rounded-lg bg-emerald-50 shadow text-emerald-600 font-bold active:bg-emerald-100 transition">+</button></div></div>`;
+            return `<div class="px-4 py-3 bg-white flex items-center justify-between gap-3 border-b border-slate-50 last:border-0"><div class="flex-1 pr-2"><h4 class="font-bold text-slate-800 text-xs leading-tight">${k.nama}</h4>${ketTeks}<p class="font-black text-corporate-600 text-sm mt-1">${rupiah(sub)}</p></div><div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-inner shrink-0"><button onclick="ubahQtyKeranjangMobile(${i}, -1)" class="w-7 h-7 rounded-lg bg-white shadow-sm text-slate-600 font-bold active:bg-slate-100 transition">-</button><span class="w-5 text-center font-black text-slate-800 text-xs">${k.qty}</span><button onclick="ubahQtyKeranjangMobile(${i}, 1)" class="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-100 shadow-sm text-emerald-600 font-bold active:bg-emerald-100 transition">+</button></div></div>`;
         }).join('');
     }
     document.getElementById('kasirTotalMobile').textContent = rupiah(total);
 }
+
+
 
 function toggleFormKasbonMobile() {
     const metode = document.querySelector('input[name="kasirMetodeMobile"]:checked').value;

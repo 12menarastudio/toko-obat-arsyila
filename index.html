@@ -517,66 +517,93 @@ tailwind.config = {
         </div>
     </div>
 
-    <div id="modalKasirMobile" class="absolute inset-0 z-[110] hidden flex items-end sm:items-center justify-center pointer-events-none">
+            <div id="modalKasirMobile" class="absolute inset-0 z-[110] hidden flex items-center justify-center pointer-events-none px-3 sm:px-0">
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity pointer-events-auto" onclick="tutupModalMobile('modalKasirMobile')"></div>
-        <div class="bg-[#f8fafc] w-full h-[90vh] sm:h-[85vh] rounded-t-3xl sm:rounded-3xl sm:w-[90%] shadow-2xl relative z-10 pointer-events-auto transform transition-transform translate-y-full flex flex-col overflow-hidden" id="panelKasirMobile">
-            <div class="bg-gradient-to-r from-corporate-800 to-corporate-900 px-6 py-5 flex items-center justify-between shadow-md relative z-20">
-                <h3 class="font-black text-white text-lg tracking-tight flex items-center gap-2"><i class="fa-solid fa-cash-register text-emerald-400"></i> Mesin Kasir</h3>
-                <button onclick="tutupModalMobile('modalKasirMobile')" class="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+        <div class="bg-[#f1f5f9] w-full max-w-[400px] h-[88vh] rounded-[24px] shadow-2xl relative z-10 pointer-events-auto transform transition-transform translate-y-full flex flex-col overflow-hidden border border-white/20" id="panelKasirMobile">
+            
+            <div class="bg-gradient-to-r from-corporate-800 to-corporate-900 px-5 py-4 flex items-center justify-between shadow-md relative z-20">
+                <h3 class="font-black text-white text-base tracking-tight flex items-center gap-2"><i class="fa-solid fa-cash-register text-emerald-400"></i> Mesin Kasir</h3>
+                <button onclick="tutupModalMobile('modalKasirMobile')" class="w-7 h-7 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors"><i class="fa-solid fa-xmark text-sm"></i></button>
             </div>
-            <div class="flex-1 overflow-y-auto hide-scrollbar p-6 space-y-5">
-                <div class="flex gap-2">
-                    <div class="flex-1">
-                        <select id="kasirPilihObatMobile" onchange="tambahManualKeKeranjangMobile()" class="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-800 shadow-sm focus:outline-none appearance-none cursor-pointer">
-                            <option value="">+ Pilih obat dari etalase...</option>
+
+            <div class="flex-1 overflow-y-auto hide-scrollbar px-4 pt-4 pb-[130px] space-y-4">
+                
+                <div class="bg-white p-3.5 rounded-2xl shadow-sm flex gap-2 border border-slate-200">
+                    <div class="flex-1 relative">
+                        <select id="kasirPilihObatMobile" onchange="tambahManualKeKeranjangMobile()" class="w-full h-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-corporate-500 appearance-none cursor-pointer transition-all">
+                            <option value="">+ Pilih obat etalase...</option>
                         </select>
+                        <i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
                     </div>
-                    <button onclick="bukaScannerKameraMobile()" class="w-14 h-14 bg-corporate-600 hover:bg-corporate-700 text-white rounded-2xl flex items-center justify-center shadow-md transition-transform active:scale-95 shrink-0"><i class="fa-solid fa-barcode text-2xl animate-pulse"></i></button>
+                    <button onclick="bukaScannerKameraMobile('kasir')" class="w-11 h-11 bg-orange-50 border border-orange-200 hover:bg-orange-100 text-orange-500 rounded-xl flex items-center justify-center shadow-sm transition-transform active:scale-95 shrink-0"><i class="fa-solid fa-qrcode text-lg"></i></button>
+                    <button onclick="bukaScannerKameraMobile('kasir')" class="w-11 h-11 bg-corporate-600 hover:bg-corporate-700 border border-corporate-700 text-white rounded-xl flex items-center justify-center shadow-sm transition-transform active:scale-95 shrink-0"><i class="fa-solid fa-barcode text-lg"></i></button>
                 </div>
-                <div class="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden min-h-[150px]">
-                    <div class="px-4 py-3 bg-slate-50 border-b border-slate-100 flex items-center gap-2">
-                        <i class="fa-solid fa-cart-shopping text-slate-400"></i>
-                        <span class="text-[10px] font-bold text-slate-600 uppercase tracking-widest">Keranjang Belanja</span>
+
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[160px]">
+                    <div class="px-4 py-2 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-cart-shopping text-slate-400 text-xs"></i>
+                            <span class="text-[9px] font-black text-slate-600 uppercase tracking-widest">Keranjang Belanja</span>
+                        </div>
                     </div>
-                    <div id="keranjangBodyMobile" class="divide-y divide-slate-100"></div>
+                    <div id="keranjangBodyMobile" class="divide-y divide-slate-50 flex-1 flex flex-col"></div>
                 </div>
-                <div>
-                    <h4 class="text-[10px] font-bold text-slate-600 uppercase tracking-widest mb-3 pl-1">Pembayaran</h4>
+
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                    <h4 class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-3 pl-1 text-center">Pilih Metode Pembayaran</h4>
                     <div class="grid grid-cols-3 gap-2">
                         <label class="cursor-pointer group relative">
                             <input type="radio" name="kasirMetodeMobile" value="Tunai" class="peer sr-only" checked onchange="toggleFormKasbonMobile()">
-                            <div class="bg-white border border-slate-200 rounded-2xl p-3 text-center transition-all peer-checked:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:shadow-sm">
-                                <i class="fa-solid fa-money-bill text-lg text-slate-400 peer-checked:text-emerald-500 transition-colors mb-1"></i><p class="text-[10px] font-bold text-slate-600 peer-checked:text-emerald-700">Tunai</p>
+                            <div class="bg-white border border-slate-200 rounded-xl p-3 text-center transition-all peer-checked:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:shadow-[0_0_15px_rgba(16,185,129,0.15)] shadow-sm">
+                                <div class="w-9 h-9 mx-auto rounded-full bg-emerald-50 shadow-inner flex items-center justify-center mb-2 peer-checked:bg-emerald-500 transition-colors border border-emerald-100 peer-checked:border-emerald-600">
+                                    <i class="fa-solid fa-money-bill-wave text-emerald-500 peer-checked:text-white transition-colors text-sm"></i>
+                                </div>
+                                <p class="text-[10px] font-black text-slate-600 peer-checked:text-emerald-700 uppercase tracking-wider">Tunai</p>
                             </div>
                         </label>
                         <label class="cursor-pointer group relative">
                             <input type="radio" name="kasirMetodeMobile" value="QRIS" class="peer sr-only" onchange="toggleFormKasbonMobile()">
-                            <div class="bg-white border border-slate-200 rounded-2xl p-3 text-center transition-all peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:shadow-sm">
-                                <i class="fa-solid fa-qrcode text-lg text-slate-400 peer-checked:text-blue-500 transition-colors mb-1"></i><p class="text-[10px] font-bold text-slate-600 peer-checked:text-blue-700">QRIS</p>
+                            <div class="bg-white border border-slate-200 rounded-xl p-3 text-center transition-all peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:shadow-[0_0_15px_rgba(59,130,246,0.15)] shadow-sm">
+                                <div class="w-9 h-9 mx-auto rounded-full bg-blue-50 shadow-inner flex items-center justify-center mb-2 peer-checked:bg-blue-500 transition-colors border border-blue-100 peer-checked:border-blue-600">
+                                    <i class="fa-solid fa-qrcode text-blue-500 peer-checked:text-white transition-colors text-sm"></i>
+                                </div>
+                                <p class="text-[10px] font-black text-slate-600 peer-checked:text-blue-700 uppercase tracking-wider">QRIS</p>
                             </div>
                         </label>
                         <label class="cursor-pointer group relative">
                             <input type="radio" name="kasirMetodeMobile" value="Debt" class="peer sr-only" onchange="toggleFormKasbonMobile()">
-                            <div class="bg-white border border-slate-200 rounded-2xl p-3 text-center transition-all peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:shadow-sm">
-                                <i class="fa-solid fa-book-open text-lg text-slate-400 peer-checked:text-red-500 transition-colors mb-1"></i><p class="text-[10px] font-bold text-slate-600 peer-checked:text-red-700">Kasbon</p>
+                            <div class="bg-white border border-slate-200 rounded-xl p-3 text-center transition-all peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:shadow-[0_0_15px_rgba(239,68,68,0.15)] shadow-sm">
+                                <div class="w-9 h-9 mx-auto rounded-full bg-red-50 shadow-inner flex items-center justify-center mb-2 peer-checked:bg-red-500 transition-colors border border-red-100 peer-checked:border-red-600">
+                                    <i class="fa-solid fa-book-open text-red-500 peer-checked:text-white transition-colors text-sm"></i>
+                                </div>
+                                <p class="text-[10px] font-black text-slate-600 peer-checked:text-red-700 uppercase tracking-wider">Kasbon</p>
                             </div>
                         </label>
                     </div>
+
+                    <div id="formKasbonMobile" class="hidden mt-3 bg-red-50/50 border border-red-100 rounded-xl p-3 shadow-inner transition-all space-y-2.5">
+                        <p class="text-[9px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1.5"><i class="fa-solid fa-user-pen"></i> Identitas Pelanggan</p>
+                        <input type="text" id="kasbonNamaMobile" placeholder="Nama Pelanggan..." class="w-full bg-white border border-red-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-red-400 transition-colors">
+                        <input type="number" id="kasbonWaMobile" placeholder="No. WhatsApp..." class="w-full bg-white border border-red-200 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-red-400 transition-colors">
+                    </div>
                 </div>
-                <div id="formKasbonMobile" class="hidden bg-red-50 border border-red-100 rounded-3xl p-5 shadow-inner transition-all space-y-3">
-                    <p class="text-[10px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1.5 mb-1"><i class="fa-solid fa-user-pen"></i> Identitas Utang</p>
-                    <input type="text" id="kasbonNamaMobile" placeholder="Nama Pelanggan..." class="w-full bg-white border border-red-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none">
-                    <input type="number" id="kasbonWaMobile" placeholder="No. WhatsApp..." class="w-full bg-white border border-red-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none">
+
+            </div>
+
+            <div class="absolute bottom-0 w-full z-30">
+                <div class="metallic-bar rounded-b-[24px] rounded-t-2xl pt-3 pb-4 px-5 shadow-[0_-5px_20px_rgba(0,0,0,0.1)]">
+                    <div class="flex justify-between items-center mb-2 px-1">
+                        <div>
+                            <p class="text-[9px] text-slate-600 font-bold uppercase tracking-wider">Total Tagihan</p>
+                            <p class="text-xl font-black text-corporate-800 tracking-tight leading-none" id="kasirTotalMobile">Rp 0</p>
+                        </div>
+                    </div>
+                    <button onclick="prosesBayarMobile()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black py-3.5 rounded-xl shadow-[0_4px_15px_rgba(16,185,129,0.3)] transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm tracking-wide relative overflow-hidden border border-emerald-400/50">
+                        <i class="fa-solid fa-check-circle text-lg drop-shadow-sm"></i> Proses Pembayaran
+                    </button>
                 </div>
             </div>
-            <div class="bg-white border-t border-slate-200 p-5 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] relative z-20">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Tagihan</span><span class="text-2xl font-black text-corporate-800 tracking-tight" id="kasirTotalMobile">Rp 0</span>
-                </div>
-                <button onclick="prosesBayarMobile()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-black py-4 rounded-2xl shadow-lg shadow-emerald-500/30 transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm uppercase tracking-wider">
-                    <i class="fa-solid fa-check-circle text-lg"></i> Proses Pembayaran
-                </button>
-            </div>
+
         </div>
     </div>
 
