@@ -307,16 +307,16 @@ function renderGudangMobile(filter = '') {
                 </div>
             </div>
 
-            <div class="flex items-center justify-between border-y border-slate-100 py-2.5 my-3">
-                <div class="flex-1 text-center border-r border-slate-100">
-                    <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-boxes-stacked"></i> Stok Modal</p>
-                    <p class="text-sm font-black text-slate-700 leading-none">${qtyAwal}</p>
+                        <div class="flex items-center justify-between border-y border-slate-100 py-2.5 my-3">
+                <div class="flex-1 text-center bg-slate-100 py-2 rounded-xl border border-slate-200 mr-1 shadow-inner">
+                    <p class="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-boxes-stacked"></i> Stok Modal</p>
+                    <p class="text-sm font-black text-slate-800 leading-none">${qtyAwal}</p>
                 </div>
                 <div class="flex-1 text-center border-r border-slate-100">
                     <p class="text-[8px] font-black text-amber-500 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-cart-arrow-down"></i> Terjual</p>
                     <p class="text-sm font-black text-amber-600 leading-none drop-shadow-sm">${qtyTerjual}</p>
                 </div>
-                <div class="flex-1 text-center">
+                <div class="flex-1 text-center animate-pulse">
                     <p class="text-[8px] font-black text-emerald-500 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-check-circle"></i> Stok Gudang</p>
                     <p class="text-sm font-black text-emerald-600 leading-none drop-shadow-sm">${g.totalStok}</p>
                 </div>
