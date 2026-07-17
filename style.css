@@ -38,10 +38,8 @@ body {
     } 
 }
 
-/* Sembunyikan Aplikasi Utama saat Jendela Print Browser terpanggil (Sebagai Pencegahan Error) */
-@media print {
-    body * { visibility: hidden; }
-}
+/* Sistem Sembunyikan Aplikasi UI saat mode Cetak sekarang diatur otomatis oleh JavaScript */
+/* (Kode lama dihapus agar tidak bentrok dengan Injeksi PDF A4 Landscape) */
 
 /* --- TAMBAHAN DESAIN ELEGAN TAMBAH OBAT --- */
 .bg-leather-green {

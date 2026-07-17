@@ -367,9 +367,15 @@ tailwind.config = {
                     <h2 class="font-black text-corporate-900 text-2xl tracking-tight">Laporan</h2>
                     <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Keuangan & Performa</p>
                 </div>
-                <button onclick="exportLaporanKeWord()" title="Download Word" class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center shadow-sm active:scale-95 transition-transform border border-blue-200">
-                    <i class="fa-solid fa-file-word text-xl"></i>
-                </button>
+                <!-- Dua Tombol Cetak Berdampingan -->
+                <div class="flex gap-2">
+                    <button onclick="exportLaporanKePDF()" title="Cetak PDF / Print" class="w-10 h-10 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center shadow-sm active:scale-95 transition-transform border border-red-200">
+                        <i class="fa-solid fa-file-pdf text-xl"></i>
+                    </button>
+                    <button onclick="exportLaporanKeWord()" title="Download Word" class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center shadow-sm active:scale-95 transition-transform border border-blue-200">
+                        <i class="fa-solid fa-file-word text-xl"></i>
+                    </button>
+                </div>
             </div>
             <div class="px-6 py-4">
                 <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Filter Tanggal</label>
