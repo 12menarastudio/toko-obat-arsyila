@@ -2106,22 +2106,19 @@ function prosesRenderDetailTigaSerangkai(jenis) {
 
     bukaModalMobile('modalDetailStokMobile', 'panelDetailStokMobile');
 }
-
 // ==========================================
-// MESIN CETAK LAPORAN (OPSI 1: WINDOW.PRINT)
+// MESIN EXPORT LAPORAN KE MICROSOFT WORD (A4 LANDSCAPE)
 // ==========================================
-function generatePDFLaporanMobile() {
+function exportLaporanKeWord() {
     let tglFilter = document.getElementById('filterTglLaporanMobile')?.value || getTanggalLokal();
     let dataPeriode = cashierHistory.filter(t => t.tanggal === tglFilter);
     
-    if(dataPeriode.length === 0) return alert("Data kosong! Belum ada transaksi pada tanggal ini untuk dicetak.");
+    if(dataPeriode.length === 0) return alert("Data kosong! Belum ada transaksi pada tanggal ini.");
 
     // Variabel Rekapitulasi
     let lOmzet = 0, lLaba = 0, lHPP = 0;
     let inTunai = 0, inQRIS = 0, inLunas = 0, outKasbon = 0;
-    
-    let htmlTabel = "";
-    let urut = 1;
+    let htmlTabel = ""; let urut = 1;
     
     // Perulangan Data Transaksi
     dataPeriode.forEach(t => {
@@ -2131,59 +2128,127 @@ function generatePDFLaporanMobile() {
         if(!t.isPelunasan) {
             omzet = t.total; laba = t.laba; hpp = (t.total - t.laba);
             lOmzet += omzet; lLaba += laba; lHPP += hpp;
-            
             if(t.metode === "Tunai") inTunai += omzet;
             if(t.metode === "QRIS") inQRIS += omzet;
-            if(t.metode === "Kasbon") outKasbon += omzet;
+            if(t.metode === "Debt" || t.metode === "Kasbon") outKasbon += omzet;
         } else {
-            // Jika Pelunasan Utang (Kasbon)
-            qty = "-";
-            namaObat = "PELUNASAN KASBON (" + (t.pelanggan || 'Pelanggan') + ")";
-            omzet = t.total;
-            inLunas += omzet;
+            qty = "-"; namaObat = "PELUNASAN KASBON (" + (t.pelanggan || 'Pelanggan') + ")";
+            omzet = t.total; inLunas += omzet;
             if(t.metode === "Tunai") inTunai += omzet;
             if(t.metode === "QRIS") inQRIS += omzet;
         }
 
-        // Susun Baris Tabel HTML
+        // Baris Tabel (Garis hitam murni untuk Word)
         htmlTabel += `
             <tr>
-                <td class="text-center">${urut++}</td>
-                <td class="text-center">${t.waktu}</td>
-                <td>${namaObat}</td>
-                <td class="text-center t-num">${qty}</td>
-                <td class="text-center">${t.metode}</td>
-                <td class="text-right t-num">${hpp > 0 ? rupiah(hpp) : '-'}</td>
-                <td class="text-right t-num">${rupiah(omzet)}</td>
-                <td class="text-right t-num">${laba > 0 ? rupiah(laba) : '-'}</td>
+                <td style="border: 1px solid #000; padding: 6px; text-align: center;">${urut++}</td>
+                <td style="border: 1px solid #000; padding: 6px; text-align: center;">${t.waktu}</td>
+                <td style="border: 1px solid #000; padding: 6px;">${namaObat}</td>
+                <td style="border: 1px solid #000; padding: 6px; text-align: center;">${qty}</td>
+                <td style="border: 1px solid #000; padding: 6px; text-align: center;">${t.metode}</td>
+                <td style="border: 1px solid #000; padding: 6px; text-align: right;">${hpp > 0 ? rupiah(hpp) : '-'}</td>
+                <td style="border: 1px solid #000; padding: 6px; text-align: right;">${rupiah(omzet)}</td>
+                <td style="border: 1px solid #000; padding: 6px; text-align: right;">${laba > 0 ? rupiah(laba) : '-'}</td>
             </tr>
         `;
     });
 
-    // Mengisi Angka ke Elemen HTML Desain Anda
-    document.getElementById('p-tgl').innerText = tglFilter;
-    document.getElementById('p-trx').innerText = (urut - 1) + " Nota";
-    document.getElementById('p-tabel-body').innerHTML = htmlTabel;
+    let totalOmzetSemua = lOmzet + inLunas;
+    let totalPemasukanFisik = inTunai + inQRIS;
+
+    // --- 1. HEADER & XML KHUSUS WORD (Set A4 Landscape) ---
+    let header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>";
+    header += "<head><meta charset='utf-8'><title>Laporan Apotek</title>";
+    header += `
+    <style>
+        /* Perintah Wajib Word untuk Landscape A4 */
+        @page WordSection1 {
+            size: 841.95pt 595.35pt; 
+            mso-page-orientation: landscape;
+            margin: 1cm 1cm 1cm 1cm;
+        }
+        div.WordSection1 { page: WordSection1; font-family: 'Arial', sans-serif; font-size: 11pt; }
+        table { border-collapse: collapse; width: 100%; }
+        th { background-color: #0f766e; color: white; border: 1px solid #000; padding: 8px; font-weight: bold; text-align: center; }
+        td { border: 1px solid #000; padding: 5px; }
+        .title { text-align: center; font-size: 18pt; font-weight: bold; color: #0f766e; margin-bottom: 5px; }
+        .subtitle { text-align: center; font-size: 11pt; margin-bottom: 25px; color: #444; }
+        .info-table { border: none; margin-bottom: 15px; width: 100%; }
+        .info-table td { border: none; padding: 4px; }
+    </style>
+    </head><body><div class='WordSection1'>
+    `;
+
+    // --- 2. ISI KONTEN (Tabel dan Teks) ---
+    let content = `
+    <div class="title">${profilApotek.nama.toUpperCase()}</div>
+    <div class="subtitle">Laporan Harian Operasional & Keuangan<br>Alamat: ${profilApotek.alamat || '-'}</div>
+
+    <table class="info-table">
+        <tr>
+            <td width="15%"><b>Tanggal</b></td><td width="35%">: ${tglFilter}</td>
+            <td width="15%"><b>Shift</b></td><td width="35%">: Full Day</td>
+        </tr>
+        <tr>
+            <td><b>Kasir</b></td><td>: Sistem Kasir</td>
+            <td><b>Total Trx</b></td><td>: ${urut - 1} Nota</td>
+        </tr>
+    </table>
+
+    <h3 style="color: #0f766e; margin-bottom: 10px;">A. Rincian Penjualan Transaksi Harian</h3>
+    <table>
+        <thead>
+            <tr>
+                <th width="5%">No</th><th width="10%">Jam</th><th width="28%">Nama Obat / Keterangan</th>
+                <th width="7%">Qty</th><th width="12%">Metode</th><th width="12%">Modal (HPP)</th>
+                <th width="13%">Omzet</th><th width="13%">Laba Bersih</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${htmlTabel}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="5" style="text-align: right; font-weight: bold; border: 1px solid #000; padding: 8px;">TOTAL TRANSAKSI KESELURUHAN</td>
+                <td style="text-align: right; font-weight: bold; border: 1px solid #000;">${rupiah(lHPP)}</td>
+                <td style="text-align: right; font-weight: bold; border: 1px solid #000;">${rupiah(totalOmzetSemua)}</td>
+                <td style="text-align: right; font-weight: bold; border: 1px solid #000;">${rupiah(lLaba)}</td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <br>
+    <h3 style="color: #0f766e; margin-bottom: 10px;">B. Arus Kas Kasir & Rekap Laci</h3>
+    <table style="width: 60%; margin-left: 0;">
+        <tr><td width="60%" style="border: none;">Tunai (Cash)</td><td style="border: none; text-align: right;">${rupiah(inTunai)}</td></tr>
+        <tr><td style="border: none;">Digital (QRIS)</td><td style="border: none; text-align: right;">${rupiah(inQRIS)}</td></tr>
+        <tr><td style="border: none;">Pelunasan Utang</td><td style="border: none; text-align: right;">${rupiah(inLunas)}</td></tr>
+        <tr><td style="border-top: 1px solid #000; border-bottom: none; border-left: none; border-right: none; font-weight:bold;">Total Pemasukan Murni</td><td style="border-top: 1px solid #000; border-bottom: none; border-left: none; border-right: none; text-align: right; font-weight:bold; color: green;">${rupiah(totalPemasukanFisik)}</td></tr>
+        <tr><td style="border: none;"><br><b>Uang Fisik (Laci Tunai)</b></td><td style="border: none; text-align: right;"><br><b>${rupiah(inTunai)}</b></td></tr>
+        <tr><td style="border: none; color: red;">Kasbon / Utang Baru</td><td style="border: none; text-align: right; color: red;">${rupiah(outKasbon)}</td></tr>
+    </table>
+
+    <br><br><br>
+    <table style="width: 100%; text-align: center; border: none; margin-top: 30px;">
+        <tr>
+            <td style="border: none; width: 50%;">Dibuat Oleh,<br><br><br><br><br>( Kasir / Shift )</td>
+            <td style="border: none; width: 50%;">Diperiksa Oleh,<br><br><br><br><br>( ${profilApotek.nama} )</td>
+        </tr>
+    </table>
+    `;
+
+    let footer = "</div></body></html>";
+    let fullHTML = header + content + footer;
+
+    // --- 3. PROSES UNDUH FILE .DOC ---
+    let blob = new Blob(['\ufeff', fullHTML], { type: 'application/msword' });
+    let url = URL.createObjectURL(blob);
+    let link = document.createElement("a");
+    link.href = url;
+    link.download = "Laporan_Apotek_" + tglFilter + ".doc";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     
-    document.getElementById('p-tot-hpp').innerText = rupiah(lHPP);
-    document.getElementById('p-tot-omzet').innerText = rupiah(lOmzet + inLunas);
-    document.getElementById('p-tot-laba').innerText = rupiah(lLaba);
-
-    // Format fungsi rupiah tanpa 'Rp' (untuk grid bawah agar rata kanan presisi)
-    const formatAngka = (num) => new Intl.NumberFormat('id-ID').format(num);
-
-    document.getElementById('p-in-tunai').innerText = formatAngka(inTunai);
-    document.getElementById('p-in-qris').innerText = formatAngka(inQRIS);
-    document.getElementById('p-in-lunas').innerText = formatAngka(inLunas);
-    document.getElementById('p-in-total').innerText = formatAngka(inTunai + inQRIS);
-    document.getElementById('p-out-kasbon').innerText = formatAngka(outKasbon);
-    
-    // Uang Laci Fisik (Hanya yang Tunai)
-    document.getElementById('p-laci-tunai').innerText = formatAngka(inTunai);
-    document.getElementById('p-laci-total').innerText = formatAngka(inTunai);
-
-    // Memicu Jendela Print Bawaan Browser
-    setTimeout(() => {
-        window.print();
-    }, 500); // Jeda 0.5 detik agar DOM selesai dimuat
+    alert("✅ File Laporan Word berhasil diunduh ke HP Anda!");
 }

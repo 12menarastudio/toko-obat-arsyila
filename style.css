@@ -38,60 +38,9 @@ body {
     } 
 }
 
-/* Konfigurasi Mesin Cetak PDF / Struk Thermal Web */
+/* Sembunyikan Aplikasi Utama saat Jendela Print Browser terpanggil (Sebagai Pencegahan Error) */
 @media print {
-    /* 1. TAMBAHAN: Atur ukuran kertas ke A4 dan beri margin */
-    @page {
-        size: A4 portrait; 
-        margin: 1cm; 
-    }
-
-    body { background: white !important; margin: 0; padding: 0; }
-    
-    .mobile-frame { 
-        border: none !important; 
-        box-shadow: none !important; 
-        width: 100% !important; 
-        max-width: 100% !important; 
-        height: auto !important; 
-        max-height: none !important; 
-        overflow: visible !important;
-    }
-    
-    .absolute.bottom-0, button, .sticky.top-0, 
-    #layar-beranda, #layar-gudang, #layar-etalase, 
-    #layar-piutang, #layar-karyawan, #layar-riwayat { 
-        display: none !important; 
-    }
-    
-    #layar-laporan { 
-        display: block !important; 
-        padding-bottom: 0 !important; 
-    }
-    
-    #kontenLaporanMobile { 
-        padding: 0 !important; 
-        margin-top: -20px !important; 
-    }
-
-    /* 2. TAMBAHAN: Paksa tabel melebar 100% memenuhi kertas A4 */
-    table {
-        width: 100% !important;
-        border-collapse: collapse !important;
-        table-layout: fixed !important;
-    }
-
-    /* 3. TAMBAHAN: Atur teks dalam tabel agar rapi */
-    th, td {
-        word-wrap: break-word !important;
-        font-size: 12pt !important;
-        padding: 8px !important;
-    }
-
-    * { 
-        -webkit-print-color-adjust: exact !important; 
-        print-color-adjust: exact !important; 
-    }
+    body * { visibility: hidden; }
 }
 
 /* --- TAMBAHAN DESAIN ELEGAN TAMBAH OBAT --- */
