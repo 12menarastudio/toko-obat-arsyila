@@ -2253,7 +2253,7 @@ function exportLaporanKeWord() {
     alert("✅ File Laporan Word berhasil diunduh ke HP Anda!");
 }
 // ==========================================
-// MESIN CETAK LAPORAN KE PDF (A4 LANDSCAPE BERSIH - ANDROID SUPPORT)
+// MESIN CETAK LAPORAN KE PDF (MENGGUNAKAN TEMPLATE BAWAAN HTML)
 // ==========================================
 function exportLaporanKePDF() {
     let tglFilter = document.getElementById('filterTglLaporanMobile')?.value || getTanggalLokal();
@@ -2261,10 +2261,13 @@ function exportLaporanKePDF() {
     
     if(dataPeriode.length === 0) return alert("Data kosong! Belum ada transaksi pada tanggal ini.");
 
+    // Variabel Rekapitulasi
     let lOmzet = 0, lLaba = 0, lHPP = 0;
     let inTunai = 0, inQRIS = 0, inLunas = 0, outKasbon = 0;
-    let htmlTabel = ""; let urut = 1;
+    let urut = 1;
+    let isiTabelHTML = "";
     
+    // Perulangan Data Transaksi
     dataPeriode.forEach(t => {
         let hpp = 0, omzet = 0, laba = 0;
         let qty = t.item, namaObat = t.obat;
@@ -2282,16 +2285,17 @@ function exportLaporanKePDF() {
             if(t.metode === "QRIS") inQRIS += omzet;
         }
 
-        htmlTabel += `
+        // Rancang baris tabel untuk elemen `p-tabel-body`
+        isiTabelHTML += `
             <tr>
-                <td style="border: 1px solid #333; padding: 6px; text-align: center;">${urut++}</td>
-                <td style="border: 1px solid #333; padding: 6px; text-align: center;">${t.waktu}</td>
-                <td style="border: 1px solid #333; padding: 6px;">${namaObat}</td>
-                <td style="border: 1px solid #333; padding: 6px; text-align: center;">${qty}</td>
-                <td style="border: 1px solid #333; padding: 6px; text-align: center;">${t.metode}</td>
-                <td style="border: 1px solid #333; padding: 6px; text-align: right;">${hpp > 0 ? rupiah(hpp) : '-'}</td>
-                <td style="border: 1px solid #333; padding: 6px; text-align: right;">${rupiah(omzet)}</td>
-                <td style="border: 1px solid #333; padding: 6px; text-align: right;">${laba > 0 ? rupiah(laba) : '-'}</td>
+                <td class="text-center">${urut++}</td>
+                <td class="text-center">${t.waktu}</td>
+                <td>${namaObat}</td>
+                <td class="text-center">${qty}</td>
+                <td class="text-center">${t.metode}</td>
+                <td class="text-right">${hpp > 0 ? rupiah(hpp) : '-'}</td>
+                <td class="text-right">${rupiah(omzet)}</td>
+                <td class="text-right">${laba > 0 ? rupiah(laba) : '-'}</td>
             </tr>
         `;
     });
@@ -2299,79 +2303,32 @@ function exportLaporanKePDF() {
     let totalOmzetSemua = lOmzet + inLunas;
     let totalPemasukanFisik = inTunai + inQRIS;
 
-    // 1. Merakit HTML Khusus untuk Kertas Laporan (Bebas dari UI Aplikasi)
-    let contentPDF = `
-    <div id="area-cetak-pdf" style="font-family: Arial, sans-serif; color: black; background: white; width: 100%; padding: 0; box-sizing: border-box;">
-        <div style="text-align: center; font-size: 18pt; font-weight: bold; margin-bottom: 5px; color: #0f766e;">${profilApotek.nama.toUpperCase()}</div>
-        <div style="text-align: center; font-size: 11pt; margin-bottom: 25px; color: #444;">Laporan Harian Operasional & Keuangan<br>Tanggal: ${tglFilter}</div>
-        
-        <h3 style="margin-bottom: 10px; font-size: 12pt; color: #0f766e;">A. Rincian Penjualan Transaksi Harian</h3>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; font-size: 11pt;">
-            <thead>
-                <tr style="background-color: #0f766e; color: white;">
-                    <th style="border: 1px solid #333; padding: 8px; width: 5%;">No</th>
-                    <th style="border: 1px solid #333; padding: 8px; width: 8%;">Jam</th>
-                    <th style="border: 1px solid #333; padding: 8px; width: 32%;">Nama Obat / Keterangan</th>
-                    <th style="border: 1px solid #333; padding: 8px; width: 6%;">Qty</th>
-                    <th style="border: 1px solid #333; padding: 8px; width: 10%;">Metode</th>
-                    <th style="border: 1px solid #333; padding: 8px; width: 13%;">Modal (HPP)</th>
-                    <th style="border: 1px solid #333; padding: 8px; width: 13%;">Omzet</th>
-                    <th style="border: 1px solid #333; padding: 8px; width: 13%;">Laba Bersih</th>
-                </tr>
-            </thead>
-            <tbody>${htmlTabel}</tbody>
-            <tfoot>
-                <tr>
-                    <td colspan="5" style="text-align: right; font-weight: bold; border: 1px solid #333; padding: 8px;">TOTAL KESELURUHAN</td>
-                    <td style="text-align: right; font-weight: bold; border: 1px solid #333; padding: 6px;">${rupiah(lHPP)}</td>
-                    <td style="text-align: right; font-weight: bold; border: 1px solid #333; padding: 6px;">${rupiah(totalOmzetSemua)}</td>
-                    <td style="text-align: right; font-weight: bold; border: 1px solid #333; padding: 6px;">${rupiah(lLaba)}</td>
-                </tr>
-            </tfoot>
-        </table>
+    // --- SUNTIK DATA KE TEMPLATE CETAK HTML (DOM INJECTION) ---
+    // Header Info
+    document.getElementById('p-nama-apotek').innerText = profilApotek.nama.toUpperCase();
+    document.getElementById('p-owner').innerText = profilApotek.nama;
+    document.getElementById('p-tgl').innerText = tglFilter;
+    document.getElementById('p-trx').innerText = (urut - 1) + " Nota";
 
-        <h3 style="margin-bottom: 10px; font-size: 12pt; color: #0f766e;">B. Arus Kas Kasir & Rekap Laci</h3>
-        <table style="width: 50%; font-size: 11pt; border: none;">
-            <tr><td style="border: none; padding: 4px;">Tunai (Cash)</td><td style="border: none; text-align: right; padding: 4px;">${rupiah(inTunai)}</td></tr>
-            <tr><td style="border: none; padding: 4px;">Digital (QRIS)</td><td style="border: none; text-align: right; padding: 4px;">${rupiah(inQRIS)}</td></tr>
-            <tr><td style="border: none; padding: 4px;">Pelunasan Utang</td><td style="border: none; text-align: right; padding: 4px;">${rupiah(inLunas)}</td></tr>
-            <tr><td style="border-top: 1px solid #000; font-weight:bold; padding: 4px;">Total Pemasukan Murni</td><td style="border-top: 1px solid #000; text-align: right; font-weight:bold; padding: 4px; color: green;">${rupiah(totalPemasukanFisik)}</td></tr>
-        </table>
-    </div>
-    `;
+    // A. Tabel Transaksi
+    document.getElementById('p-tabel-body').innerHTML = isiTabelHTML;
+    document.getElementById('p-tot-hpp').innerText = rupiah(lHPP);
+    document.getElementById('p-tot-omzet').innerText = rupiah(totalOmzetSemua);
+    document.getElementById('p-tot-laba').innerText = rupiah(lLaba);
 
-    // 2. Injeksi Dokumen ke Layar secara Sementara
-    let printDiv = document.createElement('div');
-    printDiv.id = 'cetak-sementara';
-    printDiv.innerHTML = contentPDF;
-    
-    // 3. CSS Ajaib: Sembunyikan Aplikasi Utama, Paksa Orientasi Landscape & Hapus Margin HP
-    let printStyle = document.createElement('style');
-    printStyle.id = 'style-sementara';
-    printStyle.innerHTML = `
-        @media print {
-            @page { 
-                size: A4 landscape !important; 
-                margin: 1cm !important; 
-            }
-            body { background: white !important; margin: 0; padding: 0; }
-            .mobile-frame { display: none !important; } /* Hilangkan UI HP */
-            #cetak-sementara { display: block !important; width: 100%; }
-        }
-        @media screen {
-            #cetak-sementara { display: none; }
-        }
-    `;
+    // B. Arus Kas
+    document.getElementById('p-in-tunai').innerText = inTunai.toLocaleString('id-ID');
+    document.getElementById('p-in-qris').innerText = inQRIS.toLocaleString('id-ID');
+    document.getElementById('p-in-lunas').innerText = inLunas.toLocaleString('id-ID');
+    document.getElementById('p-in-total').innerText = totalPemasukanFisik.toLocaleString('id-ID');
+    document.getElementById('p-out-kasbon').innerText = outKasbon.toLocaleString('id-ID');
 
-    document.body.appendChild(printDiv);
-    document.head.appendChild(printStyle);
+    // C. Rekap Laci
+    document.getElementById('p-laci-tunai').innerText = inTunai.toLocaleString('id-ID');
+    document.getElementById('p-laci-total').innerText = inTunai.toLocaleString('id-ID');
 
-    // 4. Buka Layar Print Android, lalu bersihkan jejaknya setelah selesai
+    // Memicu perintah Print Bawaan Browser
     setTimeout(() => {
         window.print();
-        setTimeout(() => {
-            document.body.removeChild(printDiv);
-            document.head.removeChild(printStyle);
-        }, 1000); // Waktu jeda penghapusan aman untuk Android
     }, 300);
 }
