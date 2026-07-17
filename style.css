@@ -40,7 +40,14 @@ body {
 
 /* Konfigurasi Mesin Cetak PDF / Struk Thermal Web */
 @media print {
+    /* 1. TAMBAHAN: Atur ukuran kertas ke A4 dan beri margin */
+    @page {
+        size: A4 portrait; 
+        margin: 1cm; 
+    }
+
     body { background: white !important; margin: 0; padding: 0; }
+    
     .mobile-frame { 
         border: none !important; 
         box-shadow: none !important; 
@@ -50,24 +57,43 @@ body {
         max-height: none !important; 
         overflow: visible !important;
     }
+    
     .absolute.bottom-0, button, .sticky.top-0, 
     #layar-beranda, #layar-gudang, #layar-etalase, 
     #layar-piutang, #layar-karyawan, #layar-riwayat { 
         display: none !important; 
     }
+    
     #layar-laporan { 
         display: block !important; 
         padding-bottom: 0 !important; 
     }
+    
     #kontenLaporanMobile { 
         padding: 0 !important; 
         margin-top: -20px !important; 
     }
+
+    /* 2. TAMBAHAN: Paksa tabel melebar 100% memenuhi kertas A4 */
+    table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        table-layout: fixed !important;
+    }
+
+    /* 3. TAMBAHAN: Atur teks dalam tabel agar rapi */
+    th, td {
+        word-wrap: break-word !important;
+        font-size: 12pt !important;
+        padding: 8px !important;
+    }
+
     * { 
         -webkit-print-color-adjust: exact !important; 
         print-color-adjust: exact !important; 
     }
 }
+
 /* --- TAMBAHAN DESAIN ELEGAN TAMBAH OBAT --- */
 .bg-leather-green {
     background: linear-gradient(135deg, #0b2b22 0%, #061712 100%);
@@ -105,6 +131,7 @@ body {
     background: radial-gradient(circle at 30% 30%, #fde68a, #d97706);
     box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
+
 /* --- TIGA TOMBOL EMAS 3D BERANDA --- */
 .btn-gold-3d {
     background: linear-gradient(180deg, #fcd34d 0%, #d97706 100%);
@@ -118,4 +145,3 @@ body {
     text-shadow: none;
     color: #fffbeb;
 }
-

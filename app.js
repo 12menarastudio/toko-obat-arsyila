@@ -2106,3 +2106,84 @@ function prosesRenderDetailTigaSerangkai(jenis) {
 
     bukaModalMobile('modalDetailStokMobile', 'panelDetailStokMobile');
 }
+
+// ==========================================
+// MESIN CETAK LAPORAN (OPSI 1: WINDOW.PRINT)
+// ==========================================
+function generatePDFLaporanMobile() {
+    let tglFilter = document.getElementById('filterTglLaporanMobile')?.value || getTanggalLokal();
+    let dataPeriode = cashierHistory.filter(t => t.tanggal === tglFilter);
+    
+    if(dataPeriode.length === 0) return alert("Data kosong! Belum ada transaksi pada tanggal ini untuk dicetak.");
+
+    // Variabel Rekapitulasi
+    let lOmzet = 0, lLaba = 0, lHPP = 0;
+    let inTunai = 0, inQRIS = 0, inLunas = 0, outKasbon = 0;
+    
+    let htmlTabel = "";
+    let urut = 1;
+    
+    // Perulangan Data Transaksi
+    dataPeriode.forEach(t => {
+        let hpp = 0, omzet = 0, laba = 0;
+        let qty = t.item, namaObat = t.obat;
+
+        if(!t.isPelunasan) {
+            omzet = t.total; laba = t.laba; hpp = (t.total - t.laba);
+            lOmzet += omzet; lLaba += laba; lHPP += hpp;
+            
+            if(t.metode === "Tunai") inTunai += omzet;
+            if(t.metode === "QRIS") inQRIS += omzet;
+            if(t.metode === "Kasbon") outKasbon += omzet;
+        } else {
+            // Jika Pelunasan Utang (Kasbon)
+            qty = "-";
+            namaObat = "PELUNASAN KASBON (" + (t.pelanggan || 'Pelanggan') + ")";
+            omzet = t.total;
+            inLunas += omzet;
+            if(t.metode === "Tunai") inTunai += omzet;
+            if(t.metode === "QRIS") inQRIS += omzet;
+        }
+
+        // Susun Baris Tabel HTML
+        htmlTabel += `
+            <tr>
+                <td class="text-center">${urut++}</td>
+                <td class="text-center">${t.waktu}</td>
+                <td>${namaObat}</td>
+                <td class="text-center t-num">${qty}</td>
+                <td class="text-center">${t.metode}</td>
+                <td class="text-right t-num">${hpp > 0 ? rupiah(hpp) : '-'}</td>
+                <td class="text-right t-num">${rupiah(omzet)}</td>
+                <td class="text-right t-num">${laba > 0 ? rupiah(laba) : '-'}</td>
+            </tr>
+        `;
+    });
+
+    // Mengisi Angka ke Elemen HTML Desain Anda
+    document.getElementById('p-tgl').innerText = tglFilter;
+    document.getElementById('p-trx').innerText = (urut - 1) + " Nota";
+    document.getElementById('p-tabel-body').innerHTML = htmlTabel;
+    
+    document.getElementById('p-tot-hpp').innerText = rupiah(lHPP);
+    document.getElementById('p-tot-omzet').innerText = rupiah(lOmzet + inLunas);
+    document.getElementById('p-tot-laba').innerText = rupiah(lLaba);
+
+    // Format fungsi rupiah tanpa 'Rp' (untuk grid bawah agar rata kanan presisi)
+    const formatAngka = (num) => new Intl.NumberFormat('id-ID').format(num);
+
+    document.getElementById('p-in-tunai').innerText = formatAngka(inTunai);
+    document.getElementById('p-in-qris').innerText = formatAngka(inQRIS);
+    document.getElementById('p-in-lunas').innerText = formatAngka(inLunas);
+    document.getElementById('p-in-total').innerText = formatAngka(inTunai + inQRIS);
+    document.getElementById('p-out-kasbon').innerText = formatAngka(outKasbon);
+    
+    // Uang Laci Fisik (Hanya yang Tunai)
+    document.getElementById('p-laci-tunai').innerText = formatAngka(inTunai);
+    document.getElementById('p-laci-total').innerText = formatAngka(inTunai);
+
+    // Memicu Jendela Print Bawaan Browser
+    setTimeout(() => {
+        window.print();
+    }, 500); // Jeda 0.5 detik agar DOM selesai dimuat
+}
