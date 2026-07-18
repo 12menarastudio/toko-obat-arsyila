@@ -221,9 +221,19 @@ function renderBerandaMobile() {
     if (document.getElementById('berandaJenisObat')) document.getElementById('berandaJenisObat').textContent = `${totalJenisObat} Obat Terdaftar`;
 
     // INJEKSI ANGKA KE PANEL TIGA SERANGKAI EMAS
+    let terjualSiklusIni = 0;
+    let waktuMulaiSiklus = siklusAktif.waktuStart || 0;
+    cashierHistory.forEach(t => {
+        if (t.id >= waktuMulaiSiklus && !t.isPelunasan) {
+            terjualSiklusIni += (t.item || 0);
+        }
+    });
+
     if (document.getElementById('panelStokSisa')) document.getElementById('panelStokSisa').textContent = totalSisaStok;
-    if (document.getElementById('panelStokTerjual')) document.getElementById('panelStokTerjual').textContent = totalItemTerjualHariIni;
-    if (document.getElementById('panelStokTotal')) document.getElementById('panelStokTotal').textContent = totalSisaStok + totalItemTerjualHariIni;    
+    if (document.getElementById('panelStokTerjual')) document.getElementById('panelStokTerjual').textContent = terjualSiklusIni;
+    
+    let angkaStokModal = siklusAktif.waktuStart ? (siklusAktif.qtyTambahan || 0) : (totalSisaStok + terjualSiklusIni);
+    if (document.getElementById('panelStokTotal')) document.getElementById('panelStokTotal').textContent = angkaStokModal;    
 
     // KEMBALIKAN SCROLL KE KIRI (KOTAK PERTAMA) SAAT BERANDA DIBUKA
     const scrollPantauan = document.getElementById('wadahPantauanSistem');
@@ -249,7 +259,8 @@ function renderGudangMobile(filter = '') {
 
     // --- LOGIKA MESIN: PENGUMPUL DATA TERJUAL & ETALASE ---
     let terjualGlobal = {};
-    cashierHistory.filter(t => !t.isPelunasan).forEach(trx => {
+    let waktuMulai = siklusAktif.waktuStart || 0;
+    cashierHistory.filter(t => !t.isPelunasan && t.id >= waktuMulai).forEach(trx => {
         if(trx.detailKeranjang) {
             trx.detailKeranjang.forEach(item => { terjualGlobal[item.nama] = (terjualGlobal[item.nama] || 0) + item.qty; });
         } else {
@@ -277,7 +288,16 @@ function renderGudangMobile(filter = '') {
         // --- KALKULASI TIGA SERANGKAI STOK ---
         let qtyTerjual = terjualGlobal[g.nama] || 0;
         let qtyEtalase = stokEtalaseGlobal[g.nama] || 0;
-        let qtyAwal = g.totalStok + qtyEtalase + qtyTerjual; 
+        let sisaFisik = g.totalStok + qtyEtalase;
+        
+        let qtyAwal = 0;
+        if (siklusAktif.waktuStart) {
+            let snap = (siklusAktif.snapshotStok && siklusAktif.snapshotStok[g.dnaInduk]) ? siklusAktif.snapshotStok[g.dnaInduk] : 0;
+            qtyAwal = (sisaFisik + qtyTerjual) - snap;
+            if (qtyAwal < 0) qtyAwal = 0;
+        } else {
+            qtyAwal = sisaFisik + qtyTerjual; 
+        } 
         
         // Cetakan Daftar Batch (Dibuat lebih langsing dan transparan)
         let batchHtml = g.batches.map((b, idx) => {
@@ -1717,12 +1737,23 @@ function eksekusiTutupBukuMobile() {
         let totalAsetFisikSekarang = asetGudangFase + asetEtalaseFase;
         let totalQtyFisikSekarang = qtyGudangFase + qtyEtalaseFase;
 
+        let snapshotStok = {};
+        masterItems.forEach(m => {
+            if (m.nama !== '___SYSTEM_AUTH___' && m.kategori !== '⚠️ Barang Retur') {
+                snapshotStok[m.dnaInduk] = (snapshotStok[m.dnaInduk] || 0) + m.stok;
+            }
+        });
+        etalaseItems.forEach(e => {
+            snapshotStok[e.dnaInduk] = (snapshotStok[e.dnaInduk] || 0) + e.stok;
+        });
+
         if (sudahUntung) {
             siklusAktif = { 
                 modalAwal: totalAsetFisikSekarang, qtyAwal: totalQtyFisikSekarang, 
                 modalTambahan: 0, qtyTambahan: 0, uangMasuk: 0, 
                 tanggalStart: getTanggalLokal(),
-                isLikuidasi: true, isLanjutanDefisit: false, hutangAwal: 0 
+                isLikuidasi: true, isLanjutanDefisit: false, hutangAwal: 0,
+                waktuStart: Date.now(), snapshotStok: snapshotStok
             };
         } else {
             // Mode Hybrid: Teks atas ikuti aset fisik, Teks bawah ikuti hutang cash
@@ -1730,7 +1761,8 @@ function eksekusiTutupBukuMobile() {
                 modalAwal: totalAsetFisikSekarang, qtyAwal: totalQtyFisikSekarang, 
                 modalTambahan: 0, qtyTambahan: 0, uangMasuk: 0, 
                 tanggalStart: getTanggalLokal(),
-                isLikuidasi: false, isLanjutanDefisit: true, hutangAwal: sisaHutang 
+                isLikuidasi: false, isLanjutanDefisit: true, hutangAwal: sisaHutang,
+                waktuStart: Date.now(), snapshotStok: snapshotStok
             };
         }
         
@@ -1941,7 +1973,8 @@ function bukaDetailTigaSerangkai(jenis) {
     etalaseItems.forEach(e => { totalEtalase += e.stok; });
     
     // Mesin Hitung Terjual
-    cashierHistory.filter(t => t.tanggal >= siklusAktif.tanggalStart && !t.isPelunasan).forEach(trx => {
+    let waktuMulai = siklusAktif.waktuStart || 0;
+    cashierHistory.filter(t => (waktuMulai ? t.id >= waktuMulai : t.tanggal >= siklusAktif.tanggalStart) && !t.isPelunasan).forEach(trx => {
         let qty = 0;
         if(trx.detailKeranjang) { trx.detailKeranjang.forEach(i => qty += i.qty); } else { qty = trx.item || 1; }
         if(trx.metode === 'Tunai') terjualTunai += qty;
@@ -1951,7 +1984,7 @@ function bukaDetailTigaSerangkai(jenis) {
 
     let sisaTotal = totalGudang + totalEtalase;
     let terjualTotal = terjualTunai + terjualQRIS + terjualKasbon;
-    let absolutTotal = sisaTotal + terjualTotal;
+    let absolutTotal = siklusAktif.waktuStart ? (siklusAktif.qtyTambahan || 0) : (sisaTotal + terjualTotal);
 
         // --- LOMPATAN LOGIKA UNTUK TOTAL MODAL STOK ---
     if (jenis === 'total') {
@@ -2060,7 +2093,8 @@ function prosesRenderDetailTigaSerangkai(jenis) {
         judul.textContent = "Stok Terjual"; subJudul.textContent = "Dikelompokkan Berdasarkan Pembayaran";
         let jualTunai = {}, jualQRIS = {}, jualKasbon = {};
 
-        cashierHistory.filter(t => t.tanggal >= siklusAktif.tanggalStart && !t.isPelunasan).forEach(trx => {
+        let waktuMulai = siklusAktif.waktuStart || 0;
+        cashierHistory.filter(t => (waktuMulai ? t.id >= waktuMulai : t.tanggal >= siklusAktif.tanggalStart) && !t.isPelunasan).forEach(trx => {
             let targetGroup = trx.metode === 'Tunai' ? jualTunai : (trx.metode === 'QRIS' ? jualQRIS : jualKasbon);
             if(trx.detailKeranjang) {
                 trx.detailKeranjang.forEach(item => {

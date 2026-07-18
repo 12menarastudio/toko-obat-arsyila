@@ -1119,18 +1119,19 @@ tailwind.config = {
         .table-cetak tfoot th { background-color: #1e293b; color: white; font-size: 10pt; }
         .table-cetak tfoot .t-num { color: #60a5fa; }
         .bottom-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
-        .card-cetak { border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px 14px; background: #fff; margin-bottom: 12px; }
+        /* KODE BARU: Perbaikan Layout Kotak agar tidak meluber keluar garis */
+        .card-cetak { border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px 14px; background: #fff; margin-bottom: 12px; box-sizing: border-box; width: 100%; overflow: hidden; }
         .card-header { font-weight: 700; font-size: 10pt; margin-bottom: 10px; color: #1e293b; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; text-transform: uppercase;}
-        .row-strict { display: flex; align-items: baseline; margin-bottom: 8px; font-size: 11pt; white-space: nowrap; }
+        .row-strict { display: flex; align-items: baseline; margin-bottom: 8px; font-size: 10.5pt; white-space: nowrap; box-sizing: border-box; width: 100%; }
         .r-lbl { flex: 0 0 auto; font-weight: 500; color: #475569; }
-        .r-dots { flex: 1 1 auto; border-bottom: 1px dotted #cbd5e1; margin: 0 5px; position: relative; top: -3px; min-width: 10px; }
+        .r-dots { flex: 1 1 auto; border-bottom: 1px dotted #cbd5e1; margin: 0 5px; position: relative; top: -3px; min-width: 5px; }
         .r-colon { flex: 0 0 10px; text-align: center; font-weight: 600; color: #1e293b; }
-        .r-curr { flex: 0 0 25px; text-align: left; font-weight: 600; color: #1e293b; }
-        .r-num { flex: 0 0 95px; text-align: right; font-family: monospace; font-size: 11.5pt; font-weight: 700; color: #2563eb; }
+        .r-curr { flex: 0 0 20px; text-align: left; font-weight: 600; color: #1e293b; }
+        .r-num { flex: 0 0 85px; text-align: right; font-family: monospace; font-size: 11pt; font-weight: 700; color: #2563eb; }
         .txt-bold .r-lbl { font-weight: 700; color: #1e293b; } .txt-primary .r-num { color: #0f766e; }
         .txt-alert .r-lbl, .txt-alert .r-colon, .txt-alert .r-curr { color: #92400e; font-weight: 700; } .txt-alert .r-num { color: #b45309; }
         .divider { height: 1px; border-bottom: 1px dashed #cbd5e1; margin: 10px 0; }
-        .alert-box { background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 10px 12px; border-radius: 4px; margin-top: 12px; }
+        .alert-box { background-color: #fef3c7; border-left: 4px solid #f59e0b; padding: 10px; border-radius: 4px; margin-top: 12px; box-sizing: border-box; width: 100%; }
         .signatures { display: flex; justify-content: space-between; margin-top: 25px; }
         .sign { text-align: center; font-size: 10pt; width: 45%; }
         .sign-line { border-bottom: 1px solid #1e293b; margin: 40px 0 5px; }
