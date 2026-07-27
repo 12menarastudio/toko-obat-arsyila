@@ -189,13 +189,13 @@ function renderBerandaMobile() {
         
         if (targetHutang === 0 && tercapai === 0) {
             // NOL MODAL (Gambar 2)
-            if (labelBawah) labelBawah.innerHTML = `Sisa Kembali Modal: <span class="text-red-500 font-black">Rp 0</span>`;
+            if (labelBawah) labelBawah.innerHTML = `Sisa Target Balik Modal: <span class="text-red-500 font-black">Rp 0</span>`;
             if (progressBar) { progressBar.className = "h-full bg-gradient-to-r from-red-500 to-amber-400 rounded-full transition-all duration-1000"; progressBar.style.width = "0%"; }
         } else if (tercapai < targetHutang) {
             // DEFISIT (Gambar 7 & Default)
             let sisaHutang = targetHutang - tercapai; 
             let persen = targetHutang === 0 ? 0 : (tercapai / targetHutang) * 100;
-            if (labelBawah) labelBawah.innerHTML = `Sisa Kembali Modal: <span class="text-red-500 font-black">${rupiah(sisaHutang)}</span>`;
+            if (labelBawah) labelBawah.innerHTML = `Sisa Target Balik Modal: <span class="text-red-500 font-black">${rupiah(sisaHutang)}</span>`;
             if (progressBar) { progressBar.className = "h-full bg-gradient-to-r from-red-500 to-amber-400 rounded-full transition-all duration-1000"; progressBar.style.width = persen + "%"; }
         } else if (tercapai === targetHutang && targetHutang > 0) {
             // IMPAS (Gambar 5)
@@ -797,7 +797,7 @@ function prosesTransferMobile() {
     renderGudangMobile(document.getElementById('cariGudangMobile').value); 
     renderBerandaMobile(); 
     triggerHaptic([100, 50, 100]);
-    alert("├░┼╕┼б┼б " + inputQty + " " + namaObat + " berhasil dipindah ke Etalase!");
+    alert("📦 " + inputQty + " " + namaObat + " berhasil dipindah ke Etalase!");
 }
 
 // ==========================================
@@ -956,12 +956,12 @@ function eksekusiSimpanEditLanjutanMobile(isKulakanBaru, nBaru, vBaru, kBaru, mB
         let qtySuntikan = isAddingNewBatchMobile ? sBaru : selisihStok;
         siklusAktif.qtyTambahan += qtySuntikan; 
         siklusAktif.modalTambahan += (qtySuntikan * mBaru);
-        if(!isAddingNewBatchMobile) alert("├░┼╕┬ктАЮ Sukses! Sistem otomatis merakitkan Batch Kulakan Baru di Gudang.");
+        if(!isAddingNewBatchMobile) alert("📦 Sukses! Sistem otomatis merakitkan Batch Kulakan Baru di Gudang.");
     } else {
         siklusAktif.qtyTambahan += selisihStok; 
         siklusAktif.modalTambahan += (selisihStok * mBaru);
         barang.modal = mBaru; barang.jual = jBaru; barang.stok = sBaru; barang.expired = expBaru;
-        alert("├в┼УтАж Data berhasil diperbarui!");
+        alert("✅ Data berhasil diperbarui!");
     }
     
     masterItems.forEach(m => {
@@ -997,7 +997,7 @@ function simpanEditLanjutanMobile() {
         let barang = masterItems.find(i => i.idBatch === idBatchAktif);
         if(!barang) return; let selisihStok = sBaru - barang.stok;
         if (selisihStok > 0 && (expBaru !== barang.expired || mBaru !== barang.modal)) {
-            tampilkanConfirmMobile("├░┼╕┬ктАЮ DETEKSI KULAKAN BARU:\n\nSistem melihat Anda menambah stok (+ " + selisihStok + " Box) sekaligus merubah Tgl Kedaluwarsa/Harga Modal.\n\nApakah ini barang Kulakan Baru? (Klik 'Ya, Lanjut' agar otomatis dibuatkan Batch/Kardus baru).", 
+            tampilkanConfirmMobile("📦 DETEKSI KULAKAN BARU:\n\nSistem melihat Anda menambah stok (+ " + selisihStok + " Box) sekaligus merubah Tgl Kedaluwarsa/Harga Modal.\n\nApakah ini barang Kulakan Baru? (Klik 'Ya, Lanjut' agar otomatis dibuatkan Batch/Kardus baru).", 
             function() { eksekusiSimpanEditLanjutanMobile(true, nBaru, vBaru, kBaru, mBaru, jBaru, sBaru, expBaru, selisihStok); });
         } else { eksekusiSimpanEditLanjutanMobile(false, nBaru, vBaru, kBaru, mBaru, jBaru, sBaru, expBaru, selisihStok); }
     }
@@ -1069,7 +1069,7 @@ function prosesHapusBatchSpesifikMobile(idBatch, urutanBatch) {
         
         renderGudangMobile(document.getElementById('cariGudangMobile').value); 
         renderBerandaMobile();
-        alert(`├в┼УтАж Batch ${urutanBatch} berhasil dihapus dari sistem.`);
+        alert(`✅ Batch ${urutanBatch} berhasil dihapus dari sistem.`);
     });
 }
 
@@ -1085,7 +1085,7 @@ function prosesHapusObatMobile(dnaInduk, namaObat) {
         masterItems = masterItems.filter(i => i.dnaInduk !== dnaInduk);
         saveApotekDB('apotek_masterItems', masterItems);
         renderGudangMobile(document.getElementById('cariGudangMobile').value); renderBerandaMobile();
-        alert(`├в┼УтАж Obat ${namaObat} berhasil dihapus dari Gudang.`);
+        alert(`✅ Obat ${namaObat} berhasil dihapus dari Gudang.`);
     });
 }
 
@@ -1110,8 +1110,18 @@ function toggleKategoriKustomMobile() {
 }
 
 function bukaModalTambahObatMobile() {
-    // Reset Form Input
+    // Reset Form Input & Kembalikan Tombol Rekam Ke Bawaan
     document.getElementById('tambahBarcodeMobile').value = ''; document.getElementById('tambahQrcodeMobile').value = ''; 
+    
+    ['tambah_qr', 'tambah_barcode'].forEach(tipe => {
+        let btn = document.getElementById('btnUI_' + tipe);
+        let teks = document.getElementById('teksUI_' + tipe);
+        if(btn && teks) {
+            btn.className = "w-12 h-12 bg-white text-[#d97706] rounded-2xl flex flex-col items-center justify-center shrink-0 border border-slate-200 shadow-sm active:scale-95 transition-all gap-0.5";
+            teks.classList.add('hidden');
+        }
+    });
+
     document.getElementById('tambahNamaMobile').value = ''; document.getElementById('tambahVarianMobile').value = '';
     document.getElementById('tambahKategoriMobile').value = 'Sakit Kepala'; document.getElementById('tambahKategoriKustom').value = '';
     document.getElementById('tambahSatuanEceran').value = 'Pak'; document.getElementById('tambahSatuanBesar').value = 'Dos';
@@ -1374,7 +1384,7 @@ function prosesBayarMobile() {
     if(!document.getElementById('layar-gudang').classList.contains('hidden')) renderGudangMobile(document.getElementById('cariGudangMobile').value);
     if(!document.getElementById('layar-etalase').classList.contains('hidden')) renderEtalaseMobile();
     triggerHaptic([100, 50, 100]);
-    alert(`├в┼УтАж Transaksi ${metode} Berhasil! Omzet telah masuk ke Beranda.`);
+    alert(`✅ Transaksi ${metode} Berhasil! Omzet telah masuk ke Beranda.`);
 }
 
 function prosesBatalTransaksiMobile(idTransaksi) {
@@ -1392,12 +1402,12 @@ function prosesBatalTransaksiMobile(idTransaksi) {
                         bEtalase.stok += itemRetur.qty; if(!bEtalase.antreanFIFO) bEtalase.antreanFIFO = [];
                         bEtalase.antreanFIFO.unshift({ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: itemRetur.qty, expired: '' });
                     } else {
-                        etalaseItems.push({ dnaInduk: 'DNA-RETUR-' + Date.now(), nama: itemRetur.nama, kategori: '├в┼б┬а├п┬╕┬П Barang Retur', jual: itemRetur.jual, stok: itemRetur.qty, antreanFIFO: [{ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: itemRetur.qty, expired: '' }] }); 
+                        etalaseItems.push({ dnaInduk: 'DNA-RETUR-' + Date.now(), nama: itemRetur.nama, kategori: '⚠️ Barang Retur', jual: itemRetur.jual, stok: itemRetur.qty, antreanFIFO: [{ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: itemRetur.qty, expired: '' }] }); 
                     }
                 });
             } else { 
                 let qty = trx.item || 1; let hppRetur = Math.round(((trx.total || 0) - (trx.laba || 0)) / qty);
-                etalaseItems.push({ dnaInduk: 'DNA-RETUR-OLD', nama: trx.obat, kategori: '├в┼б┬а├п┬╕┬П Barang Retur', jual: Math.round((trx.total || 0) / qty), stok: qty, antreanFIFO: [{ idBatch: 'RETUR-OLD', modal: hppRetur, stok: qty, expired: '' }] });
+                etalaseItems.push({ dnaInduk: 'DNA-RETUR-OLD', nama: trx.obat, kategori: '⚠️ Barang Retur', jual: Math.round((trx.total || 0) / qty), stok: qty, antreanFIFO: [{ idBatch: 'RETUR-OLD', modal: hppRetur, stok: qty, expired: '' }] });
             }
             
             cashierHistory = cashierHistory.filter(t => t.id !== idTransaksi);
@@ -1408,7 +1418,7 @@ function prosesBatalTransaksiMobile(idTransaksi) {
             saveApotekDB('apotek_cashierHistory', cashierHistory); 
             saveApotekDB('apotek_siklusAktif', siklusAktif);
 
-            renderRiwayatMobile(); renderBerandaMobile(); alert("├в┼УтАж Transaksi Dibatalkan. Stok setiap item diretur ke Etalase.");
+            renderRiwayatMobile(); renderBerandaMobile(); alert("✅ Transaksi Dibatalkan. Stok setiap item diretur ke Etalase.");
         }
     });
 }
@@ -1424,7 +1434,7 @@ function bukaModalLacakMobile() {
 function prosesLacakIDMobile() {
     const inputID = parseInt(document.getElementById('inputLacakIDMobile').value);
     const area = document.getElementById('hasilLacakAreaMobile');
-    if(!inputID) return alert("├в┼б┬а├п┬╕┬П Ketik nomor ID transaksi yang valid!");
+    if(!inputID) return alert("⚠️ Ketik nomor ID transaksi yang valid!");
     
     const trx = cashierHistory.find(t => t.id === inputID);
     area.classList.remove('hidden');
@@ -1446,7 +1456,7 @@ function prosesLacakIDMobile() {
 
 function tagihViaWAMobile(idTransaksi) {
     const trx = cashierHistory.find(t => t.id === idTransaksi);
-    if (!trx || !trx.wa) return alert("├в┼б┬а├п┬╕┬П Nomor WhatsApp pelanggan tidak ditemukan!");
+    if (!trx || !trx.wa) return alert("⚠️ Nomor WhatsApp pelanggan tidak ditemukan!");
     
     const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); canvas.width = 400; canvas.height = 460;
     ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -1482,7 +1492,7 @@ function tagihViaWAMobile(idTransaksi) {
         if (navigator.canShare && navigator.canShare({ files: [fileGambar] })) {
             try { await navigator.share({ files: [fileGambar], title: 'Tagihan Apotek', text: pesanTeks }); } catch (err) { console.log(err); }
         } else {
-            alert("├в┼УтАж Gambar struk akan diunduh. Silakan kirim (Drag & Drop) gambar tersebut ke WhatsApp yang akan terbuka.");
+            alert("✅ Gambar struk akan diunduh. Silakan kirim (Drag & Drop) gambar tersebut ke WhatsApp yang akan terbuka.");
             const linkDownload = document.createElement('a'); linkDownload.href = URL.createObjectURL(blob); linkDownload.download = namaFile; linkDownload.click();
             setTimeout(() => { window.open(`https://api.whatsapp.com/send?phone=${noWA}&text=${encodeURIComponent(pesanTeks)}`, '_blank'); }, 800);
         }
@@ -1494,7 +1504,7 @@ function tagihViaWAMobile(idTransaksi) {
 // ==========================================
 function bukaModalTransferMasalMobile() {
     const list = document.getElementById('listTransferMasalBodyMobile');
-    let barangTersedia = masterItems.filter(o => o.stok > 0 && o.nama !== '___SYSTEM_AUTH___' && o.kategori !== '├в┼б┬а├п┬╕┬П Barang Retur');
+    let barangTersedia = masterItems.filter(o => o.stok > 0 && o.nama !== '___SYSTEM_AUTH___' && o.kategori !== '⚠️ Barang Retur');
     
     if(barangTersedia.length === 0) {
         return alert("Gudang kosong! Tidak ada barang yang bisa ditransfer.");
@@ -1594,7 +1604,7 @@ function prosesTransferMasalMobile() {
         renderGudangMobile(document.getElementById('cariGudangMobile').value); 
         renderBerandaMobile();
         triggerHaptic([100, 50, 100]);
-        alert("├░┼╕┼б┼б Barang berhasil diberangkatkan ke Etalase secara Cerdas!");
+        alert("📦 Barang berhasil diberangkatkan ke Etalase secara Cerdas!");
     } else { alert("Pilih minimal 1 barang untuk ditransfer."); }
 }
 
@@ -1612,14 +1622,14 @@ function prosesSimpanSetelanMobile() {
     let nama = document.getElementById('setNamaMobile').value; 
     let alamat = document.getElementById('setAlamatMobile').value; 
     let telp = document.getElementById('setTelpMobile').value;
-    if(!nama || !alamat) return alert("├в┼б┬а├п┬╕┬П Nama Apotek dan Alamat wajib diisi!");
+    if(!nama || !alamat) return alert("⚠️ Nama Apotek dan Alamat wajib diisi!");
     
     profilApotek.nama = nama; profilApotek.alamat = alamat; profilApotek.telepon = telp;
     
     saveApotekDB('apotek_profilData', profilApotek);
     
     document.getElementById('namaApotekHeader').innerText = nama; 
-    tutupModalMobile('modalSetelanMobile'); alert("├в┼УтАж Profil Apotek berhasil diperbarui!");
+    tutupModalMobile('modalSetelanMobile'); alert("✅ Profil Apotek berhasil diperbarui!");
 }
 
 // ==========================================
@@ -1644,11 +1654,21 @@ function bukaScannerKameraMobile(target = 'kasir') {
             } else {
                 if(targetScannerAktif === 'tambah_qr') document.getElementById('tambahQrcodeMobile').value = decodedText;
                 else document.getElementById('tambahBarcodeMobile').value = decodedText;
-                alert("Kode berhasil direkam secara virtual! Silakan lengkapi sisa datanya.");
+                
+                // Ubah Visual Tombol Menjadi Hijau Terekam
+                let btn = document.getElementById('btnUI_' + targetScannerAktif);
+                let teks = document.getElementById('teksUI_' + targetScannerAktif);
+                if(btn && teks) {
+                    btn.className = "w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex flex-col items-center justify-center shrink-0 border-2 border-emerald-500 shadow-sm active:scale-95 transition-all gap-0.5";
+                    teks.classList.remove('hidden');
+                    teks.textContent = "TEREKAM";
+                }
+                
+                alert("✅ Kode berhasil direkam ke sistem! Silakan lengkapi sisa data obat.");
             }
         } else if (targetScannerAktif === 'lacak') {
             let match = decodedText.match(/Trx:\s*(\d+)/);
-            if(match && match[1]) { document.getElementById('inputLacakIDMobile').value = match[1]; prosesLacakIDMobile(); } else { alert("├в┼б┬а├п┬╕┬П QR Code bukan struk valid."); }
+            if(match && match[1]) { document.getElementById('inputLacakIDMobile').value = match[1]; prosesLacakIDMobile(); } else { alert("⚠️ QR Code bukan struk valid."); }
         } else {
             let barangMaster = masterItems.find(m => m.barcode === decodedText || m.qrcode === decodedText);
             if(barangMaster) {
@@ -1684,8 +1704,28 @@ function tutupKameraScannerMobile() {
     else { document.getElementById('modalScannerKamera').classList.add('hidden'); }
 }
 
+let isSenterAktif = false;
 function toggleSenterMobile() {
-    alert("Tombol senter ditekan. Jika tidak menyala, HP Anda mungkin belum mendukung kontrol lampu kilat lewat browser.");
+    if (html5QrcodeScannerMobile) {
+        isSenterAktif = !isSenterAktif;
+        html5QrcodeScannerMobile.applyVideoConstraints({
+            advanced: [{ torch: isSenterAktif }]
+        }).then(() => {
+            let btn = document.getElementById('btnSenterMobile');
+            if(isSenterAktif) {
+                btn.innerHTML = '<i class="fa-solid fa-lightbulb text-emerald-400"></i> Matikan Senter';
+                btn.classList.replace('bg-slate-800', 'bg-slate-700');
+            } else {
+                btn.innerHTML = '<i class="fa-solid fa-lightbulb text-amber-400"></i> Nyalakan Senter';
+                btn.classList.replace('bg-slate-700', 'bg-slate-800');
+            }
+        }).catch(err => {
+            isSenterAktif = !isSenterAktif; // Kembalikan status jika ditolak
+            alert("⚠️ Gagal menyalakan senter! Browser di HP Anda mungkin memblokir fitur akses Senter demi aturan privasi, atau fiturnya tidak didukung.");
+        });
+    } else {
+        alert("⚠️ Kamera belum aktif.");
+    }
 }
 
 // ==========================================
@@ -1722,8 +1762,8 @@ window.alert = function(pesan) {
     let strPesan = String(pesan).toLowerCase();
     
     let type = 'info';
-    if (strPesan.includes('berhasil') || strPesan.includes('sukses') || strPesan.includes('├в┼УтАж')) type = 'success';
-    else if (strPesan.includes('gagal') || strPesan.includes('wajib') || strPesan.includes('peringatan') || strPesan.includes('├в┼б┬а├п┬╕┬П')) type = 'error';
+    if (strPesan.includes('berhasil') || strPesan.includes('sukses') || strPesan.includes('✅')) type = 'success';
+    else if (strPesan.includes('gagal') || strPesan.includes('wajib') || strPesan.includes('peringatan') || strPesan.includes('⚠️')) type = 'error';
 
     let s = ALERT_STYLES[type];
     icon.className = s.icon; icon.innerHTML = s.html;
@@ -1792,7 +1832,7 @@ function eksekusiPelunasanMobile(metodePilihan) {
 
             tutupModalMobile('modalPelunasanMobile'); renderPiutangMobile(); renderBerandaMobile();
             triggerHaptic([100, 50, 100]);
-            alert(`├в┼УтАж Pelunasan Sukses! Utang ditutup dan omzet bertambah.`);
+            alert(`✅ Pelunasan Sukses! Utang ditutup dan omzet bertambah.`);
         }
     }
 }
@@ -1869,7 +1909,7 @@ let printerApotekTerhubung = null;
 
 async function prosesCetakStrukMobile(idTransaksi, elemenTombol) {
     const trx = cashierHistory.find(t => t.id === idTransaksi);
-    if(!trx) return alert("├в┼б┬а├п┬╕┬П Data transaksi tidak ditemukan!");
+    if(!trx) return alert("⚠️ Data transaksi tidak ditemukan!");
     
     const posTengah = (text) => { let str = text.substring(0, 32); let pad = Math.floor((32 - str.length) / 2); return " ".repeat(pad > 0 ? pad : 0) + str + " ".repeat(pad > 0 ? pad : 0) + "\n"; };
     
@@ -1914,10 +1954,10 @@ async function prosesCetakStrukMobile(idTransaksi, elemenTombol) {
             let potonganData = payloadAkhir.slice(i, i + CHUNK_SIZE); await writeCharacteristic.writeValue(potonganData); await new Promise(resolve => setTimeout(resolve, 50)); 
         }
         
-        elemenTombol.innerHTML = teksAsli; alert("├в┼УтАж Cetak Berhasil! Struk dikeluarkan oleh printer.");
+        elemenTombol.innerHTML = teksAsli; alert("✅ Cetak Berhasil! Struk dikeluarkan oleh printer.");
     } catch(error) {
         console.log("Error Printer:", error); printerApotekTerhubung = null; elemenTombol.innerHTML = '<i class="fa-solid fa-print"></i> Cetak';
-        alert("├в┼б┬а├п┬╕┬П Gagal Mencetak! Pastikan Bluetooth HP menyala, lokasi diizinkan, dan Printer Thermal hidup.");
+        alert("⚠️ Gagal Mencetak! Pastikan Bluetooth HP menyala, lokasi diizinkan, dan Printer Thermal hidup.");
     }
 }
 
@@ -1963,7 +2003,7 @@ function resetSistemMobile() {
         saveApotekDB('apotek_cashierHistory', []);
         saveApotekDB('apotek_siklusAktif', { modalAwal: 0, qtyAwal: 0, modalTambahan: 0, qtyTambahan: 0, uangMasuk: 0, tanggalStart: getTanggalLokal() });
         
-        alert("├в┼УтАж Sistem berhasil dibersihkan sampai ke akarnya! Memuat ulang..."); 
+        alert("✅ Sistem berhasil dibersihkan sampai ke akarnya! Memuat ulang..."); 
         setTimeout(() => { window.location.reload(); }, 1200); 
     }); 
 }
@@ -1993,7 +2033,50 @@ function bukaNotifikasiMobile() {
 
 function tutupNotifikasiMobile() {
     const overlay = document.getElementById('sidebarKananOverlay'); const panel = document.getElementById('sidebarKananMobile');
-    overlay.classList.add('opacity-0'); panel.classList.add('translate-x-full'); setTimeout(() => { overlay.classList.add('hidden'); }, 300);
+    overlay.classList.add('opacity-0'); panel.classList.add('translate-x-full'); setTimeout(() => { overlay.classList.add('hidden'); batalSeleksiNotif(); }, 300);
+}
+
+// Logika Multi-Seleksi Hapus Notifikasi
+let modeSeleksiNotifAktif = false;
+let itemTerpilihNotif = [];
+let timerLongPressNotif;
+
+function mulaiTekanNotif(id) { if(modeSeleksiNotifAktif) return; timerLongPressNotif = setTimeout(() => { triggerHaptic(100); aktifkanModeSeleksiNotif(id); }, 500); }
+function lepasTekanNotif() { clearTimeout(timerLongPressNotif); }
+function klikItemNotif(id) { if(modeSeleksiNotifAktif) { togglePilihNotif(id); } }
+
+function aktifkanModeSeleksiNotif(idPertama) {
+    modeSeleksiNotifAktif = true; itemTerpilihNotif = [idPertama];
+    document.getElementById('headerNormalNotif').classList.add('hidden'); document.getElementById('headerNormalNotif').classList.remove('flex');
+    document.getElementById('headerSeleksiNotif').classList.remove('hidden'); document.getElementById('headerSeleksiNotif').classList.add('flex');
+    renderListNotifikasiMobile();
+}
+
+function batalSeleksiNotif() {
+    modeSeleksiNotifAktif = false; itemTerpilihNotif = [];
+    document.getElementById('headerSeleksiNotif').classList.add('hidden'); document.getElementById('headerSeleksiNotif').classList.remove('flex');
+    document.getElementById('headerNormalNotif').classList.remove('hidden'); document.getElementById('headerNormalNotif').classList.add('flex');
+    renderListNotifikasiMobile();
+}
+
+function togglePilihNotif(id) {
+    let idx = itemTerpilihNotif.indexOf(id);
+    if(idx !== -1) itemTerpilihNotif.splice(idx, 1); else itemTerpilihNotif.push(id);
+    if(itemTerpilihNotif.length === 0) batalSeleksiNotif(); else { document.getElementById('teksJumlahSeleksiNotif').textContent = itemTerpilihNotif.length + " Dipilih"; renderListNotifikasiMobile(); }
+}
+
+function pilihSemuaNotif() {
+    itemTerpilihNotif = notifikasiHistori.map(n => n.id);
+    document.getElementById('teksJumlahSeleksiNotif').textContent = itemTerpilihNotif.length + " Dipilih"; renderListNotifikasiMobile();
+}
+
+function prosesHapusMasalNotif() {
+    if(itemTerpilihNotif.length === 0) return;
+    tampilkanConfirmMobile("Hapus " + itemTerpilihNotif.length + " notifikasi yang dipilih?", function() {
+        notifikasiHistori = notifikasiHistori.filter(n => !itemTerpilihNotif.includes(n.id));
+        saveApotekDB('apotek_notifikasi', notifikasiHistori);
+        batalSeleksiNotif(); triggerHaptic([100, 50, 100]);
+    });
 }
 
 function kirimNotifikasiMobile(judul, pesan, tipe, nilaiUang) {
@@ -2016,6 +2099,10 @@ function renderListNotifikasiMobile() {
         return;
     }
     
+    if(modeSeleksiNotifAktif) {
+        document.getElementById('teksJumlahSeleksiNotif').textContent = itemTerpilihNotif.length + " Dipilih";
+    }
+
     wadah.innerHTML = notifikasiHistori.map(n => {
         let warnaTema = '', icon = '';
         if(n.tipe === 'beli') { warnaTema = 'emerald'; icon = 'fa-solid fa-cash-register'; }
@@ -2023,14 +2110,17 @@ function renderListNotifikasiMobile() {
         else if(n.tipe === 'lunas') { warnaTema = 'blue'; icon = 'fa-solid fa-handshake'; }
         else if(n.tipe === 'batal') { warnaTema = 'amber'; icon = 'fa-solid fa-rotate-left'; }
         
+        let isSelected = itemTerpilihNotif.includes(n.id);
+        let bgCard = isSelected ? 'bg-red-50 border-red-300 shadow-md transform scale-[0.98]' : 'bg-white border-slate-200 shadow-sm';
+        
         return `
         <div class="flex flex-col gap-1 w-full">
             <span class="text-[9px] font-bold text-slate-400 text-center mb-1 drop-shadow-sm">${n.tanggal === getTanggalLokal() ? 'Hari Ini' : n.tanggal}, ${n.waktu}</span>
             <div class="flex items-start gap-2">
                 <div class="w-8 h-8 rounded-full bg-${warnaTema}-100 text-${warnaTema}-600 flex items-center justify-center shrink-0 border border-${warnaTema}-200 shadow-sm mt-1 z-10"><i class="${icon} text-[11px]"></i></div>
-                <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-none p-3 shadow-sm flex-1 relative overflow-hidden">
-                    <div class="absolute top-0 right-0 w-10 h-10 bg-${warnaTema}-50 rounded-bl-full -z-0 opacity-50"></div>
-                    <div class="relative z-10">
+                <div onpointerdown="mulaiTekanNotif(${n.id})" onpointerup="lepasTekanNotif()" onpointerleave="lepasTekanNotif()" onclick="klikItemNotif(${n.id})" class="${bgCard} select-none cursor-pointer rounded-2xl rounded-tl-none p-3 flex-1 relative overflow-hidden transition-all group">
+                    <div class="absolute top-0 right-0 w-10 h-10 bg-${warnaTema}-50 rounded-bl-full -z-0 opacity-50 pointer-events-none"></div>
+                    <div class="relative z-10 pointer-events-none">
                         <h4 class="font-black text-${warnaTema}-700 text-xs mb-0.5 leading-tight">${n.judul}</h4>
                         <p class="text-[10px] text-slate-600 font-medium leading-relaxed">${n.pesan}</p>
                         <p class="text-xs font-black text-slate-800 mt-1.5 border-t border-slate-100 pt-1 border-dashed">${rupiah(n.uang)}</p>
