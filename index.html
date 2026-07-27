@@ -534,15 +534,21 @@ tailwind.config = {
 
             <div class="flex-1 overflow-y-auto hide-scrollbar px-4 pt-4 pb-6 space-y-4">
                 
-                <div class="bg-white p-3.5 rounded-2xl shadow-sm flex gap-2 border border-slate-200">
+                <div class="bg-white p-3.5 rounded-2xl shadow-sm flex gap-2 border border-slate-200 relative z-30">
                     <div class="flex-1 relative">
-                        <select id="kasirPilihObatMobile" onchange="tambahManualKeKeranjangMobile()" class="w-full h-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-corporate-500 appearance-none cursor-pointer transition-all">
-                            <option value="">+ Pilih obat etalase...</option>
-                        </select>
-                        <i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
+                        <button onclick="toggleDropdownKasir()" class="w-full h-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-left text-xs font-bold text-slate-500 hover:bg-slate-100 transition-colors flex items-center justify-between shadow-inner">
+                            <span>+ Pilih obat dari etalase...</span>
+                            <i class="fa-solid fa-chevron-down text-slate-400 text-[10px]"></i>
+                        </button>
+                        <div id="dropdownKasirList" class="hidden absolute top-[110%] left-0 w-full bg-white border border-slate-200 rounded-xl shadow-2xl max-h-48 overflow-y-auto z-40 hide-scrollbar divide-y divide-slate-100">
+                            <!-- Daftar Elegan Tampil Disini -->
+                        </div>
                     </div>
-                    <button onclick="bukaScannerKameraMobile('kasir')" class="w-11 h-11 bg-orange-50 border border-orange-200 hover:bg-orange-100 text-orange-500 rounded-xl flex items-center justify-center shadow-sm transition-transform active:scale-95 shrink-0"><i class="fa-solid fa-qrcode text-lg"></i></button>
-                    <button onclick="bukaScannerKameraMobile('kasir')" class="w-11 h-11 bg-corporate-600 hover:bg-corporate-700 border border-corporate-700 text-white rounded-xl flex items-center justify-center shadow-sm transition-transform active:scale-95 shrink-0"><i class="fa-solid fa-barcode text-lg"></i></button>
+                    <button id="btnScannerKasir" onclick="bukaScannerKameraMobile('kasir')" class="h-11 px-3 bg-orange-50 border border-orange-200 text-orange-500 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors duration-700 active:scale-95 shrink-0">
+                        <i class="fa-solid fa-qrcode text-lg"></i>
+                        <div class="w-px h-5 bg-orange-200/50"></div>
+                        <i class="fa-solid fa-barcode text-lg"></i>
+                    </button>
                 </div>
 
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[160px]">
@@ -692,6 +698,7 @@ tailwind.config = {
                         <div>
                             <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Kategori <span class="text-red-500">*</span></label>
                             <select id="tambahKategoriMobile" onchange="toggleKategoriKustomMobile()" class="w-full bg-white border border-slate-200 rounded-2xl px-3 py-3 text-sm font-bold text-slate-700 focus:outline-none appearance-none">
+                                <option value="" disabled selected hidden>Pilih (Cth: Obat Keras)</option>
                                 <option value="Sakit Kepala">Sakit Kepala</option>
                                 <option value="Vitamin">Vitamin</option>
                                 <option value="Sirup">Sirup</option>
@@ -705,11 +712,27 @@ tailwind.config = {
                         <div>
                             <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Satuan Eceran <span class="text-red-500">*</span></label>
                             <select id="tambahSatuanEceran" onchange="kalkulasiTambahObatCerdas()" class="w-full bg-[#eef5ef] border border-[#b2d5bb] rounded-2xl px-3 py-3 text-sm font-bold text-[#274f31] focus:outline-none appearance-none">
-                                <option value="Pak">Pak</option>
-                                <option value="Strip">Strip</option>
+                                <option value="" disabled selected hidden>Pilih (Cth: Strip)</option>
+                                <option value="Biji">Biji</option>
+                                <option value="Pcs">Pcs</option>
                                 <option value="Botol">Botol</option>
-                                <option value="Biji">Biji / Pcs</option>
+                                <option value="Saset">Saset</option>
                                 <option value="Tube">Tube</option>
+                                <option value="Kotak / Box">Kotak / Box</option>
+                                <option value="Blister">Blister</option>
+                                <option value="Pak">Pak</option>
+                                <option value="Lembar">Lembar</option>
+                                <option value="Pot">Pot</option>
+                                <option value="Bungkus">Bungkus</option>
+                                <option value="Kaleng">Kaleng</option>
+                                <option value="Roll">Roll</option>
+                                <option value="Pasang">Pasang</option>
+                                <option value="Ampul">Ampul</option>
+                                <option value="Suppositoria">Suppositoria</option>
+                                <option value="Pen / Stik">Pen / Stik</option>
+                                <option value="Set">Set</option>
+                                <option value="Flabot">Flabot</option>
+                                <option value="Kantong">Kantong</option>
                             </select>
                         </div>
                     </div>
@@ -726,10 +749,17 @@ tailwind.config = {
                         <div>
                             <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Satuan Beli</label>
                             <select id="tambahSatuanBesar" onchange="kalkulasiTambahObatCerdas()" class="w-full bg-[#eef5ef] border border-[#b2d5bb] rounded-2xl px-3 py-3 text-sm font-bold text-[#274f31] focus:outline-none appearance-none">
-                                <option value="Dos">Dos</option>
-                                <option value="Karton">Karton</option>
-                                <option value="Box">Box</option>
-                                <option value="Strip">Strip</option> </select>
+                                <option value="" disabled selected hidden>Pilih (Cth: Dos)</option>
+                                <option value="Bal">Bal</option>
+                                <option value="Botol">Botol</option>
+                                <option value="Box / Kotak">Box / Kotak</option>
+                                <option value="Dos / Karton">Dos / Karton</option>
+                                <option value="Kaleng">Kaleng</option>
+                                <option value="Pak">Pak</option>
+                                <option value="Renteng">Renteng</option>
+                                <option value="Hanger">Hanger</option>
+                                <option value="Lusin">Lusin</option>
+                            </select>
                         </div>
                     </div>
 
@@ -756,12 +786,12 @@ tailwind.config = {
                     <div class="grid grid-cols-2 gap-4 mb-5">
                         <div>
                             <label id="labelModalKotor" class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Modal (per Dos) <span class="text-red-500">*</span></label>
-                            <input type="number" id="tambahModalKotor" oninput="kalkulasiTambahObatCerdas()" placeholder="Rp 0" class="w-full bg-white border border-[#d97706]/40 rounded-2xl px-4 py-3 text-sm font-black text-slate-800 focus:outline-none shadow-inner">
+                            <input type="text" inputmode="numeric" id="tambahModalKotor" oninput="formatAngkaRibuan(this); kalkulasiTambahObatCerdas()" placeholder="Rp 0" class="w-full bg-white border border-[#d97706]/40 rounded-2xl px-4 py-3 text-sm font-black text-slate-800 focus:outline-none shadow-inner">
                             <p id="teksHppOtomatis" class="text-[9px] font-bold text-[#657e65] mt-1.5 leading-tight">Otomatis: HPP = Rp 0 / Pak</p>
                         </div>
                         <div>
                             <label id="labelJualEceran" class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Jual (per Pak) <span class="text-red-500">*</span></label>
-                            <input type="number" id="tambahJualEceran" oninput="kalkulasiTambahObatCerdas()" placeholder="Rp 0" class="w-full bg-white border border-[#d97706]/40 rounded-2xl px-4 py-3 text-sm font-black text-slate-800 focus:outline-none shadow-inner">
+                            <input type="text" inputmode="numeric" id="tambahJualEceran" oninput="formatAngkaRibuan(this); kalkulasiTambahObatCerdas()" placeholder="Rp 0" class="w-full bg-white border border-[#d97706]/40 rounded-2xl px-4 py-3 text-sm font-black text-slate-800 focus:outline-none shadow-inner">
                             <p id="teksEstimasiUntung" class="text-[9px] font-bold text-slate-500 mt-1.5 leading-tight">Est. Untung: Rp 0 / Pak</p>
                         </div>
                     </div>
@@ -1012,6 +1042,366 @@ tailwind.config = {
                 <button onclick="eksekusiConfirmMobile()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-2xl shadow-md transition-transform active:scale-95">Ya, Lanjut</button>
             </div>
         </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
+    </div>
+
+    <!-- TOAST NOTIFICATION (MELAYANG DI ATAS) -->
+    <div id="toastNotification" class="absolute top-5 left-1/2 transform -translate-x-1/2 z-[350] bg-emerald-600 text-white px-4 py-2.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-300 opacity-0 -translate-y-10 pointer-events-none w-[90%] max-w-[350px]">
+        <span id="toastMessage" class="leading-tight flex-1 text-center">Pesan toast disini</span>
     </div>
 
     <div id="sidebarKiriOverlay" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-[250] hidden opacity-0 transition-opacity duration-300" onclick="tutupSidebarKiriMobile()"></div>
