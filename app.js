@@ -1092,12 +1092,6 @@ function prosesHapusObatMobile(dnaInduk, namaObat) {
 // ==========================================
 // 11. MESIN TAMBAH OBAT BARU (SMART CALCULATOR)
 // ==========================================
-function formatAngkaRibuan(inputElement) {
-    let rawValue = inputElement.value.replace(/[^0-9]/g, '');
-    if(rawValue === '') { inputElement.value = ''; return; }
-    inputElement.value = parseInt(rawValue, 10).toLocaleString('id-ID').replace(/,/g, '.');
-}
-
 function tampilkanKolomVarianMobile() {
     document.getElementById('wadahVarianMobile').classList.remove('hidden');
 }
@@ -1129,8 +1123,8 @@ function bukaModalTambahObatMobile() {
     });
 
     document.getElementById('tambahNamaMobile').value = ''; document.getElementById('tambahVarianMobile').value = '';
-    document.getElementById('tambahKategoriMobile').value = ''; document.getElementById('tambahKategoriKustom').value = '';
-    document.getElementById('tambahSatuanEceran').value = ''; document.getElementById('tambahSatuanBesar').value = '';
+    document.getElementById('tambahKategoriMobile').value = 'Sakit Kepala'; document.getElementById('tambahKategoriKustom').value = '';
+    document.getElementById('tambahSatuanEceran').value = 'Pak'; document.getElementById('tambahSatuanBesar').value = 'Dos';
     document.getElementById('tambahQtyBeli').value = ''; document.getElementById('tambahIsiPerSatuan').value = '';
     document.getElementById('tambahToggleBulk').checked = true;
     document.getElementById('tambahModalKotor').value = ''; document.getElementById('tambahJualEceran').value = ''; 
@@ -1149,17 +1143,13 @@ function bukaModalTambahObatMobile() {
 function kalkulasiTambahObatCerdas() {
     let isBulk = document.getElementById('tambahToggleBulk').checked;
     
-    // Ambil Data Input (Buang titik pada uang)
-    let satEcer = document.getElementById('tambahSatuanEceran').value || 'Pcs';
-    let satBesar = document.getElementById('tambahSatuanBesar').value || 'Box';
+    // Ambil Data Input
+    let satEcer = document.getElementById('tambahSatuanEceran').value || 'Pak';
+    let satBesar = document.getElementById('tambahSatuanBesar').value || 'Dos';
     let qtyBeli = parseFloat(document.getElementById('tambahQtyBeli').value) || 0;
     let isiPerSatuan = parseFloat(document.getElementById('tambahIsiPerSatuan').value) || 1;
-    
-    let modalRaw = document.getElementById('tambahModalKotor').value.replace(/\./g, '');
-    let modalKotor = parseFloat(modalRaw) || 0;
-    
-    let jualRaw = document.getElementById('tambahJualEceran').value.replace(/\./g, '');
-    let jualEceran = parseFloat(jualRaw) || 0;
+    let modalKotor = parseFloat(document.getElementById('tambahModalKotor').value) || 0;
+    let jualEceran = parseFloat(document.getElementById('tambahJualEceran').value) || 0;
 
     // UI Saklar Logic (Sembunyikan/Tampilkan Multiplier)
     const wadahMultiplier = document.getElementById('wadahMultiplier');
@@ -1215,8 +1205,7 @@ function prosesSimpanObatBaruMobile() {
         if (!kategori) return alert('⚠️ Kategori manual tidak boleh kosong!');
     }
     
-    const jualRaw = document.getElementById('tambahJualEceran').value.replace(/\./g, '');
-    const jual = parseFloat(jualRaw) || 0; 
+    const jual = parseFloat(document.getElementById('tambahJualEceran').value) || 0; 
     const expired = document.getElementById('tambahExpiredMobile').value;
     
     // Tarik data hasil kalkulator
@@ -1224,10 +1213,9 @@ function prosesSimpanObatBaruMobile() {
     const stok = parseFloat(document.getElementById('tambahQtyBeli').dataset.calculatedStok) || 0;
     
     // satEcer hanya dipakai untuk notifikasi "Sukses" di bawah, tidak disimpan ke database identitas
-    const satEcer = document.getElementById('tambahSatuanEceran').value; 
+    const satEcer = document.getElementById('tambahSatuanEceran').value || 'Pcs'; 
 
-    if(!satEcer) return alert('⚠️ Satuan Eceran wajib dipilih!');
-    if(!nama || !kategori || isNaN(modal) || isNaN(jual) || stok === 0) return alert('⚠️ Wajib diisi: Nama, Kategori, Jumlah, Modal, dan Jual!');
+    if(!nama || !kategori || isNaN(modal) || isNaN(jual) || stok === 0) return alert('⚠️ Wajib diisi: Nama, Jumlah, Modal, dan Jual!');
     if(modal >= jual) return alert('⚠️ Peringatan: Harga Jual Eceran harus lebih tinggi dari HPP Eceran.');
     
     const idBatch = 'B-' + Date.now(); 
@@ -1276,6 +1264,164 @@ function prosesSimpanObatBaruMobile() {
 // ==========================================
 let keranjangKasirMobile = [];
 
+function bukaModalKasirMobile() {
+    keranjangKasirMobile = []; renderKeranjangMobile();
+    const select = document.getElementById('kasirPilihObatMobile');
+    select.innerHTML = '<option value="">+ Pilih obat dari etalase...</option>';
+    let adaBarang = false;
+    etalaseItems.forEach(item => { if(item.stok > 0) { select.innerHTML += `<option value="${item.nama}">${item.nama} (Stok: ${item.stok})</option>`; adaBarang = true; } });
+    if(!adaBarang) return alert("Etalase masih kosong! Masuk ke menu Gudang lalu transfer stok ke Etalase.");
+    
+    document.querySelector('input[value="Tunai"]').checked = true; toggleFormKasbonMobile();
+    bukaModalMobile('modalKasirMobile', 'panelKasirMobile');
+}
+
+function tambahManualKeKeranjangMobile() {
+    const nama = document.getElementById('kasirPilihObatMobile').value;
+    if(nama) {
+        let barang = etalaseItems.find(e => e.nama === nama);
+        if(barang) masukkanKeKeranjangMobile(barang);
+        document.getElementById('kasirPilihObatMobile').value = ''; 
+    }
+}
+
+function masukkanKeKeranjangMobile(barang) {
+    let index = keranjangKasirMobile.findIndex(k => k.nama === barang.nama);
+    if(index !== -1) {
+        if(keranjangKasirMobile[index].qty < barang.stok) { keranjangKasirMobile[index].qty++; } else { alert("Sisa stok " + barang.nama + " tidak cukup!"); }
+    } else {
+        keranjangKasirMobile.push({ nama: barang.nama, varian: barang.varian, keterangan: barang.keterangan, jual: barang.jual, qty: 1, stokMax: barang.stok });
+    }
+    renderKeranjangMobile();
+}
+
+function ubahQtyKeranjangMobile(index, delta) {
+    let item = keranjangKasirMobile[index]; let newQty = item.qty + delta;
+    if(newQty > item.stokMax) return alert("Sisa stok hanya " + item.stokMax);
+    if(newQty <= 0) { keranjangKasirMobile.splice(index, 1); } else { item.qty = newQty; }
+    renderKeranjangMobile();
+}
+
+function renderKeranjangMobile() {
+    const tbody = document.getElementById('keranjangBodyMobile'); let total = 0;
+    if(keranjangKasirMobile.length === 0) {
+        tbody.innerHTML = `
+            <div class="flex-1 flex flex-col items-center justify-center p-6 text-center bg-slate-50/50">
+                <div class="w-14 h-14 mx-auto bg-white rounded-full flex items-center justify-center shadow-sm border border-slate-100 mb-3">
+                    <i class="fa-solid fa-basket-shopping text-2xl text-slate-300"></i>
+                </div>
+                <p class="text-[11px] font-black text-slate-700 uppercase tracking-widest mb-1">Keranjang Kosong</p>
+                <p class="text-[9px] text-slate-500 font-medium">Pilih obat dari etalase atas atau<br>tekan tombol Scanner Scanner</p>
+            </div>`;
+    } else {
+        tbody.innerHTML = keranjangKasirMobile.map((k, i) => {
+            let sub = k.jual * k.qty; total += sub;
+            let ketTeks = (k.varian || k.keterangan) ? `<p class="text-[9px] text-slate-500 italic mt-0.5">${k.varian || ''} ${k.keterangan || ''}</p>` : '';
+            return `<div class="px-4 py-3 bg-white flex items-center justify-between gap-3 border-b border-slate-50 last:border-0"><div class="flex-1 pr-2"><h4 class="font-bold text-slate-800 text-xs leading-tight">${k.nama}</h4>${ketTeks}<p class="font-black text-corporate-600 text-sm mt-1">${rupiah(sub)}</p></div><div class="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl p-1 shadow-inner shrink-0"><button onclick="ubahQtyKeranjangMobile(${i}, -1)" class="w-7 h-7 rounded-lg bg-white shadow-sm text-slate-600 font-bold active:bg-slate-100 transition">-</button><span class="w-5 text-center font-black text-slate-800 text-xs">${k.qty}</span><button onclick="ubahQtyKeranjangMobile(${i}, 1)" class="w-7 h-7 rounded-lg bg-emerald-50 border border-emerald-100 shadow-sm text-emerald-600 font-bold active:bg-emerald-100 transition">+</button></div></div>`;
+        }).join('');
+    }
+    document.getElementById('kasirTotalMobile').textContent = rupiah(total);
+}
+
+function toggleFormKasbonMobile() {
+    const metode = document.querySelector('input[name="kasirMetodeMobile"]:checked').value;
+    const formIdentitas = document.getElementById('formKasbonMobile');
+    if(metode === 'Debt') { formIdentitas.classList.remove('hidden'); } else { formIdentitas.classList.add('hidden'); document.getElementById('kasbonNamaMobile').value = ''; document.getElementById('kasbonWaMobile').value = ''; }
+}
+
+function prosesBayarMobile() {
+    if(keranjangKasirMobile.length === 0) return alert('Keranjang masih kosong!');
+    const metode = document.querySelector('input[name="kasirMetodeMobile"]:checked').value;
+    let namaPelanggan = ''; let waPelanggan = '';
+    if(metode === 'Debt') {
+        namaPelanggan = document.getElementById('kasbonNamaMobile').value; waPelanggan = document.getElementById('kasbonWaMobile').value;
+        if(!namaPelanggan) return alert('Nama pelanggan wajib diisi untuk Kasbon!');
+    }
+    
+    let totalBelanja = 0, totalLaba = 0, totalItem = 0; let namaObatGabungan = [];
+    keranjangKasirMobile.forEach(k => {
+        totalBelanja += (k.jual * k.qty); totalItem += k.qty; 
+        let namaLengkap = k.nama; if(k.varian || k.keterangan) namaLengkap += ` (${k.varian || ''} ${k.keterangan || ''})`; namaObatGabungan.push(namaLengkap);
+        
+        let bEtalase = etalaseItems.find(e => e.nama === k.nama); let totalModalItemIni = 0; let sisaQtyDipotong = k.qty;
+        if(bEtalase) {
+            bEtalase.stok -= k.qty;
+            if(bEtalase.antreanFIFO && bEtalase.antreanFIFO.length > 0) {
+                for(let i = 0; i < bEtalase.antreanFIFO.length; i++) {
+                    let batch = bEtalase.antreanFIFO[i];
+                    if(batch.stok > 0) { let ambil = Math.min(sisaQtyDipotong, batch.stok); batch.stok -= ambil; sisaQtyDipotong -= ambil; totalModalItemIni += (ambil * batch.modal); if(sisaQtyDipotong <= 0) break; }
+                }
+                bEtalase.antreanFIFO = bEtalase.antreanFIFO.filter(b => b.stok > 0);
+            } else { let bMaster = masterItems.find(m => m.nama === k.nama); totalModalItemIni = (bMaster ? bMaster.modal : 0) * k.qty; }
+        }
+        totalLaba += ((k.jual * k.qty) - totalModalItemIni);
+        k.hppSatuan = Math.round(totalModalItemIni / k.qty); // SIMPAN HPP UNTUK RETUR
+    });
+    
+    if (metode !== 'Debt') siklusAktif.uangMasuk += totalBelanja; 
+    
+    const namaObatFinal = namaObatGabungan.length > 1 ? `${namaObatGabungan[0]} + ${namaObatGabungan.length - 1} lainnya` : namaObatGabungan[0];
+    const tglWaktu = new Date();
+    
+    cashierHistory.unshift({ 
+        id: Date.now(), tanggal: getTanggalLokal(), waktu: tglWaktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }), 
+        obat: namaObatFinal, detailKeranjang: JSON.parse(JSON.stringify(keranjangKasirMobile)), 
+        kasir: 'Pemilik', item: totalItem, total: totalBelanja, metode: metode, laba: totalLaba, pelanggan: namaPelanggan, wa: waPelanggan, isPelunasan: false 
+    });
+    
+    // TEMBAKKAN ALARM NOTIFIKASI
+    if (metode === 'Debt') {
+        kirimNotifikasiMobile('Kasbon / Piutang', `${namaObatFinal} berstatus kasbon atas nama ${namaPelanggan}.`, 'piutang', totalBelanja);
+    } else {
+        kirimNotifikasiMobile('Pembelian Baru', `${namaObatFinal} laku terjual secara ${metode}.`, 'beli', totalBelanja);
+    }
+
+    saveApotekDB('apotek_etalaseItems', etalaseItems); 
+    saveApotekDB('apotek_cashierHistory', cashierHistory); 
+    saveApotekDB('apotek_siklusAktif', siklusAktif);
+
+    tutupModalMobile('modalKasirMobile'); renderBerandaMobile(); 
+    if(!document.getElementById('layar-gudang').classList.contains('hidden')) renderGudangMobile(document.getElementById('cariGudangMobile').value);
+    if(!document.getElementById('layar-etalase').classList.contains('hidden')) renderEtalaseMobile();
+    triggerHaptic([100, 50, 100]);
+    alert(`✅ Transaksi ${metode} Berhasil! Omzet telah masuk ke Beranda.`);
+}
+
+function prosesBatalTransaksiMobile(idTransaksi) {
+    tampilkanConfirmMobile("Batalkan transaksi ini?\n\nUang akan ditarik dari omzet dan seluruh item akan dikembalikan ke Etalase secara akurat.", function() {
+        const trx = cashierHistory.find(t => t.id === idTransaksi);
+        if (trx) {
+            if (!trx.isPelunasan && trx.metode !== 'Debt') { siklusAktif.uangMasuk -= (trx.total || 0); if (siklusAktif.uangMasuk < 0) siklusAktif.uangMasuk = 0; }
+            
+            if (trx.detailKeranjang && trx.detailKeranjang.length > 0) {
+                trx.detailKeranjang.forEach(itemRetur => {
+                    let bEtalase = etalaseItems.find(i => i.nama === itemRetur.nama);
+                    let idBatchRetur = 'RETUR-' + Date.now() + '-' + Math.floor(Math.random() * 1000); 
+                    
+                    if (bEtalase) { 
+                        bEtalase.stok += itemRetur.qty; if(!bEtalase.antreanFIFO) bEtalase.antreanFIFO = [];
+                        bEtalase.antreanFIFO.unshift({ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: itemRetur.qty, expired: '' });
+                    } else {
+                        etalaseItems.push({ dnaInduk: 'DNA-RETUR-' + Date.now(), nama: itemRetur.nama, kategori: '⚠️ Barang Retur', jual: itemRetur.jual, stok: itemRetur.qty, antreanFIFO: [{ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: itemRetur.qty, expired: '' }] }); 
+                    }
+                });
+            } else { 
+                let qty = trx.item || 1; let hppRetur = Math.round(((trx.total || 0) - (trx.laba || 0)) / qty);
+                etalaseItems.push({ dnaInduk: 'DNA-RETUR-OLD', nama: trx.obat, kategori: '⚠️ Barang Retur', jual: Math.round((trx.total || 0) / qty), stok: qty, antreanFIFO: [{ idBatch: 'RETUR-OLD', modal: hppRetur, stok: qty, expired: '' }] });
+            }
+            
+            cashierHistory = cashierHistory.filter(t => t.id !== idTransaksi);
+            // TEMBAKKAN ALARM NOTIFIKASI BATAL
+            kirimNotifikasiMobile('Transaksi Batal', `Pembelian ${trx.obat} telah dibatalkan.`, 'batal', trx.total);
+
+            saveApotekDB('apotek_etalaseItems', etalaseItems); 
+            saveApotekDB('apotek_cashierHistory', cashierHistory); 
+            saveApotekDB('apotek_siklusAktif', siklusAktif);
+
+            renderRiwayatMobile(); renderBerandaMobile(); alert("✅ Transaksi Dibatalkan. Stok setiap item diretur ke Etalase.");
+        }
+    });
+}
 
 // ==========================================
 // 13. MESIN LACAK STRUK & PENAGIHAN WA
@@ -1527,22 +1673,8 @@ function bukaScannerKameraMobile(target = 'kasir') {
             let barangMaster = masterItems.find(m => m.barcode === decodedText || m.qrcode === decodedText);
             if(barangMaster) {
                 let bEtalase = etalaseItems.find(e => e.nama === barangMaster.nama);
-                if(bEtalase && bEtalase.stok > 0) { 
-                    // Visual Animasi Hijau Scanner Kasir
-                    let btnScan = document.getElementById('btnScannerKasir');
-                    if(btnScan) {
-                        btnScan.classList.replace('bg-orange-50', 'bg-emerald-500');
-                        btnScan.classList.replace('border-orange-200', 'border-emerald-600');
-                        btnScan.classList.replace('text-orange-500', 'text-white');
-                        setTimeout(() => {
-                            btnScan.classList.replace('bg-emerald-500', 'bg-orange-50');
-                            btnScan.classList.replace('border-emerald-600', 'border-orange-200');
-                            btnScan.classList.replace('text-white', 'text-orange-500');
-                        }, 800);
-                    }
-                    masukkanKeKeranjangMobile(bEtalase); 
-                } else { alert("⚠️ STOK KOSONG di Etalase!"); }
-            } else { alert("⚠️ Barcode tidak terdaftar!"); }
+                if(bEtalase && bEtalase.stok > 0) { masukkanKeKeranjangMobile(bEtalase); } else { alert("STOK KOSONG di Etalase!"); }
+            } else { alert("Barcode tidak terdaftar!"); }
         }
     }).catch(err => { alert("Kamera gagal diakses."); tutupKameraScannerMobile(); });
 }
