@@ -194,7 +194,7 @@ function renderBerandaMobile() {
         } else if (tercapai < targetHutang) {
             // DEFISIT (Gambar 7 & Default)
             let sisaHutang = targetHutang - tercapai; 
-            let persen = targetHutang === 0 ? 0 : (tercapai / targetHutang) * 100;
+            let persen = topModalMurni === 0 ? 0 : Math.max(0, ((topModalMurni - sisaHutang) / topModalMurni) * 100);
             if (labelBawah) labelBawah.innerHTML = `Sisa Target Balik Modal: <span class="text-red-500 font-black">${rupiah(sisaHutang)}</span>`;
             if (progressBar) { progressBar.className = "h-full bg-gradient-to-r from-red-500 to-amber-400 rounded-full transition-all duration-1000"; progressBar.style.width = persen + "%"; }
         } else if (tercapai === targetHutang && targetHutang > 0) {
@@ -245,7 +245,15 @@ function renderBerandaMobile() {
     if (document.getElementById('panelStokSisa')) document.getElementById('panelStokSisa').textContent = totalSisaStok;
     if (document.getElementById('panelStokTerjual')) document.getElementById('panelStokTerjual').textContent = terjualSiklusIni;
     
-    let angkaStokModal = siklusAktif.waktuStart ? (siklusAktif.qtyTambahan || 0) : (totalSisaStok + terjualSiklusIni);
+    // --- LOGIKA BARU BATANG EMAS (AKUMULATIF VS LIKUIDASI) ---
+    let angkaStokModal = 0;
+    if (siklusAktif.isLikuidasi) {
+        // JIKA SURPLUS: Lupakan masa lalu, Stok Modal murni 0 atau hanya membaca barang baru (Kulakan)
+        angkaStokModal = siklusAktif.qtyTambahan || 0;
+    } else {
+        // JIKA DEFISIT & NORMAL: Akumulasikan seluruh pondasi fisik (Lama + Baru) secara utuh
+        angkaStokModal = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
+    }
     if (document.getElementById('panelStokTotal')) document.getElementById('panelStokTotal').textContent = angkaStokModal;
     
     // KEMBALIKAN SCROLL KE KIRI (KOTAK PERTAMA) SAAT BERANDA DIBUKA
@@ -306,11 +314,13 @@ function renderGudangMobile(filter = '') {
         let sisaFisik = g.totalStok + qtyEtalase;
         
         let qtyAwal = 0;
-        if (siklusAktif.waktuStart) {
+        if (siklusAktif.isLikuidasi) {
+            // SURPLUS (LIKUIDASI): Potong dengan foto lama, kembalikan ke 0 (kecuali ada kulakan baru)
             let snap = (siklusAktif.snapshotStok && siklusAktif.snapshotStok[g.dnaInduk]) ? siklusAktif.snapshotStok[g.dnaInduk] : 0;
             qtyAwal = (sisaFisik + qtyTerjual) - snap;
             if (qtyAwal < 0) qtyAwal = 0;
         } else {
+            // DEFISIT & NORMAL: Jangan potong! Akumulasikan sisa fisik murni + terjual
             qtyAwal = sisaFisik + qtyTerjual; 
         } 
         
@@ -938,12 +948,19 @@ function eksekusiSimpanEditLanjutanMobile(isKulakanBaru, nBaru, vBaru, kBaru, mB
     
     // --- SAKLAR RESET KULAKAN BARU ---
     let qtySuntikan = isAddingNewBatchMobile ? sBaru : selisihStok;
-    if (qtySuntikan > 0 && (siklusAktif.isLikuidasi || siklusAktif.isLanjutanDefisit)) {
-        siklusAktif.isLikuidasi = false; 
-        siklusAktif.isLanjutanDefisit = false;
-        siklusAktif.hutangAwal = 0;
-        siklusAktif.modalAwal = 0; siklusAktif.qtyAwal = 0; siklusAktif.uangMasuk = 0;
-        siklusAktif.modalTambahan = 0; siklusAktif.qtyTambahan = 0;
+    if (qtySuntikan > 0) {
+        if (siklusAktif.isLikuidasi) {
+            // RESET TOTAL JIKA SURPLUS
+            siklusAktif.isLikuidasi = false; 
+            siklusAktif.isLanjutanDefisit = false;
+            siklusAktif.hutangAwal = 0;
+            siklusAktif.modalAwal = 0; siklusAktif.qtyAwal = 0; siklusAktif.uangMasuk = 0;
+            siklusAktif.modalTambahan = 0; siklusAktif.qtyTambahan = 0;
+        } else if (siklusAktif.isLanjutanDefisit) {
+            // MERGE SIKLUS JIKA DEFISIT (Konsep Baru)
+            siklusAktif.isLanjutanDefisit = false;
+            // Modal, qty, dan hutang lama TETAP DIPERTAHANKAN secara akumulatif
+        }
     }
     
     if (isKulakanBaru || isAddingNewBatchMobile) {
@@ -1245,12 +1262,19 @@ function prosesSimpanObatBaruMobile() {
     // SIMPAN KE MEMORI: `varian` murni mengambil teks varian yang diketik, bukan "Pak/Strip"
     masterItems.unshift({ idBatch, dnaInduk, barcode, qrcode, nama, varian: varian, keterangan: '', kategori, modal, jual, stok, expired });
     
-    if (stok > 0 && (siklusAktif.isLikuidasi || siklusAktif.isLanjutanDefisit)) {
-        siklusAktif.isLikuidasi = false;
-        siklusAktif.isLanjutanDefisit = false;
-        siklusAktif.hutangAwal = 0;
-        siklusAktif.modalAwal = 0; siklusAktif.qtyAwal = 0; siklusAktif.uangMasuk = 0;
-        siklusAktif.modalTambahan = 0; siklusAktif.qtyTambahan = 0;
+    if (stok > 0) {
+        if (siklusAktif.isLikuidasi) {
+            // RESET TOTAL JIKA SURPLUS
+            siklusAktif.isLikuidasi = false;
+            siklusAktif.isLanjutanDefisit = false;
+            siklusAktif.hutangAwal = 0;
+            siklusAktif.modalAwal = 0; siklusAktif.qtyAwal = 0; siklusAktif.uangMasuk = 0;
+            siklusAktif.modalTambahan = 0; siklusAktif.qtyTambahan = 0;
+        } else if (siklusAktif.isLanjutanDefisit) {
+            // MERGE SIKLUS JIKA DEFISIT (Konsep Baru)
+            siklusAktif.isLanjutanDefisit = false; 
+            // Modal, qty, dan hutang lama TETAP DIPERTAHANKAN secara akumulatif
+        }
     }
     
     let nilaiSuntikan = modal * stok; 
