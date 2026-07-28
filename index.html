@@ -536,13 +536,23 @@ tailwind.config = {
                 
                 <div class="bg-white p-3.5 rounded-2xl shadow-sm flex gap-2 border border-slate-200">
                     <div class="flex-1 relative">
-                        <select id="kasirPilihObatMobile" onchange="tambahManualKeKeranjangMobile()" class="w-full h-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-corporate-500 appearance-none cursor-pointer transition-all">
-                            <option value="">+ Pilih obat etalase...</option>
-                        </select>
-                        <i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 text-[10px] pointer-events-none"></i>
+                        <!-- Tombol pemicu Dropdown Custom -->
+                        <button onclick="toggleDropdownKasir()" class="w-full h-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-800 focus:outline-none focus:border-corporate-500 text-left flex justify-between items-center transition-all shadow-inner">
+                            <span>+ Pilih obat etalase...</span>
+                            <i class="fa-solid fa-chevron-down text-slate-400 text-[10px] pointer-events-none"></i>
+                        </button>
+                        
+                        <!-- Wadah list dropdown yang selama ini dicari oleh mesin JS -->
+                        <div id="dropdownKasirList" class="hidden absolute top-[calc(100%+8px)] left-0 w-full bg-white border border-slate-200 rounded-xl shadow-xl z-50 max-h-48 overflow-y-auto divide-y divide-slate-100">
+                            <!-- JS akan menyuntikkan daftar obat ke sini -->
+                        </div>
                     </div>
-                    <button onclick="bukaScannerKameraMobile('kasir')" class="w-11 h-11 bg-orange-50 border border-orange-200 hover:bg-orange-100 text-orange-500 rounded-xl flex items-center justify-center shadow-sm transition-transform active:scale-95 shrink-0"><i class="fa-solid fa-qrcode text-lg"></i></button>
-                    <button onclick="bukaScannerKameraMobile('kasir')" class="w-11 h-11 bg-corporate-600 hover:bg-corporate-700 border border-corporate-700 text-white rounded-xl flex items-center justify-center shadow-sm transition-transform active:scale-95 shrink-0"><i class="fa-solid fa-barcode text-lg"></i></button>
+                    <!-- Tombol Scanner Kasir Disatukan & Diberi ID -->
+                    <button id="btnScannerKasir" onclick="bukaScannerKameraMobile('kasir')" class="h-11 px-4 bg-orange-50 border border-orange-200 hover:bg-orange-100 text-orange-500 rounded-xl flex items-center justify-center gap-2 shadow-sm transition-colors duration-300 active:scale-95 shrink-0">
+                        <i class="fa-solid fa-qrcode text-lg"></i>
+                        <span class="text-orange-200 text-xs">|</span>
+                        <i class="fa-solid fa-barcode text-lg"></i>
+                    </button>
                 </div>
 
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col min-h-[160px]">
@@ -688,10 +698,11 @@ tailwind.config = {
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3">
+                  <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Kategori <span class="text-red-500">*</span></label>
                             <select id="tambahKategoriMobile" onchange="toggleKategoriKustomMobile()" class="w-full bg-white border border-slate-200 rounded-2xl px-3 py-3 text-sm font-bold text-slate-700 focus:outline-none appearance-none">
+                                <option value="" disabled selected hidden>Pilih Kategori</option>
                                 <option value="Sakit Kepala">Sakit Kepala</option>
                                 <option value="Vitamin">Vitamin</option>
                                 <option value="Sirup">Sirup</option>
@@ -705,11 +716,28 @@ tailwind.config = {
                         <div>
                             <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Satuan Eceran <span class="text-red-500">*</span></label>
                             <select id="tambahSatuanEceran" onchange="kalkulasiTambahObatCerdas()" class="w-full bg-[#eef5ef] border border-[#b2d5bb] rounded-2xl px-3 py-3 text-sm font-bold text-[#274f31] focus:outline-none appearance-none">
-                                <option value="Pak">Pak</option>
+                                <option value="" disabled selected hidden>Pilih (Cth: Strip)</option>
                                 <option value="Strip">Strip</option>
+                                <option value="Biji">Biji</option>
+                                <option value="Pcs">Pcs</option>
                                 <option value="Botol">Botol</option>
-                                <option value="Biji">Biji / Pcs</option>
+                                <option value="Saset">Saset</option>
                                 <option value="Tube">Tube</option>
+                                <option value="Kotak / Box">Kotak / Box</option>
+                                <option value="Blister">Blister</option>
+                                <option value="Pak">Pak</option>
+                                <option value="Lembar">Lembar</option>
+                                <option value="Pot">Pot</option>
+                                <option value="Bungkus">Bungkus</option>
+                                <option value="Kaleng">Kaleng</option>
+                                <option value="Roll">Roll</option>
+                                <option value="Pasang">Pasang</option>
+                                <option value="Ampul">Ampul</option>
+                                <option value="Suppositoria">Suppositoria</option>
+                                <option value="Pen / Stik">Pen / Stik</option>
+                                <option value="Set">Set</option>
+                                <option value="Flabot">Flabot</option>
+                                <option value="Kantong">Kantong</option>
                             </select>
                         </div>
                     </div>
@@ -718,7 +746,7 @@ tailwind.config = {
                 <div class="bg-[#f8fafc] p-5 rounded-[24px] shadow-lg">
                     <h4 class="font-black text-slate-800 text-[15px] mb-4">Pembelian & Konversi</h4>
                     
-                    <div class="grid grid-cols-2 gap-3 mb-4">
+                   <div class="grid grid-cols-2 gap-3 mb-4">
                         <div>
                             <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Jumlah Dibeli</label>
                             <input type="number" id="tambahQtyBeli" oninput="kalkulasiTambahObatCerdas()" placeholder="5" class="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none text-center">
@@ -726,10 +754,17 @@ tailwind.config = {
                         <div>
                             <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Satuan Beli</label>
                             <select id="tambahSatuanBesar" onchange="kalkulasiTambahObatCerdas()" class="w-full bg-[#eef5ef] border border-[#b2d5bb] rounded-2xl px-3 py-3 text-sm font-bold text-[#274f31] focus:outline-none appearance-none">
-                                <option value="Dos">Dos</option>
-                                <option value="Karton">Karton</option>
-                                <option value="Box">Box</option>
-                                <option value="Strip">Strip</option> </select>
+                                <option value="" disabled selected hidden>Pilih (Cth: Box)</option>
+                                <option value="Bal">Bal</option>
+                                <option value="Botol">Botol</option>
+                                <option value="Box / Kotak">Box / Kotak</option>
+                                <option value="Dos / Karton">Dos / Karton</option>
+                                <option value="Kaleng">Kaleng</option>
+                                <option value="Pak">Pak</option>
+                                <option value="Renteng">Renteng</option>
+                                <option value="Hanger">Hanger</option>
+                                <option value="Lusin">Lusin</option>
+                            </select>
                         </div>
                     </div>
 
@@ -756,12 +791,12 @@ tailwind.config = {
                     <div class="grid grid-cols-2 gap-4 mb-5">
                         <div>
                             <label id="labelModalKotor" class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Modal (per Dos) <span class="text-red-500">*</span></label>
-                            <input type="number" id="tambahModalKotor" oninput="kalkulasiTambahObatCerdas()" placeholder="Rp 0" class="w-full bg-white border border-[#d97706]/40 rounded-2xl px-4 py-3 text-sm font-black text-slate-800 focus:outline-none shadow-inner">
+                            <input type="text" inputmode="numeric" id="tambahModalKotor" oninput="formatAngkaRibuan(this); kalkulasiTambahObatCerdas()" placeholder="Rp 0" class="w-full bg-white border border-[#d97706]/40 rounded-2xl px-4 py-3 text-sm font-black text-slate-800 focus:outline-none shadow-inner">
                             <p id="teksHppOtomatis" class="text-[9px] font-bold text-[#657e65] mt-1.5 leading-tight">Otomatis: HPP = Rp 0 / Pak</p>
                         </div>
                         <div>
                             <label id="labelJualEceran" class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Jual (per Pak) <span class="text-red-500">*</span></label>
-                            <input type="number" id="tambahJualEceran" oninput="kalkulasiTambahObatCerdas()" placeholder="Rp 0" class="w-full bg-white border border-[#d97706]/40 rounded-2xl px-4 py-3 text-sm font-black text-slate-800 focus:outline-none shadow-inner">
+                            <input type="text" inputmode="numeric" id="tambahJualEceran" oninput="formatAngkaRibuan(this); kalkulasiTambahObatCerdas()" placeholder="Rp 0" class="w-full bg-white border border-[#d97706]/40 rounded-2xl px-4 py-3 text-sm font-black text-slate-800 focus:outline-none shadow-inner">
                             <p id="teksEstimasiUntung" class="text-[9px] font-bold text-slate-500 mt-1.5 leading-tight">Est. Untung: Rp 0 / Pak</p>
                         </div>
                     </div>
@@ -897,7 +932,7 @@ tailwind.config = {
                     <i class="fa-solid fa-triangle-exclamation"></i> Kembalikan ke Pengaturan Awal (Reset)
                 </button>
             </div>
-,             <div class="p-6 border-t border-slate-100 bg-white grid grid-cols-2 gap-3 rounded-b-3xl">
+             <div class="p-6 border-t border-slate-100 bg-white grid grid-cols-2 gap-3 rounded-b-3xl">
                 <button onclick="tutupModalMobile('modalSetelanMobile')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3.5 rounded-2xl transition-colors">Batal</button>
                 <button onclick="prosesSimpanSetelanMobile()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 rounded-2xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2"><i class="fa-solid fa-save"></i> Simpan</button>
             </div>
