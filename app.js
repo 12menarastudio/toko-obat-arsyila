@@ -110,9 +110,9 @@ function renderBerandaMobile() {
         }
     });
     
-    document.getElementById('berandaOmzet').textContent = rupiah(omzet);
-    document.getElementById('berandaHPP').textContent = '- ' + rupiah(hpp);
-    document.getElementById('berandaLaba').textContent = rupiah(laba);
+  document.getElementById('berandaOmzet').textContent = rupiah(Math.round(omzet));
+    document.getElementById('berandaHPP').textContent = '- ' + rupiah(Math.round(hpp));
+    document.getElementById('berandaLaba').textContent = rupiah(Math.round(laba));
 
     let asetGudang = 0, totalJenisObat = 0, countKritis = 0, countExpired = 0, stokGabungan = {};
     let totalSisaStok = 0; // TAMBAHAN VARIABEL STOK
@@ -334,7 +334,7 @@ function renderGudangMobile(filter = '') {
                 <div class="text-slate-600 font-bold flex gap-2">
                     <span>Sisa: <span class="text-emerald-600">${b.stok}</span></span>
                     <span class="text-slate-300">|</span>
-                    <span>Beli: <span class="text-red-400">${rupiah(b.modal)}</span></span>
+                    <span>Beli: <span class="text-red-400">${rupiah(Math.round(b.modal))}</span></span>
                 </div>
             </div>`;
         }).join('<div class="h-1"></div>');
@@ -782,20 +782,28 @@ function prosesTransferMobile() {
         let batch = batchesGudang[i];
         if (sisaYgHarusDipindah <= 0) break;
         
-        let jumlahDiambil = Math.min(batch.stok, sisaYgHarusDipindah);
-        batch.stok -= jumlahDiambil;
-        sisaYgHarusDipindah -= jumlahDiambil;
-        
-        barangEtalase.stok += jumlahDiambil;
-        
-        if(!barangEtalase.antreanFIFO) barangEtalase.antreanFIFO = [];
-        let batchSamaDiEtalase = barangEtalase.antreanFIFO.find(b => b.idBatch === batch.idBatch);
-        
-        if(batchSamaDiEtalase) { 
-             batchSamaDiEtalase.stok += jumlahDiambil; 
-         } else { 
-             barangEtalase.antreanFIFO.push({ idBatch: batch.idBatch, modal: batch.modal, stok: jumlahDiambil, expired: batch.expired }); 
-         }
+          let jumlahDiambil = Math.min(batch.stok, sisaYgHarusDipindah);
+                    
+                    // --- MESIN PECAHAN DINAMIS (MASAL GUDANG -> ETALASE) ---
+                    let modalSisa = batch.totalModal !== undefined ? batch.totalModal : (batch.modal * batch.stok);
+                    let nilaiModalDipindah = Math.round((jumlahDiambil / batch.stok) * modalSisa);
+                    
+                    if (batch.totalModal !== undefined) batch.totalModal -= nilaiModalDipindah;
+                    batch.stok -= jumlahDiambil;
+                    sisaYgHarusDipindah -= jumlahDiambil;
+                    
+                    barangEtalase.stok += jumlahDiambil;
+                    
+                    if(!barangEtalase.antreanFIFO) barangEtalase.antreanFIFO = [];
+                    let batchSamaDiEtalase = barangEtalase.antreanFIFO.find(b => b.idBatch === batch.idBatch);
+                    
+                    if(batchSamaDiEtalase) { 
+                         batchSamaDiEtalase.stok += jumlahDiambil; 
+                         if (batchSamaDiEtalase.totalModal !== undefined) batchSamaDiEtalase.totalModal += nilaiModalDipindah;
+                     } else { 
+                         barangEtalase.antreanFIFO.push({ idBatch: batch.idBatch, modal: batch.modal, stok: jumlahDiambil, expired: batch.expired, totalModal: nilaiModalDipindah }); 
+                     }
+
     }
     
     barangEtalase.antreanFIFO.sort((a, b) => new Date(a.expired || '2099-12-31') - new Date(b.expired || '2099-12-31'));
@@ -963,14 +971,15 @@ function eksekusiSimpanEditLanjutanMobile(isKulakanBaru, nBaru, vBaru, kBaru, mB
         }
     }
     
-    if (isKulakanBaru || isAddingNewBatchMobile) {
+     if (isKulakanBaru || isAddingNewBatchMobile) {
         const idBatchBaru = 'B-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+        let qtySuntikan = isAddingNewBatchMobile ? sBaru : selisihStok;
         masterItems.unshift({ 
             idBatch: idBatchBaru, dnaInduk: referensi.dnaInduk, barcode: referensi.barcode, qrcode: referensi.qrcode,
-            nama: nBaru, varian: vBaru, keterangan: '', kategori: kBaru, modal: mBaru, jual: jBaru, stok: isAddingNewBatchMobile ? sBaru : selisihStok, expired: expBaru 
+            nama: nBaru, varian: vBaru, keterangan: '', kategori: kBaru, modal: mBaru, jual: jBaru, stok: qtySuntikan, expired: expBaru,
+            totalModal: qtySuntikan * mBaru
         });
         
-        let qtySuntikan = isAddingNewBatchMobile ? sBaru : selisihStok;
         siklusAktif.qtyTambahan += qtySuntikan; 
         siklusAktif.modalTambahan += (qtySuntikan * mBaru);
         if(!isAddingNewBatchMobile) alert("📦 Sukses! Sistem otomatis merakitkan Batch Kulakan Baru di Gudang.");
@@ -978,6 +987,7 @@ function eksekusiSimpanEditLanjutanMobile(isKulakanBaru, nBaru, vBaru, kBaru, mB
         siklusAktif.qtyTambahan += selisihStok; 
         siklusAktif.modalTambahan += (selisihStok * mBaru);
         barang.modal = mBaru; barang.jual = jBaru; barang.stok = sBaru; barang.expired = expBaru;
+        barang.totalModal = sBaru * mBaru; // Kunci ulang total modal jika diedit
         alert("✅ Data berhasil diperbarui!");
     }
     
@@ -1214,9 +1224,10 @@ function kalkulasiTambahObatCerdas() {
     document.getElementById('factSheetStok').textContent = `Total Stok Masuk: ${totalStokEceran} ${satEcer}`;
     document.getElementById('factSheetTagihan').textContent = `Total Tagihan Modal: ${rupiah(tagihanTotal)}`;
 
-    // Simpan data kalkulasi ini ke atribut elemen untuk dihisap oleh prosesSimpanObatBaruMobile
+   // Simpan data kalkulasi ini ke atribut elemen untuk dihisap oleh prosesSimpanObatBaruMobile
     document.getElementById('tambahQtyBeli').dataset.calculatedStok = totalStokEceran;
-    document.getElementById('tambahModalKotor').dataset.calculatedHpp = Math.round(hppEceran);
+    document.getElementById('tambahQtyBeli').dataset.tagihanMutlak = tagihanTotal;
+    document.getElementById('tambahModalKotor').dataset.calculatedHpp = hppEceran;
 }
 
 function prosesSimpanObatBaruMobile() {
@@ -1241,6 +1252,7 @@ function prosesSimpanObatBaruMobile() {
     // Tarik data hasil kalkulator
     const modal = parseFloat(document.getElementById('tambahModalKotor').dataset.calculatedHpp) || 0;
     const stok = parseFloat(document.getElementById('tambahQtyBeli').dataset.calculatedStok) || 0;
+    const tagihanMutlak = parseFloat(document.getElementById('tambahQtyBeli').dataset.tagihanMutlak) || (modal * stok);
     
     // satEcer hanya dipakai untuk notifikasi "Sukses" di bawah, tidak disimpan ke database identitas
     const satEcer = document.getElementById('tambahSatuanEceran').value; 
@@ -1259,8 +1271,9 @@ function prosesSimpanObatBaruMobile() {
         if (cekGudang && cekGudang.dnaInduk) { dnaInduk = cekGudang.dnaInduk; } else { dnaInduk = 'DNA-' + Date.now(); }
     }
 
-    // SIMPAN KE MEMORI: `varian` murni mengambil teks varian yang diketik, bukan "Pak/Strip"
-    masterItems.unshift({ idBatch, dnaInduk, barcode, qrcode, nama, varian: varian, keterangan: '', kategori, modal, jual, stok, expired });
+      // SIMPAN KE MEMORI: `varian` murni mengambil teks varian yang diketik, bukan "Pak/Strip"
+    // INJEKSI PECAHAN DINAMIS: Simpan totalModal (tagihanMutlak) agar angka akuntansi terkunci
+    masterItems.unshift({ idBatch, dnaInduk, barcode, qrcode, nama, varian: varian, keterangan: '', kategori, modal, jual, stok, expired, totalModal: tagihanMutlak });
     
     if (stok > 0) {
         if (siklusAktif.isLikuidasi) {
@@ -1277,7 +1290,7 @@ function prosesSimpanObatBaruMobile() {
         }
     }
     
-    let nilaiSuntikan = modal * stok; 
+    let nilaiSuntikan = tagihanMutlak; 
     
     // SAKLAR ROUTING CERDAS: 
     // Jika belum pernah Tutup Buku sama sekali (waktuStart kosong) = Masuk ke Catatan Awal
@@ -1414,16 +1427,31 @@ function prosesBayarMobile() {
         if(bEtalase) {
             bEtalase.stok -= k.qty;
             if(bEtalase.antreanFIFO && bEtalase.antreanFIFO.length > 0) {
-                for(let i = 0; i < bEtalase.antreanFIFO.length; i++) {
+              for(let i = 0; i < bEtalase.antreanFIFO.length; i++) {
                     let batch = bEtalase.antreanFIFO[i];
-                    if(batch.stok > 0) { let ambil = Math.min(sisaQtyDipotong, batch.stok); batch.stok -= ambil; sisaQtyDipotong -= ambil; totalModalItemIni += (ambil * batch.modal); if(sisaQtyDipotong <= 0) break; }
+                    if(batch.stok > 0) { 
+                        let ambil = Math.min(sisaQtyDipotong, batch.stok); 
+                        
+                        // --- MESIN PECAHAN DINAMIS (ETALASE -> PENJUALAN) ---
+                        let modalSisa = batch.totalModal !== undefined ? batch.totalModal : (batch.modal * batch.stok);
+                        let nilaiModalTerjual = Math.round((ambil / batch.stok) * modalSisa);
+                        
+                        if (batch.totalModal !== undefined) batch.totalModal -= nilaiModalTerjual;
+                        batch.stok -= ambil; 
+                        sisaQtyDipotong -= ambil; 
+                        totalModalItemIni += nilaiModalTerjual; 
+                        
+                        if(sisaQtyDipotong <= 0) break; 
+                    }
                 }
                 bEtalase.antreanFIFO = bEtalase.antreanFIFO.filter(b => b.stok > 0);
             } else { let bMaster = masterItems.find(m => m.nama === k.nama); totalModalItemIni = (bMaster ? bMaster.modal : 0) * k.qty; }
         }
-        totalLaba += ((k.jual * k.qty) - totalModalItemIni);
+     totalLaba += ((k.jual * k.qty) - totalModalItemIni);
         k.hppSatuan = Math.round(totalModalItemIni / k.qty); // SIMPAN HPP UNTUK RETUR
+        k.hppTotalModal = totalModalItemIni; // Kunci total modal absolut untuk retur yang presisi
     });
+
     
     if (metode !== 'Debt') siklusAktif.uangMasuk += totalBelanja; 
     
@@ -1465,11 +1493,12 @@ function prosesBatalTransaksiMobile(idTransaksi) {
                     let bEtalase = etalaseItems.find(i => i.nama === itemRetur.nama);
                     let idBatchRetur = 'RETUR-' + Date.now() + '-' + Math.floor(Math.random() * 1000); 
                     
+                   let modalReturKembali = itemRetur.hppTotalModal !== undefined ? itemRetur.hppTotalModal : ((itemRetur.hppSatuan || (itemRetur.jual * 0.8)) * itemRetur.qty);
                     if (bEtalase) { 
                         bEtalase.stok += itemRetur.qty; if(!bEtalase.antreanFIFO) bEtalase.antreanFIFO = [];
-                        bEtalase.antreanFIFO.unshift({ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: itemRetur.qty, expired: '' });
+                        bEtalase.antreanFIFO.unshift({ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: itemRetur.qty, expired: '', totalModal: modalReturKembali });
                     } else {
-                        etalaseItems.push({ dnaInduk: 'DNA-RETUR-' + Date.now(), nama: itemRetur.nama, kategori: '⚠️ Barang Retur', jual: itemRetur.jual, stok: itemRetur.qty, antreanFIFO: [{ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: itemRetur.qty, expired: '' }] }); 
+                        etalaseItems.push({ dnaInduk: 'DNA-RETUR-' + Date.now(), nama: itemRetur.nama, kategori: '⚠️ Barang Retur', jual: itemRetur.jual, stok: itemRetur.qty, antreanFIFO: [{ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: itemRetur.qty, expired: '', totalModal: modalReturKembali }] }); 
                     }
                 });
             } else { 
@@ -1643,20 +1672,28 @@ function prosesTransferMasalMobile() {
                     let batch = batchesGudang[i];
                     if (sisaYgHarusDipindah <= 0) break;
                     
-                    let jumlahDiambil = Math.min(batch.stok, sisaYgHarusDipindah);
-                    batch.stok -= jumlahDiambil;
-                    sisaYgHarusDipindah -= jumlahDiambil;
-                    
-                    barangEtalase.stok += jumlahDiambil;
-                    
-                    if(!barangEtalase.antreanFIFO) barangEtalase.antreanFIFO = [];
-                    let batchSamaDiEtalase = barangEtalase.antreanFIFO.find(b => b.idBatch === batch.idBatch);
-                    
-                    if(batchSamaDiEtalase) { 
-                         batchSamaDiEtalase.stok += jumlahDiambil; 
-                     } else { 
-                         barangEtalase.antreanFIFO.push({ idBatch: batch.idBatch, modal: batch.modal, stok: jumlahDiambil, expired: batch.expired }); 
-                     }
+                      let jumlahDiambil = Math.min(batch.stok, sisaYgHarusDipindah);
+            
+            // --- MESIN PECAHAN DINAMIS (GUDANG -> ETALASE) ---
+            let modalSisa = batch.totalModal !== undefined ? batch.totalModal : (batch.modal * batch.stok);
+            let nilaiModalDipindah = Math.round((jumlahDiambil / batch.stok) * modalSisa);
+            
+            if (batch.totalModal !== undefined) batch.totalModal -= nilaiModalDipindah;
+            batch.stok -= jumlahDiambil;
+            sisaYgHarusDipindah -= jumlahDiambil;
+            
+            barangEtalase.stok += jumlahDiambil;
+            
+            if(!barangEtalase.antreanFIFO) barangEtalase.antreanFIFO = [];
+            let batchSamaDiEtalase = barangEtalase.antreanFIFO.find(b => b.idBatch === batch.idBatch);
+            
+            if(batchSamaDiEtalase) { 
+                 batchSamaDiEtalase.stok += jumlahDiambil; 
+                 if (batchSamaDiEtalase.totalModal !== undefined) batchSamaDiEtalase.totalModal += nilaiModalDipindah;
+             } else { 
+                 barangEtalase.antreanFIFO.push({ idBatch: batch.idBatch, modal: batch.modal, stok: jumlahDiambil, expired: batch.expired, totalModal: nilaiModalDipindah }); 
+             }
+
                 }
                 barangEtalase.antreanFIFO.sort((a, b) => new Date(a.expired || '2099-12-31') - new Date(b.expired || '2099-12-31'));
             }
