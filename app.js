@@ -93,11 +93,16 @@ function renderBerandaMobile() {
     let omzet = 0, laba = 0, hpp = 0, daftarTerlaris = {}, totalKasbonBelumLunas = 0;
     let totalItemTerjualHariIni = 0, totalPembeliHariIni = 0; // TAMBAHAN VARIABEL BARU
     
+    let totalPelunasan = 0; // TAMBAHAN: Untuk melacak uang masuk dari utang
     cashierHistory.forEach(t => {
-        if (t.tanggal === tglHariIni && !t.isPelunasan) {
-            omzet += t.total || 0; laba += t.laba || 0; hpp += ((t.total || 0) - (t.laba || 0));
-            totalItemTerjualHariIni += (t.item || 0); // MENGHITUNG ITEM TERJUAL
-            totalPembeliHariIni++; // 1 STRUK = 1 PEMBELI
+        if (t.tanggal === tglHariIni) {
+            if (!t.isPelunasan) {
+                omzet += t.total || 0; laba += t.laba || 0; hpp += ((t.total || 0) - (t.laba || 0));
+                totalItemTerjualHariIni += (t.item || 0); 
+                totalPembeliHariIni++; 
+            } else {
+                totalPelunasan += t.total || 0; // Hanya catat sebagai kas masuk, bukan omzet
+            }
         }
         if (t.metode === 'Debt' && !t.statusLunas) totalKasbonBelumLunas++;
         if (!t.isPelunasan) {
@@ -113,6 +118,12 @@ function renderBerandaMobile() {
   document.getElementById('berandaOmzet').textContent = rupiah(Math.round(omzet));
     document.getElementById('berandaHPP').textContent = '- ' + rupiah(Math.round(hpp));
     document.getElementById('berandaLaba').textContent = rupiah(Math.round(laba));
+    
+    // INJEKSI UI: Menampilkan Pelunasan agar kasir tahu uang masuk hari ini
+    if(document.getElementById('berandaPelunasan')) {
+        document.getElementById('berandaPelunasan').textContent = '+ ' + rupiah(totalPelunasan);
+        document.getElementById('wadahPelunasan').classList.toggle('hidden', totalPelunasan === 0);
+    }
 
     let asetGudang = 0, totalJenisObat = 0, countKritis = 0, countExpired = 0, stokGabungan = {};
     let totalSisaStok = 0; // TAMBAHAN VARIABEL STOK
