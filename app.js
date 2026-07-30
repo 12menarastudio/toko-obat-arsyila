@@ -414,8 +414,20 @@ function renderEtalaseMobile() {
     }
     
     wadah.innerHTML = etalaseAktif.map(i => {
-        let subTeks = (i.varian || i.keterangan) ? `<p class="text-[9px] text-slate-400 italic mt-0.5">${i.varian || ''} ${i.keterangan || ''}</p>` : '';
-        return `<div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3"><div class="flex-1 pr-2 border-r border-slate-100"><h3 class="font-black text-slate-800 text-sm leading-tight">${i.nama}</h3>${subTeks}<p class="text-[10px] text-corporate-500 font-bold uppercase tracking-widest mt-1.5">${i.kategori || 'Tanpa Kategori'}</p></div><div class="flex flex-col items-end shrink-0 pl-1"><p class="font-black text-corporate-700 text-base mb-1">${rupiah(i.jual)}</p><div class="bg-emerald-50 text-emerald-600 border border-emerald-100 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-inner"><i class="fa-solid fa-boxes-stacked text-[9px]"></i><span class="font-black text-xs">${i.stok}</span></div></div></div>`;
+        let subTeks = i.varian ? `<span class="text-[9px] text-slate-400 font-medium ml-1.5 border-l border-slate-300 pl-1.5">${i.varian}</span>` : '';
+        return `
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex items-center justify-between gap-3">
+            <div class="flex-1 pr-2 border-r border-slate-100">
+                <h3 class="font-black text-slate-800 text-sm leading-tight flex items-center">${i.nama}${subTeks}</h3>
+                <p class="text-[10px] text-corporate-500 font-bold uppercase tracking-widest mt-1.5">${i.kategori || 'Tanpa Kategori'}</p>
+            </div>
+            <div class="flex flex-col items-end shrink-0 pl-1">
+                <p class="font-black text-corporate-700 text-base mb-1">${rupiah(i.jual)}</p>
+                <div class="bg-emerald-50 text-emerald-600 border border-emerald-100 px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-inner">
+                    <i class="fa-solid fa-boxes-stacked text-[9px]"></i><span class="font-black text-xs">${i.stok}</span>
+                </div>
+            </div>
+        </div>`;
     }).join('');
 }
 
@@ -543,13 +555,29 @@ function renderRiwayatMobile() {
         grupRiwayat[key].rawIds.push(t.id);
         
         if (t.isPelunasan) {
-            grupRiwayat[key].obat = t.obat; // Nama pelunasan khusus
+            grupRiwayat[key].obat = t.obat; 
         } else if(t.detailKeranjang && t.detailKeranjang.length > 0) {
             t.detailKeranjang.forEach(k => {
-                grupRiwayat[key].rincian.push(`- ${k.nama} (x${k.qty}) ... <span class="float-right font-black">${rupiah(k.jual * k.qty)}</span>`);
+                // SUNTIKAN: Perakitan Nama Cerdas (Nama + Varian + Kategori)
+                let nLengkap = k.nama;
+                if(k.varian) nLengkap += ` ${k.varian}`;
+                if(k.kategori) nLengkap += ` • ${k.kategori}`;
+                
+                // SUNTIKAN: Flexbox Smart Wrap (Harga anti-penyok & otomatis turun)
+                grupRiwayat[key].rincian.push(`
+                <div class="flex items-end w-full mb-1">
+                    <div class="text-[10px] text-slate-600 font-semibold leading-tight shrink">- ${nLengkap} (x${k.qty})</div>
+                    <div class="flex-grow border-b border-dotted border-slate-300 mx-1 mb-1 opacity-70 min-w-[10px]"></div>
+                    <div class="text-[11px] font-black text-slate-800 shrink-0 leading-tight">${rupiah(k.jual * k.qty)}</div>
+                </div>`);
             });
         } else {
-            grupRiwayat[key].rincian.push(`- ${t.obat} ... <span class="float-right font-black">${rupiah(t.total)}</span>`);
+            grupRiwayat[key].rincian.push(`
+            <div class="flex items-end w-full mb-1">
+                <div class="text-[10px] text-slate-600 font-semibold leading-tight shrink">- ${t.obat} (x${t.item || 1})</div>
+                <div class="flex-grow border-b border-dotted border-slate-300 mx-1 mb-1 opacity-70 min-w-[10px]"></div>
+                <div class="text-[11px] font-black text-slate-800 shrink-0 leading-tight">${rupiah(t.total)}</div>
+            </div>`);
         }
     });
 
@@ -560,13 +588,12 @@ function renderRiwayatMobile() {
         if(g.metode === 'Debt' && g.statusLunas) teksStatus = 'Lunas / Ditutup';
         if(g.isPelunasan) teksStatus = 'Uang Masuk (Kasbon)';
         
-        // Cek apakah item terpilih (Multi-seleksi riwayat)
         let isSelected = g.rawIds.some(id => itemTerpilihRiwayat.includes(id));
         let bgCard = isSelected ? 'bg-blue-50 border-blue-400 shadow-md transform scale-[0.98]' : 'bg-white border-slate-200 shadow-sm';
         let starIcon = g.isBintang ? `<i class="fa-solid fa-star text-amber-400 text-xs drop-shadow-sm ml-1.5 align-middle -mt-0.5"></i>` : '';
         
-        // Judul Gabungan
-        let judulObat = g.isPelunasan ? g.obat : (g.rincian.length > 1 ? `${g.rincian[0].split(' (')[0].replace('- ','')} & ${g.rincian.length - 1} lainnya` : g.rincian[0].split(' (')[0].replace('- ',''));
+        // SUNTIKAN: Perubahan Judul menjadi "X Item Pembelian" agar minimalis
+        let judulObat = g.isPelunasan ? g.obat : `<i class="fa-solid fa-box-open mr-1 text-slate-400"></i> ${g.item} Item Pembelian`;
         
         let teksKonsumen = (g.pelanggan && g.pelanggan !== 'UMUM' && !g.isPelunasan) ? `<p class="text-[10px] text-corporate-600 font-black mt-0.5 uppercase">Konsumen: ${g.pelanggan}</p>` : '';
         
@@ -574,14 +601,13 @@ function renderRiwayatMobile() {
         if (!g.isPelunasan && g.rincian.length > 0) {
             areaRincian = `
             <div class="mt-3 mb-2 pt-2 border-t border-dashed border-slate-200">
-                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Rincian Faktur:</p>
-                <div class="text-[10px] text-slate-600 font-semibold space-y-1">${g.rincian.join('<br>')}</div>
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Rincian Faktur:</p>
+                <div class="w-full">${g.rincian.join('')}</div>
             </div>`;
         }
 
         let tombolPortal = (g.metode === 'Debt' && g.pelanggan) ? `<button onclick="event.stopPropagation(); lompatKeBukuPiutang('${g.pelanggan}')" class="mt-2 text-[9px] font-bold text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors flex items-center gap-1.5 w-max active:scale-95"><i class="fa-solid fa-book-open"></i> Lihat Buku Piutang</button>` : '';
 
-        // Tombol Aksi (Batal & Cetak hanya ambil ID pertama dari gabungan sebagai jangkar)
         let tombolAksi = modeSeleksiRiwayatAktif ? '' : `
             <div class="flex gap-2 relative z-10 mt-3 justify-end border-t border-slate-100 pt-3">
                 <button onclick="event.stopPropagation(); prosesBatalTransaksiMobile(${g.rawIds[0]})" class="text-[10px] text-red-500 hover:bg-red-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-red-100 shadow-sm active:scale-95"><i class="fa-solid fa-rotate-left"></i> Batal</button>
@@ -592,7 +618,8 @@ function renderRiwayatMobile() {
         <div id="kartu-riwayat-${g.waktu.replace(':','')}-${g.pelanggan ? g.pelanggan.replace(/\s/g,'') : 'UMUM'}" onpointerdown="mulaiTekanRiwayat(${g.rawIds[0]})" onpointerup="lepasTekanRiwayat()" onpointerleave="lepasTekanRiwayat()" onclick="klikItemRiwayat(${g.rawIds[0]})" class="${bgCard} select-none border rounded-2xl p-4 flex flex-col transition-all cursor-pointer relative group">
             <div class="flex justify-between items-start pointer-events-none">
                 <div class="pr-2 flex-1">
-                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mb-1"><i class="fa-regular fa-clock"></i> ${g.waktu}</p>
+                    <!-- SUNTIKAN: Tampilan Tanggal + Jam agar aman saat difilter -->
+                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mb-1"><i class="fa-regular fa-calendar-days"></i> ${tglFilter} (${g.waktu})</p>
                     <h3 class="font-bold text-slate-800 text-sm leading-tight inline-block mb-1">${judulObat} ${starIcon}</h3>
                     <p class="text-[10px] text-slate-500 font-medium">Oleh: ${g.kasir}</p>
                     ${teksKonsumen}
@@ -688,24 +715,38 @@ function renderPiutangMobile() {
             
             // Baris Obat & Tombol Centang Kecil (Eceran)
             let itemLines = grup.items.map(itemDb => {
-                let namaObat = itemDb.detailKeranjang && itemDb.detailKeranjang.length > 0 ? `${itemDb.detailKeranjang[0].nama} (x${itemDb.detailKeranjang[0].qty})` : itemDb.obat;
+                let qtyTampil = 1;
+                let namaLengkap = itemDb.obat;
+                
+                // SUNTIKAN: Ekstraksi Nama Cerdas (Nama + Varian + Kategori)
+                if (itemDb.detailKeranjang && itemDb.detailKeranjang.length > 0) {
+                    let k = itemDb.detailKeranjang[0];
+                    qtyTampil = k.qty;
+                    namaLengkap = k.nama;
+                    if(k.varian) namaLengkap += ` ${k.varian}`;
+                    if(k.kategori) namaLengkap += ` • ${k.kategori}`;
+                } else {
+                    qtyTampil = itemDb.item || 1;
+                }
+                
+                // Param fungsi pelunasan di-escape agar tidak merusak tombol jika namanya ada tanda kutip
+                let namaObatParam = namaLengkap.replace(/'/g, "\\'");
                 
                 // Centang Kotak (Checkbox) HANYA muncul jika utang total lebih dari 1
                 let checkboxHtml = isMultiUtang ? `
-                <button onclick="prosesPelunasanEceran('${itemDb.id}', '${p.nama}', ${itemDb.total}, '${namaObat}')" class="w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-slate-300 bg-white text-slate-300 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all shadow-sm shrink-0" title="Lunasi Item Ini Saja">
+                <button onclick="prosesPelunasanEceran('${itemDb.id}', '${p.nama}', ${itemDb.total}, '${namaObatParam}')" class="w-5 h-5 mt-0.5 rounded-md text-[10px] flex items-center justify-center border border-slate-300 bg-white text-slate-300 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all shadow-sm shrink-0" title="Lunasi Item Ini Saja">
                     <i class="fa-solid fa-check"></i>
                 </button>` : '';
 
+                // SUNTIKAN: Flexbox Smart Wrap (Sejajar sempurna dengan harga di kanan)
                 return `
-                <div class="flex justify-between items-center mb-2 group/item hover:bg-slate-100 p-1.5 -mx-1.5 rounded-lg transition-colors">
-                    <div class="flex items-center gap-2">
+                <div class="flex items-end w-full mb-1.5 group/item hover:bg-slate-100 p-1.5 -mx-1.5 rounded-lg transition-colors">
+                    <div class="flex items-start gap-2 shrink">
                         ${checkboxHtml}
-                        <span class="text-[11px] text-slate-700 font-semibold truncate max-w-[120px] sm:max-w-[150px]">${namaObat}</span>
+                        <div class="text-[10.5px] text-slate-700 font-semibold leading-tight pt-0.5">${namaLengkap} (x${qtyTampil})</div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <span class="text-slate-300 text-[10px]">.....</span>
-                        <span class="text-[11px] font-black text-slate-800 shrink-0">${rupiah(itemDb.total)}</span>
-                    </div>
+                    <div class="flex-grow border-b border-dotted border-slate-300 mx-1 mb-1.5 opacity-70 min-w-[10px]"></div>
+                    <div class="text-[11px] font-black text-slate-800 shrink-0 leading-tight pb-0.5">${rupiah(itemDb.total)}</div>
                 </div>`;
             }).join('');
 
@@ -1109,10 +1150,11 @@ function prosesTransferMobile() {
     let namaObat = batchesGudang[0].nama;
     let kategoriObat = batchesGudang[0].kategori;
     let jualObat = batchesGudang[0].jual;
+    let varianObat = batchesGudang[0].varian; // Tambahkan ini
     
     let barangEtalase = etalaseItems.find(e => e.dnaInduk === dnaIndukTransferAktif || e.nama === namaObat);
     if(!barangEtalase) { 
-         barangEtalase = { dnaInduk: dnaIndukTransferAktif, nama: namaObat, kategori: kategoriObat, jual: jualObat, stok: 0, antreanFIFO: [] }; 
+         barangEtalase = { dnaInduk: dnaIndukTransferAktif, nama: namaObat, kategori: kategoriObat, jual: jualObat, varian: varianObat, stok: 0, antreanFIFO: [] }; // Tambahkan varian: varianObat
          etalaseItems.push(barangEtalase); 
      }
     
@@ -1671,7 +1713,11 @@ function bukaModalKasirMobile() {
     
     etalaseItems.forEach(item => { 
         if(item.stok > 0) { 
-            list.innerHTML += `<button onclick="pilihObatDariDropdown('${item.nama}')" class="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex justify-between items-center"><span class="font-bold text-slate-800 text-xs">${item.nama}</span><span class="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Sisa ${item.stok}</span></button>`; 
+            // SUNTIKAN: Merakit Nama + Varian + Kategori secara elegan dalam satu baris
+            let teksVarian = item.varian ? ` <span class="text-slate-400 font-medium">${item.varian}</span>` : '';
+            let teksKategori = item.kategori ? ` <span class="text-[9px] uppercase font-black text-corporate-500">• ${item.kategori}</span>` : '';
+            
+            list.innerHTML += `<button onclick="pilihObatDariDropdown('${item.nama}')" class="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors flex justify-between items-center"><div class="leading-tight"><span class="font-bold text-slate-800 text-xs">${item.nama}</span>${teksVarian}${teksKategori}</div><span class="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 shrink-0 ml-2">Sisa ${item.stok}</span></button>`; 
             adaBarang = true; 
         } 
     });
@@ -1707,7 +1753,8 @@ function masukkanKeKeranjangMobile(barang) {
             triggerHaptic([50, 100]);
         } else { alert("⚠️ Sisa stok " + barang.nama + " tidak cukup!"); }
     } else {
-        keranjangKasirMobile.push({ nama: barang.nama, varian: barang.varian, keterangan: barang.keterangan, jual: barang.jual, qty: 1, stokMax: barang.stok });
+        // SUNTIKAN: Membawa serta 'kategori' masuk ke dalam kantong belanja
+        keranjangKasirMobile.push({ nama: barang.nama, varian: barang.varian, keterangan: barang.keterangan, kategori: barang.kategori, jual: barang.jual, qty: 1, stokMax: barang.stok });
         showToast(`✅ 1 stok ${barang.nama} berhasil masuk keranjang.`);
         triggerHaptic([50, 100]);
     }
@@ -2053,7 +2100,7 @@ function prosesTransferMasalMobile() {
                 
                 let barangEtalase = etalaseItems.find(e => e.dnaInduk === dnaInduk || e.nama === namaObat);
                 if(!barangEtalase) { 
-                     barangEtalase = { dnaInduk: dnaInduk, nama: namaObat, kategori: batchesGudang[0].kategori, jual: batchesGudang[0].jual, stok: 0, antreanFIFO: [] };
+                     barangEtalase = { dnaInduk: dnaInduk, nama: namaObat, kategori: batchesGudang[0].kategori, jual: batchesGudang[0].jual, varian: batchesGudang[0].varian, stok: 0, antreanFIFO: [] };
                     etalaseItems.push(barangEtalase); 
                  }
                 
