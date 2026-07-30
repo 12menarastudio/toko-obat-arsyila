@@ -675,38 +675,59 @@ function renderPiutangMobile() {
 
     wadah.innerHTML = listTampil.map(p => {
         
+        // Logika Pintar: Cek apakah total utang pelanggan ini > 1
+        let isMultiUtang = p.idsAktif.length > 1; 
+
         // ==========================================
         // RENDER ZONA MERAH (Tunggakan Dikelompokkan by Waktu)
         // ==========================================
         let zonaMerahHtml = Object.values(p.tunggakanAktif).map(grup => {
             
+            // Logika Pintar: Cek apakah di dalam kotak waktu ini ada > 1 barang
+            let isMultiDalamSatuWaktu = grup.items.length > 1; 
+            
             // Baris Obat & Tombol Centang Kecil (Eceran)
             let itemLines = grup.items.map(itemDb => {
                 let namaObat = itemDb.detailKeranjang && itemDb.detailKeranjang.length > 0 ? `${itemDb.detailKeranjang[0].nama} (x${itemDb.detailKeranjang[0].qty})` : itemDb.obat;
+                
+                // Centang Kotak (Checkbox) HANYA muncul jika utang total lebih dari 1
+                let checkboxHtml = isMultiUtang ? `
+                <button onclick="prosesPelunasanEceran('${itemDb.id}', '${p.nama}', ${itemDb.total}, '${namaObat}')" class="w-5 h-5 rounded-md text-[10px] flex items-center justify-center border border-slate-300 bg-white text-slate-300 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all shadow-sm shrink-0" title="Lunasi Item Ini Saja">
+                    <i class="fa-solid fa-check"></i>
+                </button>` : '';
+
                 return `
-                <div class="flex justify-between items-center mb-1 group/item hover:bg-slate-100 p-1 -mx-1 rounded transition-colors">
-                    <div class="flex items-center gap-1.5">
-                        <button onclick="prosesPelunasanEceran('${itemDb.id}', '${p.nama}', ${itemDb.total}, '${namaObat}')" class="w-4 h-4 rounded text-[8px] flex items-center justify-center border border-slate-300 bg-white text-slate-300 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all shadow-sm" title="Lunasi Item Ini Saja">
-                            <i class="fa-solid fa-check"></i>
-                        </button>
-                        <span class="text-[10px] text-slate-600 font-semibold">${namaObat} <span class="text-slate-300 mx-0.5">.....</span></span>
+                <div class="flex justify-between items-center mb-2 group/item hover:bg-slate-100 p-1.5 -mx-1.5 rounded-lg transition-colors">
+                    <div class="flex items-center gap-2">
+                        ${checkboxHtml}
+                        <span class="text-[11px] text-slate-700 font-semibold truncate max-w-[120px] sm:max-w-[150px]">${namaObat}</span>
                     </div>
-                    <span class="text-[10px] font-black text-slate-700">${rupiah(itemDb.total)}</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-slate-300 text-[10px]">.....</span>
+                        <span class="text-[11px] font-black text-slate-800 shrink-0">${rupiah(itemDb.total)}</span>
+                    </div>
                 </div>`;
             }).join('');
 
+            // Teks Harga di Sudut Kanan Atas Waktu (Dihilangkan jika hanya 1 item dalam waktu tersebut)
+            let totalWaktuHtml = isMultiDalamSatuWaktu ? `<span class="font-black text-red-600 text-xs bg-red-50 px-2 py-1 rounded-md border border-red-100 shadow-inner">${rupiah(grup.totalWaktuIni)}</span>` : '';
+
+            // Perubahan Desain: Outline Card Penuh (Bukan sekadar garis kiri)
             return `
-            <div class="bg-white border-l-2 border-red-400 rounded-xl p-3 mb-2 shadow-sm">
-                <div class="flex justify-between items-center mb-2">
-                    <span class="text-[10px] font-bold text-slate-500"><i class="fa-regular fa-calendar mr-1"></i> ${grup.tanggal} (${grup.waktu})</span>
-                    <span class="font-black text-red-600 text-[11px]">${rupiah(grup.totalWaktuIni)}</span>
+            <div class="bg-white border border-red-200 rounded-xl p-3.5 mb-3 shadow-sm relative overflow-hidden">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-red-400"></div>
+                <div class="flex justify-between items-center border-b border-slate-100 pb-2.5 mb-2.5 pl-1.5">
+                    <span class="text-[10px] font-bold text-slate-500 flex items-center gap-1.5"><i class="fa-regular fa-calendar-days text-slate-400"></i> ${grup.tanggal} (${grup.waktu})</span>
+                    ${totalWaktuHtml}
                 </div>
-                <div class="border-t border-dashed border-slate-100 pt-2 mb-2">
+                <div class="pl-1.5 mb-3">
                     ${itemLines}
                 </div>
-                <button onclick="lompatKeRiwayat('${grup.tanggal}', '${grup.waktu}', '${p.nama}')" class="text-[9px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition-colors flex items-center gap-1 w-max active:scale-95">
-                    <i class="fa-solid fa-clock-rotate-left"></i> Cek Jejak Asli
-                </button>
+                <div class="pl-1.5">
+                    <button onclick="lompatKeRiwayat('${grup.tanggal}', '${grup.waktu}', '${p.nama}')" class="text-[9px] font-bold text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors flex items-center gap-1.5 w-max active:scale-95 shadow-sm">
+                        <i class="fa-solid fa-clock-rotate-left"></i> Cek Jejak Asli
+                    </button>
+                </div>
             </div>`;
         }).join('');
 
@@ -720,58 +741,77 @@ function renderPiutangMobile() {
             let limitTampil = p.riwayatLunas.slice(0, 3); // Tampilkan max 3 terakhir agar tidak kepanjangan
             
             let lunasLines = limitTampil.map(lunasDb => `
-            <div class="bg-white border-l-2 border-emerald-400 rounded-xl p-2.5 mb-1.5 shadow-sm">
-                <div class="flex justify-between items-center mb-1">
-                    <span class="text-[9px] font-bold text-emerald-600"><i class="fa-solid fa-check-circle mr-1"></i> ${lunasDb.tanggal} (${lunasDb.waktu})</span>
-                    <span class="font-black text-emerald-700 text-[10px]">+ ${rupiah(lunasDb.total)}</span>
+            <div class="bg-white border border-emerald-200 rounded-xl p-3 mb-2 shadow-sm relative overflow-hidden">
+                <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400"></div>
+                <div class="flex justify-between items-center mb-1.5 pl-1.5">
+                    <span class="text-[10px] font-bold text-emerald-600 flex items-center gap-1.5"><i class="fa-solid fa-check-circle"></i> ${lunasDb.tanggal} (${lunasDb.waktu})</span>
+                    <span class="font-black text-emerald-700 text-[11px] bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-100">+ ${rupiah(lunasDb.total)}</span>
                 </div>
-                <p class="text-[9px] text-slate-500 leading-tight truncate">Membayar: ${lunasDb.obat.replace('PELUNASAN GABUNGAN: ','').replace('Pelunasan Utang: ','')}</p>
+                <p class="text-[10px] text-slate-500 leading-tight truncate pl-1.5 font-medium">Membayar: <span class="text-slate-700">${lunasDb.obat.replace('PELUNASAN GABUNGAN: ','').replace('Pelunasan Utang: ','').replace('Pelunasan Eceran: ','')}</span></p>
             </div>`).join('');
             
             zonaHijauHtml = `
-            <div class="mt-4 pt-3 border-t border-slate-200">
-                <p class="text-[9px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1 mb-2"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat Pelunasan Terakhir</p>
+            <div class="mt-5 pt-4 border-t border-slate-200">
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600"><i class="fa-solid fa-clock-rotate-left text-[10px]"></i></div>
+                    <p class="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Riwayat Pelunasan Terakhir</p>
+                </div>
                 ${lunasLines}
             </div>`;
         }
+
+        // Teks Tombol Bawah (Dinamic based on item count)
+        let teksTombolLunas = isMultiUtang ? 'LUNASI SEMUA' : 'LUNASI';
 
         // ==========================================
         // KARTU UTAMA MUKRIN
         // ==========================================
         return `
-        <div id="kartu-piutang-${p.nama.replace(/\s/g,'')}" class="bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 shadow-sm relative transition-all duration-500">
-            <div class="flex justify-between items-start mb-3">
-                <div>
-                    <h4 class="font-black text-slate-800 text-lg uppercase tracking-tight flex items-center gap-2"><i class="fa-solid fa-user text-slate-300"></i> ${p.nama}</h4>
-                    <p class="text-[10px] font-bold text-slate-400 mt-0.5">${p.idsAktif.length} Item Menggantung</p>
+        <div id="kartu-piutang-${p.nama.replace(/\s/g,'')}" class="bg-slate-50 border-2 border-slate-200 rounded-[1.5rem] p-5 shadow-md relative transition-all duration-500 overflow-hidden">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-white rounded-bl-full -z-0 opacity-60 pointer-events-none"></div>
+            
+            <div class="flex justify-between items-start mb-4 relative z-10">
+                <div class="flex items-center gap-3">
+                    <div class="w-12 h-12 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-xl shadow-inner border border-slate-300"><i class="fa-solid fa-user"></i></div>
+                    <div>
+                        <h4 class="font-black text-slate-800 text-lg uppercase tracking-tight leading-none mb-1">${p.nama}</h4>
+                        <p class="text-[10px] font-bold text-slate-500 bg-slate-200/50 px-2 py-0.5 rounded-md inline-block">${p.idsAktif.length} Item Menggantung</p>
+                    </div>
                 </div>
                 <div class="flex gap-2 shrink-0">
                     <button onclick="tagihWAMultiPiutang('${p.nama}')" class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-200 shadow-sm active:scale-95 transition-transform" title="Kirim Tagihan WA">
-                        <i class="fa-brands fa-whatsapp text-lg"></i>
+                        <i class="fa-brands fa-whatsapp text-xl"></i>
                     </button>
                     <button onclick="bukaKasirKhususPiutang('${p.nama}', '${p.wa || ''}')" class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-200 shadow-sm active:scale-95 transition-transform" title="Tambah Utang Baru">
-                        <i class="fa-solid fa-cart-plus"></i>
+                        <i class="fa-solid fa-cart-plus text-lg"></i>
                     </button>
                 </div>
             </div>
 
-            <div class="mb-4">
-                <p class="text-[9px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1 mb-2"><i class="fa-solid fa-triangle-exclamation"></i> Tunggakan Aktif</p>
-                <div class="max-h-60 overflow-y-auto hide-scrollbar pb-1">
+            <div class="mb-2 relative z-10">
+                <div class="flex items-center gap-2 mb-3">
+                    <div class="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center text-red-600"><i class="fa-solid fa-triangle-exclamation text-[10px] animate-pulse"></i></div>
+                    <p class="text-[10px] font-black text-red-600 uppercase tracking-widest">Tunggakan Aktif</p>
+                </div>
+                <div class="max-h-[300px] overflow-y-auto hide-scrollbar pb-1">
                     ${zonaMerahHtml}
                 </div>
             </div>
             
-            ${zonaHijauHtml}
-
-            <div class="flex items-center justify-between border-t border-slate-200 pt-4 mt-1 mb-3">
-                <span class="text-[11px] font-black text-slate-500 uppercase tracking-wider">Total Tunggakan</span>
-                <span class="text-2xl font-black text-red-600">${rupiah(p.totalAktif)}</span>
+            <div class="relative z-10">
+                ${zonaHijauHtml}
             </div>
 
-            <button onclick="bukaModalPelunasanMobile('${p.idsAktif.join(',')}', '${p.nama}', ${p.totalAktif})" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3.5 rounded-xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm uppercase tracking-wider">
-                <i class="fa-solid fa-hand-holding-dollar text-lg"></i> Lunasi Semua
-            </button>
+            <div class="bg-white border border-slate-200 rounded-xl p-4 mt-4 relative z-10 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <span class="text-xs font-black text-slate-500 uppercase tracking-wider">Total Tunggakan</span>
+                    <span class="text-2xl font-black text-red-600 tracking-tight drop-shadow-sm">${rupiah(p.totalAktif)}</span>
+                </div>
+
+                <button onclick="bukaModalPelunasanMobile('${p.idsAktif.join(',')}', '${p.nama}', ${p.totalAktif})" class="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black py-4 rounded-xl shadow-[0_4px_15px_rgba(239,68,68,0.3)] transition-transform active:scale-95 flex items-center justify-center gap-2 text-[13px] uppercase tracking-wider border border-red-400">
+                    <i class="fa-solid fa-hand-holding-dollar text-lg"></i> ${teksTombolLunas}
+                </button>
+            </div>
         </div>`;
     }).join('');
 }
