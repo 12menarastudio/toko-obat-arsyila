@@ -75,6 +75,11 @@ function bukaLayar(targetLayar) {
          }
     });
     
+    // [PENYEMPURNAAN UX] Hapus isi kolom pencarian otomatis jika pindah layar secara manual
+    if (targetLayar === 'piutang') { let s = document.getElementById('cariPiutangMobile'); if(s) s.value = ''; }
+    if (targetLayar === 'gudang') { let s = document.getElementById('cariGudangMobile'); if(s) s.value = ''; }
+    if (targetLayar === 'etalase') { let s = document.getElementById('cariEtalaseMobile'); if(s) s.value = ''; }
+    
     // Jalankan fungsi render sesuai layar yang dibuka
     if (targetLayar === 'beranda') renderBerandaMobile();
     if (targetLayar === 'rekap') renderRekapMobile();
@@ -522,41 +527,85 @@ function renderRiwayatMobile() {
         document.getElementById('btnArsipHeaderSeleksi').innerHTML = riwayatTabAktifMobile === 'arsip' ? '<i class="fa-solid fa-eye"></i>' : '<i class="fa-solid fa-eye-slash"></i>';
     }
     
-    wadah.innerHTML = dataTampil.map(t => {
-        let badgeWarna = t.metode === 'Tunai' ? 'bg-emerald-100 text-emerald-700' : (t.metode === 'QRIS' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700');
-        let teksStatus = t.metode;
+    // [PENYEMPURNAAN 2] ILUSI VISUAL GROUPING BERDASAR WAKTU & NAMA
+    let grupRiwayat = {};
+    dataTampil.forEach(t => {
+        let key = t.isPelunasan ? `PELUNASAN_${t.id}` : `${t.waktu}_${t.pelanggan || 'UMUM'}_${t.metode}`;
+        if (!grupRiwayat[key]) {
+            grupRiwayat[key] = {
+                idGabungan: t.id, waktu: t.waktu, metode: t.metode, pelanggan: t.pelanggan, kasir: t.kasir,
+                isPelunasan: t.isPelunasan, isBintang: t.isBintang, statusLunas: t.statusLunas,
+                total: 0, item: 0, rincian: [], rawIds: []
+            };
+        }
+        grupRiwayat[key].total += (t.total || 0);
+        grupRiwayat[key].item += (t.item || 1);
+        grupRiwayat[key].rawIds.push(t.id);
         
-        if(t.metode === 'Debt' && t.statusLunas) teksStatus = 'Lunas / Ditutup';
-        if(t.isPelunasan) teksStatus = 'Uang Masuk (Kasbon)';
+        if (t.isPelunasan) {
+            grupRiwayat[key].obat = t.obat; // Nama pelunasan khusus
+        } else if(t.detailKeranjang && t.detailKeranjang.length > 0) {
+            t.detailKeranjang.forEach(k => {
+                grupRiwayat[key].rincian.push(`- ${k.nama} (x${k.qty}) ... <span class="float-right font-black">${rupiah(k.jual * k.qty)}</span>`);
+            });
+        } else {
+            grupRiwayat[key].rincian.push(`- ${t.obat} ... <span class="float-right font-black">${rupiah(t.total)}</span>`);
+        }
+    });
+
+    wadah.innerHTML = Object.values(grupRiwayat).map(g => {
+        let badgeWarna = g.metode === 'Tunai' ? 'bg-emerald-100 text-emerald-700' : (g.metode === 'QRIS' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700');
+        let teksStatus = g.metode;
         
-        let isSelected = itemTerpilihRiwayat.includes(t.id);
+        if(g.metode === 'Debt' && g.statusLunas) teksStatus = 'Lunas / Ditutup';
+        if(g.isPelunasan) teksStatus = 'Uang Masuk (Kasbon)';
+        
+        // Cek apakah item terpilih (Multi-seleksi riwayat)
+        let isSelected = g.rawIds.some(id => itemTerpilihRiwayat.includes(id));
         let bgCard = isSelected ? 'bg-blue-50 border-blue-400 shadow-md transform scale-[0.98]' : 'bg-white border-slate-200 shadow-sm';
-        let starIcon = t.isBintang ? `<i class="fa-solid fa-star text-amber-400 text-xs drop-shadow-sm ml-1.5 align-middle -mt-0.5"></i>` : '';
+        let starIcon = g.isBintang ? `<i class="fa-solid fa-star text-amber-400 text-xs drop-shadow-sm ml-1.5 align-middle -mt-0.5"></i>` : '';
         
+        // Judul Gabungan
+        let judulObat = g.isPelunasan ? g.obat : (g.rincian.length > 1 ? `${g.rincian[0].split(' (')[0].replace('- ','')} & ${g.rincian.length - 1} lainnya` : g.rincian[0].split(' (')[0].replace('- ',''));
+        
+        let teksKonsumen = (g.pelanggan && g.pelanggan !== 'UMUM' && !g.isPelunasan) ? `<p class="text-[10px] text-corporate-600 font-black mt-0.5 uppercase">Konsumen: ${g.pelanggan}</p>` : '';
+        
+        let areaRincian = '';
+        if (!g.isPelunasan && g.rincian.length > 0) {
+            areaRincian = `
+            <div class="mt-3 mb-2 pt-2 border-t border-dashed border-slate-200">
+                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Rincian Faktur:</p>
+                <div class="text-[10px] text-slate-600 font-semibold space-y-1">${g.rincian.join('<br>')}</div>
+            </div>`;
+        }
+
+        let tombolPortal = (g.metode === 'Debt' && g.pelanggan) ? `<button onclick="event.stopPropagation(); lompatKeBukuPiutang('${g.pelanggan}')" class="mt-2 text-[9px] font-bold text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors flex items-center gap-1.5 w-max active:scale-95"><i class="fa-solid fa-book-open"></i> Lihat Buku Piutang</button>` : '';
+
+        // Tombol Aksi (Batal & Cetak hanya ambil ID pertama dari gabungan sebagai jangkar)
         let tombolAksi = modeSeleksiRiwayatAktif ? '' : `
-            <div class="flex gap-2 relative z-10">
-                <button onclick="event.stopPropagation(); prosesBatalTransaksiMobile(${t.id})" class="text-[10px] text-red-500 hover:bg-red-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-red-100 shadow-sm active:scale-95"><i class="fa-solid fa-rotate-left"></i> Batal</button>
-                <button onclick="event.stopPropagation(); prosesCetakStrukMobile(${t.id}, this)" class="text-[10px] text-blue-600 hover:bg-blue-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-blue-100 shadow-sm active:scale-95"><i class="fa-solid fa-print"></i> Cetak</button>
+            <div class="flex gap-2 relative z-10 mt-3 justify-end border-t border-slate-100 pt-3">
+                <button onclick="event.stopPropagation(); prosesBatalTransaksiMobile(${g.rawIds[0]})" class="text-[10px] text-red-500 hover:bg-red-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-red-100 shadow-sm active:scale-95"><i class="fa-solid fa-rotate-left"></i> Batal</button>
+                <button onclick="event.stopPropagation(); prosesCetakStrukMobile(${g.rawIds[0]}, this)" class="text-[10px] text-blue-600 hover:bg-blue-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-blue-100 shadow-sm active:scale-95"><i class="fa-solid fa-print"></i> Cetak</button>
             </div>`;
             
         return `
-        <div onpointerdown="mulaiTekanRiwayat(${t.id})" onpointerup="lepasTekanRiwayat()" onpointerleave="lepasTekanRiwayat()" onclick="klikItemRiwayat(${t.id})" class="${bgCard} select-none border rounded-2xl p-4 flex flex-col gap-3 transition-all cursor-pointer relative overflow-hidden group">
-            <div class="flex justify-between items-start border-b ${isSelected ? 'border-blue-200' : 'border-slate-100'} pb-3 pointer-events-none">
+        <div id="kartu-riwayat-${g.waktu.replace(':','')}-${g.pelanggan ? g.pelanggan.replace(/\s/g,'') : 'UMUM'}" onpointerdown="mulaiTekanRiwayat(${g.rawIds[0]})" onpointerup="lepasTekanRiwayat()" onpointerleave="lepasTekanRiwayat()" onclick="klikItemRiwayat(${g.rawIds[0]})" class="${bgCard} select-none border rounded-2xl p-4 flex flex-col transition-all cursor-pointer relative group">
+            <div class="flex justify-between items-start pointer-events-none">
                 <div class="pr-2 flex-1">
-                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mb-1"><i class="fa-regular fa-clock"></i> ${t.waktu}</p>
-                    <h3 class="font-bold text-slate-800 text-sm leading-tight inline-block">${t.obat} ${starIcon}</h3>
-                    <p class="text-[10px] text-slate-500 font-medium mt-1">Oleh: ${t.kasir}</p>
+                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mb-1"><i class="fa-regular fa-clock"></i> ${g.waktu}</p>
+                    <h3 class="font-bold text-slate-800 text-sm leading-tight inline-block mb-1">${judulObat} ${starIcon}</h3>
+                    <p class="text-[10px] text-slate-500 font-medium">Oleh: ${g.kasir}</p>
+                    ${teksKonsumen}
                 </div>
                 <div class="text-right shrink-0">
-                    <p class="font-black ${isSelected ? 'text-blue-700' : 'text-corporate-700'} text-base">${rupiah(t.total)}</p>
+                    <p class="font-black ${isSelected ? 'text-blue-700' : 'text-corporate-700'} text-base">${rupiah(g.total)}</p>
                     <span class="inline-block mt-1.5 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider ${badgeWarna}">${teksStatus}</span>
                 </div>
             </div>
             
-            <div class="flex items-center justify-between border-t ${isSelected ? 'border-blue-200' : 'border-slate-100'} pt-3 mt-1 pointer-events-none">
-                <span class="text-xs font-semibold ${isSelected ? 'text-blue-600' : 'text-slate-500'}">${t.item} Item</span>
-            </div>
-            <div class="absolute bottom-4 right-4">${tombolAksi}</div>
+            ${areaRincian}
+            ${tombolPortal}
+            ${tombolAksi}
         </div>`;
     }).join('');
 }
@@ -566,28 +615,267 @@ function renderRiwayatMobile() {
 // ==========================================
 function renderPiutangMobile() {
     const wadah = document.getElementById('daftarPiutangMobile');
+    const searchInput = document.getElementById('cariPiutangMobile');
+    const filterTeks = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
     let totalPiutang = 0;
-    const dataPiutang = cashierHistory.filter(t => t.metode === 'Debt');
     
-    if (dataPiutang.length === 0) {
-        wadah.innerHTML = `<div class="bg-white border border-slate-200 rounded-3xl p-8 text-center shadow-sm mt-4"><i class="fa-solid fa-face-smile-beam text-5xl text-emerald-400 mb-3 block"></i><p class="font-bold text-slate-600">Bagus Sekali!</p><p class="text-xs text-slate-500 mt-1">Tidak ada pelanggan yang menunggak.</p></div>`;
-        document.getElementById('headerTotalPiutangMobile').textContent = rupiah(0);
+    // Ambil SEMUA transaksi Debt (Lunas & Belum) + Pelunasan untuk diracik jadi Rekening Koran
+    const dataDebtMentah = cashierHistory.filter(t => t.metode === 'Debt' || t.isPelunasan);
+    
+    // Agregasi Pelanggan (Grup Utama)
+    let agregasiPelanggan = {};
+    
+    dataDebtMentah.forEach(t => {
+        if (!t.pelanggan) return;
+        let namaNormal = t.pelanggan.trim().toUpperCase(); 
+        
+        if(!agregasiPelanggan[namaNormal]) {
+            agregasiPelanggan[namaNormal] = { 
+                nama: namaNormal, wa: t.wa, totalAktif: 0, 
+                tunggakanAktif: {}, riwayatLunas: [], idsAktif: [] 
+            };
+        }
+
+        if (t.isPelunasan) {
+            // Masukkan ke Zona Hijau
+            agregasiPelanggan[namaNormal].riwayatLunas.push(t);
+        } else if (!t.statusLunas) {
+            // Masukkan ke Zona Merah & Grupkan berdasarkan WAKTU (Ilusi Visual Waktu)
+            agregasiPelanggan[namaNormal].totalAktif += (t.total || 0);
+            agregasiPelanggan[namaNormal].idsAktif.push(t.id);
+            totalPiutang += (t.total || 0);
+            
+            let keyWaktu = t.tanggal + '_' + t.waktu;
+            if(!agregasiPelanggan[namaNormal].tunggakanAktif[keyWaktu]) {
+                agregasiPelanggan[namaNormal].tunggakanAktif[keyWaktu] = {
+                    tanggal: t.tanggal, waktu: t.waktu, totalWaktuIni: 0, items: []
+                };
+            }
+            agregasiPelanggan[namaNormal].tunggakanAktif[keyWaktu].totalWaktuIni += t.total;
+            agregasiPelanggan[namaNormal].tunggakanAktif[keyWaktu].items.push(t);
+        }
+    });
+
+    document.getElementById('headerTotalPiutangMobile').textContent = rupiah(totalPiutang);
+
+    // Filter Pencarian & Buang pelanggan yang tidak punya hutang aktif sama sekali
+    // [PENYEMPURNAAN UX] Memastikan jika kolom cari kosong, SELURUH PENGUTANG tampil tanpa kecuali
+    let listTampil = Object.values(agregasiPelanggan)
+        .filter(p => p.totalAktif > 0 && (filterTeks === '' || p.nama.toLowerCase().includes(filterTeks)));
+
+    if(listTampil.length === 0) {
+        if (filterTeks === '') {
+            wadah.innerHTML = `<div class="bg-white border border-slate-200 rounded-3xl p-8 text-center shadow-sm mt-4"><i class="fa-solid fa-face-smile-beam text-5xl text-emerald-400 mb-3 block"></i><p class="font-bold text-slate-600">Bagus Sekali!</p><p class="text-xs text-slate-500 mt-1">Tidak ada pelanggan yang menunggak.</p></div>`;
+        } else {
+            wadah.innerHTML = `<div class="text-center p-6 text-slate-400 text-xs font-bold">Pencarian tidak ditemukan.</div>`;
+        }
         return;
     }
-    
-    wadah.innerHTML = dataPiutang.map(t => {
-        const nama = t.pelanggan || 'Pelanggan Tanpa Nama';
-        const waLink = t.wa ? `<button onclick="tagihViaWAMobile(${t.id})" class="text-[10px] text-emerald-600 hover:text-emerald-800 font-bold bg-emerald-50 px-2 py-1 rounded border border-emerald-100 flex items-center gap-1 shrink-0 transition-transform active:scale-95 shadow-sm"><i class="fa-brands fa-whatsapp"></i> Kirim Struk</button>` : '';
+
+    wadah.innerHTML = listTampil.map(p => {
         
-        if (t.statusLunas) {
-            return `<div class="bg-slate-50 border-2 border-emerald-400 rounded-2xl p-4 shadow-sm opacity-70"><div class="flex justify-between items-start mb-2"><div><span class="bg-emerald-100 text-emerald-700 text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-wider">Sudah Lunas</span><h4 class="font-bold text-slate-800 text-sm mt-1 uppercase">${nama}</h4></div><p class="font-black text-emerald-600 line-through">${rupiah(t.total)}</p></div><p class="text-[10px] text-slate-500 leading-tight">${t.obat}</p></div>`;
-        } else {
-            totalPiutang += t.total || 0;
-            return `<div class="bg-white border-2 border-red-200 rounded-2xl p-4 shadow-sm relative overflow-hidden"><div class="absolute top-0 right-0 w-16 h-16 bg-red-50 rounded-bl-full -z-0"></div><div class="flex justify-between items-start mb-3 relative z-10"><div class="pr-2"><h4 class="font-black text-slate-800 text-base uppercase leading-tight">${nama}</h4><p class="text-[10px] text-slate-500 font-semibold mt-0.5"><i class="fa-regular fa-calendar mr-1"></i>${t.tanggal}</p></div>${waLink}</div><div class="bg-slate-50 border border-slate-100 rounded-xl p-3 mb-3 relative z-10"><p class="text-xs font-semibold text-slate-700 leading-tight mb-2">${t.obat}</p><div class="flex justify-between items-center border-t border-slate-200 pt-2"><span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Tunggakan</span><span class="font-black text-red-600 text-lg">${rupiah(t.total)}</span></div></div><button onclick="bukaModalPelunasanMobile(${t.id})" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3 rounded-xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2 relative z-10 text-sm"><i class="fa-solid fa-hand-holding-dollar"></i> Lunasi Tagihan</button></div>`;
+        // ==========================================
+        // RENDER ZONA MERAH (Tunggakan Dikelompokkan by Waktu)
+        // ==========================================
+        let zonaMerahHtml = Object.values(p.tunggakanAktif).map(grup => {
+            
+            // Baris Obat & Tombol Centang Kecil (Eceran)
+            let itemLines = grup.items.map(itemDb => {
+                let namaObat = itemDb.detailKeranjang && itemDb.detailKeranjang.length > 0 ? `${itemDb.detailKeranjang[0].nama} (x${itemDb.detailKeranjang[0].qty})` : itemDb.obat;
+                return `
+                <div class="flex justify-between items-center mb-1 group/item hover:bg-slate-100 p-1 -mx-1 rounded transition-colors">
+                    <div class="flex items-center gap-1.5">
+                        <button onclick="prosesPelunasanEceran('${itemDb.id}', '${p.nama}', ${itemDb.total}, '${namaObat}')" class="w-4 h-4 rounded text-[8px] flex items-center justify-center border border-slate-300 bg-white text-slate-300 hover:bg-emerald-500 hover:text-white hover:border-emerald-500 transition-all shadow-sm" title="Lunasi Item Ini Saja">
+                            <i class="fa-solid fa-check"></i>
+                        </button>
+                        <span class="text-[10px] text-slate-600 font-semibold">${namaObat} <span class="text-slate-300 mx-0.5">.....</span></span>
+                    </div>
+                    <span class="text-[10px] font-black text-slate-700">${rupiah(itemDb.total)}</span>
+                </div>`;
+            }).join('');
+
+            return `
+            <div class="bg-white border-l-2 border-red-400 rounded-xl p-3 mb-2 shadow-sm">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-[10px] font-bold text-slate-500"><i class="fa-regular fa-calendar mr-1"></i> ${grup.tanggal} (${grup.waktu})</span>
+                    <span class="font-black text-red-600 text-[11px]">${rupiah(grup.totalWaktuIni)}</span>
+                </div>
+                <div class="border-t border-dashed border-slate-100 pt-2 mb-2">
+                    ${itemLines}
+                </div>
+                <button onclick="lompatKeRiwayat('${grup.tanggal}', '${grup.waktu}', '${p.nama}')" class="text-[9px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded hover:bg-blue-100 transition-colors flex items-center gap-1 w-max active:scale-95">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Cek Jejak Asli
+                </button>
+            </div>`;
+        }).join('');
+
+        // ==========================================
+        // RENDER ZONA HIJAU (Rekening Koran Pelunasan)
+        // ==========================================
+        let zonaHijauHtml = '';
+        if (p.riwayatLunas.length > 0) {
+            // Urutkan dari yang paling baru
+            p.riwayatLunas.sort((a, b) => b.id - a.id);
+            let limitTampil = p.riwayatLunas.slice(0, 3); // Tampilkan max 3 terakhir agar tidak kepanjangan
+            
+            let lunasLines = limitTampil.map(lunasDb => `
+            <div class="bg-white border-l-2 border-emerald-400 rounded-xl p-2.5 mb-1.5 shadow-sm">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-[9px] font-bold text-emerald-600"><i class="fa-solid fa-check-circle mr-1"></i> ${lunasDb.tanggal} (${lunasDb.waktu})</span>
+                    <span class="font-black text-emerald-700 text-[10px]">+ ${rupiah(lunasDb.total)}</span>
+                </div>
+                <p class="text-[9px] text-slate-500 leading-tight truncate">Membayar: ${lunasDb.obat.replace('PELUNASAN GABUNGAN: ','').replace('Pelunasan Utang: ','')}</p>
+            </div>`).join('');
+            
+            zonaHijauHtml = `
+            <div class="mt-4 pt-3 border-t border-slate-200">
+                <p class="text-[9px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-1 mb-2"><i class="fa-solid fa-clock-rotate-left"></i> Riwayat Pelunasan Terakhir</p>
+                ${lunasLines}
+            </div>`;
         }
+
+        // ==========================================
+        // KARTU UTAMA MUKRIN
+        // ==========================================
+        return `
+        <div id="kartu-piutang-${p.nama.replace(/\s/g,'')}" class="bg-slate-50 border-2 border-slate-200 rounded-2xl p-4 shadow-sm relative transition-all duration-500">
+            <div class="flex justify-between items-start mb-3">
+                <div>
+                    <h4 class="font-black text-slate-800 text-lg uppercase tracking-tight flex items-center gap-2"><i class="fa-solid fa-user text-slate-300"></i> ${p.nama}</h4>
+                    <p class="text-[10px] font-bold text-slate-400 mt-0.5">${p.idsAktif.length} Item Menggantung</p>
+                </div>
+                <div class="flex gap-2 shrink-0">
+                    <button onclick="tagihWAMultiPiutang('${p.nama}')" class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-200 shadow-sm active:scale-95 transition-transform" title="Kirim Tagihan WA">
+                        <i class="fa-brands fa-whatsapp text-lg"></i>
+                    </button>
+                    <button onclick="bukaKasirKhususPiutang('${p.nama}', '${p.wa || ''}')" class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-200 shadow-sm active:scale-95 transition-transform" title="Tambah Utang Baru">
+                        <i class="fa-solid fa-cart-plus"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <p class="text-[9px] font-black text-red-500 uppercase tracking-widest flex items-center gap-1 mb-2"><i class="fa-solid fa-triangle-exclamation"></i> Tunggakan Aktif</p>
+                <div class="max-h-60 overflow-y-auto hide-scrollbar pb-1">
+                    ${zonaMerahHtml}
+                </div>
+            </div>
+            
+            ${zonaHijauHtml}
+
+            <div class="flex items-center justify-between border-t border-slate-200 pt-4 mt-1 mb-3">
+                <span class="text-[11px] font-black text-slate-500 uppercase tracking-wider">Total Tunggakan</span>
+                <span class="text-2xl font-black text-red-600">${rupiah(p.totalAktif)}</span>
+            </div>
+
+            <button onclick="bukaModalPelunasanMobile('${p.idsAktif.join(',')}', '${p.nama}', ${p.totalAktif})" class="w-full bg-red-500 hover:bg-red-600 text-white font-bold py-3.5 rounded-xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm uppercase tracking-wider">
+                <i class="fa-solid fa-hand-holding-dollar text-lg"></i> Lunasi Semua
+            </button>
+        </div>`;
     }).join('');
+}
+
+// FUNGSI SHORTCUT PIUTANG -> KASIR
+function bukaKasirKhususPiutang(nama, wa) {
+    bukaLayar('beranda'); 
+    setTimeout(() => {
+        bukaModalKasirMobile();
+        document.querySelector('input[value="Debt"]').checked = true;
+        toggleFormKasbonMobile();
+        document.getElementById('kasbonNamaMobile').value = nama;
+        if(wa && wa !== 'undefined') document.getElementById('kasbonWaMobile').value = wa;
+        showToast(`🛒 Shortcut: Mode Kasbon untuk ${nama} telah diaktifkan.`);
+    }, 100);
+}
+
+// FUNGSI MESIN WAKTU -> RIWAYAT TANGGAL ASLI
+function lompatKeRiwayat(tanggal) {
+    document.getElementById('filterTglRiwayatMobile').value = tanggal;
+    ubahTabRiwayat('semua');
+    bukaLayar('riwayat');
+    setTimeout(() => showToast(`⏰ Melompat ke arsip tanggal ${tanggal}`), 300);
+}
+// [PENYEMPURNAAN 3 & 4] PORTAL NAVIGASI DUA ARAH & ANIMASI BERKEDIP
+function lompatKeRiwayat(tanggal, waktuJam, nama) {
+    document.getElementById('filterTglRiwayatMobile').value = tanggal;
+    ubahTabRiwayat('semua');
+    bukaLayar('riwayat');
     
-    document.getElementById('headerTotalPiutangMobile').textContent = rupiah(totalPiutang);
+    // Mesin Animasi Pencari Kotak Waktu
+    setTimeout(() => {
+        let idTarget = `kartu-riwayat-${waktuJam.replace(':','')}-${nama.replace(/\s/g,'')}`;
+        let kotakTujuan = document.getElementById(idTarget);
+        if(kotakTujuan) {
+            kotakTujuan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            // Efek Sihir Nyala Kuning
+            kotakTujuan.classList.add('bg-amber-100', 'border-amber-400', 'shadow-[0_0_20px_rgba(251,191,36,0.5)]');
+            kotakTujuan.classList.remove('bg-white', 'border-slate-200');
+            setTimeout(() => {
+                kotakTujuan.classList.remove('bg-amber-100', 'border-amber-400', 'shadow-[0_0_20px_rgba(251,191,36,0.5)]');
+                kotakTujuan.classList.add('bg-white', 'border-slate-200');
+            }, 2500); // Padam setelah 2.5 detik
+        }
+        showToast(`⏰ Tiba di riwayat ${waktuJam}`);
+    }, 400);
+}
+
+function lompatKeBukuPiutang(namaPelanggan) {
+    bukaLayar('piutang');
+    let searchInput = document.getElementById('cariPiutangMobile');
+    if(searchInput) {
+        searchInput.value = namaPelanggan;
+        renderPiutangMobile(); // Force render filter
+        
+        // Animasi Pencari Kartu Piutang
+        setTimeout(() => {
+            let idTarget = `kartu-piutang-${namaPelanggan.replace(/\s/g,'')}`;
+            let kotakTujuan = document.getElementById(idTarget);
+            if(kotakTujuan) {
+                kotakTujuan.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                kotakTujuan.classList.add('shadow-[0_0_25px_rgba(59,130,246,0.4)]', 'border-blue-400');
+                setTimeout(() => {
+                    kotakTujuan.classList.remove('shadow-[0_0_25px_rgba(59,130,246,0.4)]', 'border-blue-400');
+                }, 2500);
+            }
+        }, 400);
+    }
+}
+
+// [PENYEMPURNAAN 5] EKSEKUSI PELUNASAN ECERAN (PER ITEM)
+function prosesPelunasanEceran(idTransaksiDb, namaPelanggan, totalItem, namaObat) {
+    tampilkanConfirmMobile(`Terima uang pelunasan untuk:\n\n${namaObat}\nSenilai: ${rupiah(totalItem)}?\n\nUtang ini akan dipindah ke Riwayat Lunas.`, function() {
+        
+        // Kita bypass metode dengan 'Tunai' otomatis untuk eceran, 
+        // atau jika mau dinamis bisa lempar ke Modal. 
+        // Tapi demi kecepatan UX kasir di depan layar, langsung proses sbg Tunai (Laci).
+        const trxTarget = cashierHistory.find(t => t.id.toString() === idTransaksiDb.toString());
+        
+        if (trxTarget && !trxTarget.statusLunas) {
+            trxTarget.statusLunas = true;
+            
+            const idPelunasanBaru = Date.now();
+            const tglWaktu = new Date();
+            trxTarget.idTerkait = idPelunasanBaru;
+
+            const pelunasanBaru = {
+                id: idPelunasanBaru, tanggal: getTanggalLokal(), waktu: tglWaktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                obat: `Pelunasan Eceran: ${namaObat}`, kasir: 'Pemilik', item: 1, total: totalItem, metode: 'Tunai', laba: 0, pelanggan: namaPelanggan, wa: trxTarget.wa, isPelunasan: true, idTerkait: idTransaksiDb
+            };
+            
+            siklusAktif.uangMasuk += totalItem;
+            cashierHistory.unshift(pelunasanBaru);
+            
+            kirimNotifikasiMobile('Lunas Eceran', `Menerima tunai ${rupiah(totalItem)} dari ${namaPelanggan}.`, 'lunas', totalItem);
+
+            saveApotekDB('apotek_cashierHistory', cashierHistory); 
+            saveApotekDB('apotek_siklusAktif', siklusAktif);
+
+            renderPiutangMobile(); renderBerandaMobile(); renderRiwayatMobile();
+            triggerHaptic([50, 100]);
+            showToast(`✅ ${namaObat} Lunas!`);
+        }
+    });
 }
 
 function renderLaporanMobile() {
@@ -1466,20 +1754,41 @@ function prosesBayarMobile() {
     
     if (metode !== 'Debt') siklusAktif.uangMasuk += totalBelanja; 
     
-    const namaObatFinal = namaObatGabungan.length > 1 ? `${namaObatGabungan[0]} + ${namaObatGabungan.length - 1} lainnya` : namaObatGabungan[0];
     const tglWaktu = new Date();
+    const strWaktu = tglWaktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    const strTglLokal = getTanggalLokal();
     
-    cashierHistory.unshift({ 
-        id: Date.now(), tanggal: getTanggalLokal(), waktu: tglWaktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }), 
-        obat: namaObatFinal, detailKeranjang: JSON.parse(JSON.stringify(keranjangKasirMobile)), 
-        kasir: 'Pemilik', item: totalItem, total: totalBelanja, metode: metode, laba: totalLaba, pelanggan: namaPelanggan, wa: waPelanggan, isPelunasan: false 
-    });
-    
-    // TEMBAKKAN ALARM NOTIFIKASI
-    if (metode === 'Debt') {
-        kirimNotifikasiMobile('Kasbon / Piutang', `${namaObatFinal} berstatus kasbon atas nama ${namaPelanggan}.`, 'piutang', totalBelanja);
+    // [PENYEMPURNAAN 1] MESIN AUTO-SPLIT KHUSUS KASBON (DEBT)
+    if (metode === 'Debt' && keranjangKasirMobile.length > 0) {
+        keranjangKasirMobile.forEach((k, index) => {
+            let subTotal = k.jual * k.qty;
+            let subLaba = subTotal - (k.hppSatuan * k.qty);
+            let namaKet = k.nama + (k.varian ? ` ${k.varian}` : '');
+            
+            cashierHistory.unshift({ 
+                id: Date.now() + index, // ID unik per item
+                tanggal: strTglLokal, waktu: strWaktu, 
+                obat: namaKet, detailKeranjang: [JSON.parse(JSON.stringify(k))], 
+                kasir: 'Pemilik', item: k.qty, total: subTotal, metode: metode, laba: subLaba, pelanggan: namaPelanggan, wa: waPelanggan, isPelunasan: false 
+            });
+        });
     } else {
-        kirimNotifikasiMobile('Pembelian Baru', `${namaObatFinal} laku terjual secara ${metode}.`, 'beli', totalBelanja);
+        // JIKA BUKAN KASBON, TETAP 1 STRUK GABUNGAN SEPERTI BIASA
+        const namaObatFinal = namaObatGabungan.length > 1 ? `${namaObatGabungan[0]} + ${namaObatGabungan.length - 1} lainnya` : namaObatGabungan[0];
+        cashierHistory.unshift({ 
+            id: Date.now(), tanggal: strTglLokal, waktu: strWaktu, 
+            obat: namaObatFinal, detailKeranjang: JSON.parse(JSON.stringify(keranjangKasirMobile)), 
+            kasir: 'Pemilik', item: totalItem, total: totalBelanja, metode: metode, laba: totalLaba, pelanggan: namaPelanggan, wa: waPelanggan, isPelunasan: false 
+        });
+    }
+    
+    const namaNotifFinal = namaObatGabungan.length > 1 ? `${namaObatGabungan[0]} + ${namaObatGabungan.length - 1} lainnya` : namaObatGabungan[0];
+    
+    // TEMBAKKAN ALARM NOTIFIKASI (BUG FIXED: namaObatFinal diganti menjadi namaNotifFinal)
+    if (metode === 'Debt') {
+        kirimNotifikasiMobile('Kasbon / Piutang', `${namaNotifFinal} berstatus kasbon atas nama ${namaPelanggan}.`, 'piutang', totalBelanja);
+    } else {
+        kirimNotifikasiMobile('Pembelian Baru', `${namaNotifFinal} laku terjual secara ${metode}.`, 'beli', totalBelanja);
     }
 
     saveApotekDB('apotek_etalaseItems', etalaseItems); 
@@ -1494,38 +1803,67 @@ function prosesBayarMobile() {
 }
 
 function prosesBatalTransaksiMobile(idTransaksi) {
-    tampilkanConfirmMobile("Batalkan transaksi ini?\n\nUang akan ditarik dari omzet dan seluruh item akan dikembalikan ke Etalase secara akurat.", function() {
+    tampilkanConfirmMobile("Batalkan transaksi ini?\n\nJika ini penjualan biasa, uang ditarik & obat diretur. Jika ini Pelunasan, utang akan dihidupkan kembali tanpa mengacaukan stok.", function() {
         const trx = cashierHistory.find(t => t.id === idTransaksi);
         if (trx) {
-            if (!trx.isPelunasan && trx.metode !== 'Debt') { siklusAktif.uangMasuk -= (trx.total || 0); if (siklusAktif.uangMasuk < 0) siklusAktif.uangMasuk = 0; }
             
-            if (trx.detailKeranjang && trx.detailKeranjang.length > 0) {
-                trx.detailKeranjang.forEach(itemRetur => {
-                    let bEtalase = etalaseItems.find(i => i.nama === itemRetur.nama);
-                    let idBatchRetur = 'RETUR-' + Date.now() + '-' + Math.floor(Math.random() * 1000); 
-                    
-                   let modalReturKembali = itemRetur.hppTotalModal !== undefined ? itemRetur.hppTotalModal : ((itemRetur.hppSatuan || (itemRetur.jual * 0.8)) * itemRetur.qty);
-                    if (bEtalase) { 
-                        bEtalase.stok += itemRetur.qty; if(!bEtalase.antreanFIFO) bEtalase.antreanFIFO = [];
-                        bEtalase.antreanFIFO.unshift({ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: itemRetur.qty, expired: '', totalModal: modalReturKembali });
-                    } else {
-                        etalaseItems.push({ dnaInduk: 'DNA-RETUR-' + Date.now(), nama: itemRetur.nama, kategori: '⚠️ Barang Retur', jual: itemRetur.jual, stok: itemRetur.qty, antreanFIFO: [{ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: itemRetur.qty, expired: '', totalModal: modalReturKembali }] }); 
-                    }
-                });
-            } else { 
-                let qty = trx.item || 1; let hppRetur = Math.round(((trx.total || 0) - (trx.laba || 0)) / qty);
-                etalaseItems.push({ dnaInduk: 'DNA-RETUR-OLD', nama: trx.obat, kategori: '⚠️ Barang Retur', jual: Math.round((trx.total || 0) / qty), stok: qty, antreanFIFO: [{ idBatch: 'RETUR-OLD', modal: hppRetur, stok: qty, expired: '' }] });
+            // [CELAH 1] LOGIKA BATAL KHUSUS PELUNASAN GABUNGAN
+            if (trx.isPelunasan) {
+                siklusAktif.uangMasuk -= (trx.total || 0); 
+                if (siklusAktif.uangMasuk < 0) siklusAktif.uangMasuk = 0;
+                
+                // Bangkitkan Utang Lama (Multi-ID) dari Tali Pusar
+                if (trx.idTerkait) {
+                    let listIdUtang = trx.idTerkait.toString().split(',');
+                    cashierHistory.forEach(t => {
+                        if(listIdUtang.includes(t.id.toString())) {
+                            t.statusLunas = false;
+                            delete t.idTerkait; 
+                        }
+                    });
+                }
+                kirimNotifikasiMobile('Batal Pelunasan', `Pelunasan ${trx.pelanggan || ''} dibatalkan. Utang aktif kembali.`, 'batal', trx.total);
+                
+            } else {
+                // LOGIKA LAMA: BATAL TRANSAKSI PENJUALAN BIASA (TUNAI/QRIS)
+                if (trx.metode !== 'Debt') { 
+                    siklusAktif.uangMasuk -= (trx.total || 0); 
+                    if (siklusAktif.uangMasuk < 0) siklusAktif.uangMasuk = 0; 
+                }
+                
+                // Kembalikan Stok ke Etalase
+                if (trx.detailKeranjang && trx.detailKeranjang.length > 0) {
+                    trx.detailKeranjang.forEach(itemRetur => {
+                        let bEtalase = etalaseItems.find(i => i.nama === itemRetur.nama);
+                        let idBatchRetur = 'RETUR-' + Date.now() + '-' + Math.floor(Math.random() * 1000); 
+                        
+                        let modalReturKembali = itemRetur.hppTotalModal !== undefined ? itemRetur.hppTotalModal : ((itemRetur.hppSatuan || (itemRetur.jual * 0.8)) * itemRetur.qty);
+                        if (bEtalase) { 
+                            bEtalase.stok += itemRetur.qty; if(!bEtalase.antreanFIFO) bEtalase.antreanFIFO = [];
+                            bEtalase.antreanFIFO.unshift({ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: itemRetur.qty, expired: '', totalModal: modalReturKembali });
+                        } else {
+                            etalaseItems.push({ dnaInduk: 'DNA-RETUR-' + Date.now(), nama: itemRetur.nama, kategori: '⚠️ Barang Retur', jual: itemRetur.jual, stok: itemRetur.qty, antreanFIFO: [{ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: itemRetur.qty, expired: '', totalModal: modalReturKembali }] }); 
+                        }
+                    });
+                } else { 
+                    let qty = trx.item || 1; let hppRetur = Math.round(((trx.total || 0) - (trx.laba || 0)) / qty);
+                    etalaseItems.push({ dnaInduk: 'DNA-RETUR-OLD', nama: trx.obat, kategori: '⚠️ Barang Retur', jual: Math.round((trx.total || 0) / qty), stok: qty, antreanFIFO: [{ idBatch: 'RETUR-OLD', modal: hppRetur, stok: qty, expired: '' }] });
+                }
+                kirimNotifikasiMobile('Transaksi Batal', `Pembelian ${trx.obat} telah dibatalkan.`, 'batal', trx.total);
             }
             
+            // Eksekusi Pemusnahan ID dari History
             cashierHistory = cashierHistory.filter(t => t.id !== idTransaksi);
-            // TEMBAKKAN ALARM NOTIFIKASI BATAL
-            kirimNotifikasiMobile('Transaksi Batal', `Pembelian ${trx.obat} telah dibatalkan.`, 'batal', trx.total);
 
             saveApotekDB('apotek_etalaseItems', etalaseItems); 
             saveApotekDB('apotek_cashierHistory', cashierHistory); 
             saveApotekDB('apotek_siklusAktif', siklusAktif);
 
-            renderRiwayatMobile(); renderBerandaMobile(); alert("✅ Transaksi Dibatalkan. Stok setiap item diretur ke Etalase.");
+            renderRiwayatMobile(); renderBerandaMobile(); 
+            if(!document.getElementById('layar-piutang').classList.contains('hidden')) renderPiutangMobile();
+            
+            triggerHaptic([100,50,100]);
+            alert(trx.isPelunasan ? "✅ Batal Pelunasan Berhasil! Utang dihidupkan kembali secara presisi (Stok tidak disentuh)." : "✅ Transaksi Dibatalkan. Stok setiap item diretur ke Etalase.");
         }
     });
 }
@@ -1926,44 +2264,142 @@ function eksekusiConfirmMobile() { tutupConfirmMobile(); if(aksiConfirmCallback)
 // ==========================================
 // 18. PELUNASAN KASBON & TUTUP BUKU
 // ==========================================
-let idKasbonAktifMobile = null;
+let idsPelunasanMultiMobile = null;
 
-function bukaModalPelunasanMobile(idTransaksi) {
-    const transaksi = cashierHistory.find(t => t.id === idTransaksi);
-    if(transaksi) {
-        idKasbonAktifMobile = idTransaksi;
-        document.getElementById('pelunasanNamaMobile').textContent = (transaksi.pelanggan || 'Pelanggan').toUpperCase();
-        document.getElementById('pelunasanTotalMobile').textContent = rupiah(transaksi.total);
-        bukaModalMobile('modalPelunasanMobile', 'panelPelunasanMobile');
-    }
+function bukaModalPelunasanMobile(idsJoined, nama, totalTagihan) {
+    idsPelunasanMultiMobile = idsJoined;
+    document.getElementById('pelunasanNamaMobile').textContent = nama;
+    document.getElementById('pelunasanTotalMobile').textContent = rupiah(totalTagihan);
+    bukaModalMobile('modalPelunasanMobile', 'panelPelunasanMobile');
 }
 
 function eksekusiPelunasanMobile(metodePilihan) {
-    if(idKasbonAktifMobile !== null) {
-        const utangLama = cashierHistory.find(t => t.id === idKasbonAktifMobile);
-        if(utangLama) {
-            const idBaru = Date.now();
+    if(idsPelunasanMultiMobile) {
+        let arrIds = idsPelunasanMultiMobile.split(',');
+        let totalBayar = 0;
+        let namaPelanggan = document.getElementById('pelunasanNamaMobile').textContent;
+        let waPelanggan = '';
+        
+        // Loop utang yang dilunasi
+        cashierHistory.forEach(t => {
+            if (arrIds.includes(t.id.toString()) && !t.statusLunas) {
+                t.statusLunas = true; 
+                totalBayar += (t.total || 0);
+                if(t.wa) waPelanggan = t.wa;
+            }
+        });
+
+        if (totalBayar > 0) {
+            const idPelunasanBaru = Date.now();
             const tglWaktu = new Date();
+            
+            // Mengikat Tali Pusar dari Utang Lama ke Struk Pelunasan Baru
+            cashierHistory.forEach(t => {
+                if (arrIds.includes(t.id.toString())) t.idTerkait = idPelunasanBaru;
+            });
+
+            // Cetak Struk Pelunasan Hijau di Riwayat
             const pelunasanBaru = {
-                id: idBaru, tanggal: getTanggalLokal(), waktu: tglWaktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
-                obat: `Pelunasan Utang: ${utangLama.pelanggan || 'Pelanggan'}`, kasir: 'Pemilik', item: 0, total: utangLama.total, metode: metodePilihan, laba: 0, pelanggan: utangLama.pelanggan, wa: utangLama.wa, isPelunasan: true, idTerkait: utangLama.id 
+                id: idPelunasanBaru, tanggal: getTanggalLokal(), waktu: tglWaktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                obat: `PELUNASAN GABUNGAN: ${namaPelanggan}`, kasir: 'Pemilik', item: arrIds.length, total: totalBayar, metode: metodePilihan, laba: 0, pelanggan: namaPelanggan, wa: waPelanggan, isPelunasan: true, idTerkait: idsPelunasanMultiMobile
             };
             
-            utangLama.statusLunas = true; utangLama.idTerkait = idBaru;
-            siklusAktif.uangMasuk += utangLama.total;
+            siklusAktif.uangMasuk += totalBayar;
             cashierHistory.unshift(pelunasanBaru);
             
-            // TEMBAKKAN ALARM NOTIFIKASI PELUNASAN
-            kirimNotifikasiMobile('Pelunasan Diterima', `Pelunasan kasbon dari ${utangLama.pelanggan} via ${metodePilihan}.`, 'lunas', utangLama.total);
+            kirimNotifikasiMobile('Pelunasan Diterima', `Pelunasan kasbon dari ${namaPelanggan} via ${metodePilihan}.`, 'lunas', totalBayar);
 
             saveApotekDB('apotek_cashierHistory', cashierHistory); 
             saveApotekDB('apotek_siklusAktif', siklusAktif);
 
-            tutupModalMobile('modalPelunasanMobile'); renderPiutangMobile(); renderBerandaMobile();
+            tutupModalMobile('modalPelunasanMobile'); renderPiutangMobile(); renderBerandaMobile(); renderRiwayatMobile();
             triggerHaptic([100, 50, 100]);
-            alert(`✅ Pelunasan Sukses! Utang ditutup dan omzet bertambah.`);
+            alert(`✅ Pelunasan Sukses! ${arrIds.length} Nota ditutup dan omzet bertambah.`);
         }
     }
+}
+
+// [CELAH 3] KANVAS WA DINAMIS KHUSUS TAGIHAN GABUNGAN PIUTANG
+function tagihWAMultiPiutang(nama) {
+    let notaHutang = cashierHistory.filter(t => t.metode === 'Debt' && !t.statusLunas && (t.pelanggan || '').trim().toUpperCase() === nama);
+    
+    if (notaHutang.length === 0) return alert("⚠️ Tidak ada tunggakan aktif untuk pelanggan ini.");
+    let waTujuan = notaHutang.find(t => t.wa)?.wa;
+    if (!waTujuan) return alert("⚠️ Nomor WhatsApp pelanggan tidak ditemukan di sistem!");
+    
+    let totalTagihan = 0;
+    let rincianLines = [];
+    
+    notaHutang.forEach(n => {
+        totalTagihan += n.total;
+        rincianLines.push(`Tgl: ${n.tanggal} (${rupiah(n.total)})`);
+        if(n.detailKeranjang && n.detailKeranjang.length > 0) {
+            n.detailKeranjang.forEach(k => {
+                let teks = ` - ${k.nama} x${k.qty}`;
+                if(teks.length > 35) teks = teks.substring(0, 32) + "...";
+                rincianLines.push(teks);
+            });
+        } else {
+            let teks = ` - ${n.obat}`;
+            if(teks.length > 35) teks = teks.substring(0, 32) + "...";
+            rincianLines.push(teks);
+        }
+    });
+
+    // Kalkulasi Tinggi Kanvas Anti-Overflow
+    let canvasHeight = 300 + (rincianLines.length * 20);
+    
+    const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); 
+    canvas.width = 400; canvas.height = canvasHeight;
+    
+    ctx.fillStyle = '#ffffff'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.fillStyle = '#0f172a'; ctx.textAlign = 'center';
+    ctx.font = '900 24px monospace'; ctx.fillText(profilApotek.nama.toUpperCase().substring(0,25), 200, 45);
+    ctx.font = '600 14px monospace'; ctx.fillText((profilApotek.alamat || '').substring(0,40), 200, 70);
+    ctx.font = '14px monospace'; ctx.fillText('====================================', 200, 95);
+    ctx.font = '900 18px monospace'; ctx.fillText('REKAP TAGIHAN PIUTANG', 200, 125);
+    ctx.font = '14px monospace'; ctx.fillText('====================================', 200, 145);
+    
+    ctx.textAlign = 'left'; let y = 180; ctx.font = '600 14px monospace';
+    ctx.fillText(`Yth. : ${nama}`, 25, y); y += 25;
+    ctx.fillText(`Total: ${notaHutang.length} Nota Belum Lunas`, 25, y); y += 30;
+    
+    ctx.textAlign = 'center'; ctx.fillText('------------------------------------', 200, y); y += 25;
+    ctx.textAlign = 'left';
+    
+    rincianLines.forEach(line => {
+        if(line.startsWith('Tgl:')) {
+            ctx.font = '900 13px monospace'; ctx.fillStyle = '#1e293b'; y += 5;
+        } else {
+            ctx.font = '500 13px monospace'; ctx.fillStyle = '#475569';
+        }
+        ctx.fillText(line, 25, y); y += 20;
+    });
+    
+    y += 10;
+    ctx.textAlign = 'center'; ctx.fillStyle = '#0f172a';
+    ctx.font = '14px monospace'; ctx.fillText('------------------------------------', 200, y); y += 35;
+    
+    ctx.textAlign = 'left'; ctx.font = '900 18px monospace'; ctx.fillText('GRAND TOTAL:', 25, y);
+    ctx.textAlign = 'right'; ctx.fillStyle = '#dc2626'; ctx.fillText(`${rupiah(totalTagihan)}`, 375, y); y += 45;
+    
+    ctx.fillStyle = '#64748b'; ctx.textAlign = 'center'; ctx.font = 'italic 12px monospace';
+    ctx.fillText('Struk digital ini adalah rincian sah', 200, y); y += 20; ctx.fillText('dari ' + profilApotek.nama, 200, y);
+    
+    let noWA = waTujuan.toString().replace(/\D/g, ''); if (noWA.startsWith('0')) { noWA = '62' + noWA.substring(1); } else if (noWA.startsWith('8')) { noWA = '62' + noWA; }
+    const pesanTeks = `Halo Bapak/Ibu *${nama}*,\n\nKami dari *${profilApotek.nama}* menginformasikan rekap tagihan yang belum diselesaikan sebesar *${rupiah(totalTagihan)}*.\n*(Rincian barang terlampir pada gambar)*\n\nMohon kerjasamanya untuk pelunasan. Terima kasih banyak! 🙏`;
+    
+    canvas.toBlob(async (blob) => {
+        const namaFile = `Rekap_Tagihan_${nama.replace(/\s+/g, '_')}.png`; const fileGambar = new File([blob], namaFile, { type: 'image/png' });
+        if (navigator.canShare && navigator.canShare({ files: [fileGambar] })) {
+            try { await navigator.share({ files: [fileGambar], title: 'Tagihan Apotek', text: pesanTeks }); } catch (err) { console.log(err); }
+        } else {
+            alert("✅ Gambar rekap tagihan akan diunduh. Silakan kirim gambar tersebut ke WhatsApp yang terbuka otomatis.");
+            const linkDownload = document.createElement('a'); linkDownload.href = URL.createObjectURL(blob); linkDownload.download = namaFile; linkDownload.click();
+            setTimeout(() => { window.open(`https://api.whatsapp.com/send?phone=${noWA}&text=${encodeURIComponent(pesanTeks)}`, '_blank'); }, 800);
+        }
+    }, 'image/png');
 }
 
 function eksekusiTutupBukuMobile() {
