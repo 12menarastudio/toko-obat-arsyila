@@ -542,9 +542,12 @@ function renderRiwayatMobile() {
         document.getElementById('btnArsipHeaderSeleksi').innerHTML = riwayatTabAktifMobile === 'arsip' ? '<i class="fa-solid fa-eye"></i>' : '<i class="fa-solid fa-eye-slash"></i>';
     }
     
-    // [PENYEMPURNAAN 2] ILUSI VISUAL GROUPING BERDASAR WAKTU & NAMA
+        // [PENYEMPURNAAN 2] ILUSI VISUAL GROUPING BERDASAR WAKTU & NAMA
     let grupRiwayat = {};
     dataTampil.forEach(t => {
+        // Jangan render kuitansi anak borongan, biar riwayat tetap bersih
+        if (t.isBorongan) return; 
+        
         let key = t.isPelunasan ? `PELUNASAN_${t.id}` : `${t.waktu}_${t.pelanggan || 'UMUM'}_${t.metode}`;
         if (!grupRiwayat[key]) {
             grupRiwayat[key] = {
@@ -565,82 +568,95 @@ function renderRiwayatMobile() {
                 if(k.varian) nLengkap += ` ${k.varian}`;
                 if(k.kategori) nLengkap += ` • ${k.kategori}`;
                 
-                // SUNTIKAN: Membelah 'Rp' dan nominal agar sejajar rapi layaknya struk kasir swalayan
-                let nominalItem = (k.jual * k.qty).toLocaleString('id-ID');
-                grupRiwayat[key].rincian.push(`
-                <div class="flex items-start w-full mb-1.5">
-                    <div class="text-[10px] text-slate-600 font-semibold leading-tight flex-1">- ${nLengkap} (x${k.qty})</div>
-                    <div class="w-[75px] shrink-0 flex justify-between text-[11px] font-black text-slate-800 pl-1">
-                        <span>Rp</span><span>${nominalItem}</span>
-                    </div>
-                </div>`);
+                // MINTA ASISTEN CEK BUKU CATATAN
+                let historiCicilan = cashierHistory.filter(p => p.isPelunasan && p.idTerkait == t.id && !p.isIndukBorongan && p.obat.includes(k.nama.replace(/ \([^)]*\)/, '')));
+                let qtyTertebus = historiCicilan.reduce((sum, p) => sum + (p.item || 0), 0);
+                let nominalTertebus = historiCicilan.reduce((sum, p) => sum + (p.total || 0), 0);
+                
+                let qtySisa = k.qty - qtyTertebus;
+                
+                if (t.statusLunas || qtySisa <= 0) {
+                    // LUNAS TOTAL (Garis Coret)
+                    let nominalItem = (k.jual * k.qty).toLocaleString('id-ID');
+                    grupRiwayat[key].rincian.push(`
+                    <div class="flex flex-col w-full mb-2">
+                        <div class="flex items-start w-full opacity-60">
+                            <div class="text-[10px] text-slate-600 font-semibold leading-tight flex-1 line-through">- ${nLengkap} (x${k.qty})</div>
+                            <div class="w-[75px] shrink-0 flex justify-between text-[11px] font-black text-slate-800 pl-1 line-through">
+                                <span>Rp</span><span>${nominalItem}</span>
+                            </div>
+                        </div>
+                        <div class="text-[9px] font-bold text-emerald-600 mt-0.5 ml-2 flex items-center gap-1">
+                            <i class="fa-solid fa-check-circle"></i> Lunas Total: Rp ${nominalItem}
+                        </div>
+                    </div>`);
+                } else if (qtyTertebus > 0) {
+                    // LUNAS SEBAGIAN (Animasi Kuning Amber)
+                    let nominalSisaStr = ((t.total || k.jual * k.qty) - nominalTertebus).toLocaleString('id-ID');
+                    let nominalTebusStr = nominalTertebus.toLocaleString('id-ID');
+                    grupRiwayat[key].rincian.push(`
+                    <div class="flex flex-col w-full mb-2 bg-amber-50/30 p-2 rounded-xl border border-amber-200">
+                        <div class="flex items-start w-full">
+                            <div class="text-[10.5px] text-slate-800 font-bold leading-tight flex-1">- ${nLengkap} (x${qtySisa})</div>
+                            <div class="w-[75px] shrink-0 flex justify-between text-[11px] font-black text-slate-800 pl-1">
+                                <span>Rp</span><span>${nominalSisaStr}</span>
+                            </div>
+                        </div>
+                        <div class="text-[9px] font-bold text-amber-600 mt-1.5 ml-2 flex items-center gap-1">
+                            <i class="fa-solid fa-clock"></i> Telah ditebus ${qtyTertebus} stok: Rp ${nominalTebusStr}
+                        </div>
+                    </div>`);
+                } else {
+                    // NORMAL / BELUM DISENTUH
+                    let nominalItem = (k.jual * k.qty).toLocaleString('id-ID');
+                    grupRiwayat[key].rincian.push(`
+                    <div class="flex items-start w-full mb-1.5">
+                        <div class="text-[10px] text-slate-600 font-semibold leading-tight flex-1">- ${nLengkap} (x${k.qty})</div>
+                        <div class="w-[75px] shrink-0 flex justify-between text-[11px] font-black text-slate-800 pl-1">
+                            <span>Rp</span><span>${nominalItem}</span>
+                        </div>
+                    </div>`);
+                }
             });
         } else {
             let nominalTotal = (t.total).toLocaleString('id-ID');
-            grupRiwayat[key].rincian.push(`
-            <div class="flex items-start w-full mb-1.5">
-                <div class="text-[10px] text-slate-600 font-semibold leading-tight flex-1">- ${t.obat} (x${t.item || 1})</div>
-                <div class="w-[75px] shrink-0 flex justify-between text-[11px] font-black text-slate-800 pl-1">
-                    <span>Rp</span><span>${nominalTotal}</span>
-                </div>
-            </div>`);
+            grupRiwayat[key].rincian.push(`<div class="flex items-start w-full mb-1.5"><div class="text-[10px] text-slate-600 font-semibold leading-tight flex-1">- ${t.obat} (x${t.item || 1})</div><div class="w-[75px] shrink-0 flex justify-between text-[11px] font-black text-slate-800 pl-1"><span>Rp</span><span>${nominalTotal}</span></div></div>`);
         }
     });
 
-    wadah.innerHTML = Object.values(grupRiwayat).map(g => {
+        wadah.innerHTML = Object.values(grupRiwayat).map(g => {
         let badgeWarna = g.metode === 'Tunai' ? 'bg-emerald-100 text-emerald-700' : (g.metode === 'QRIS' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700');
-        let teksStatus = g.metode;
+        let teksStatus = g.metode; let isSelected = g.rawIds.some(id => itemTerpilihRiwayat.includes(id));
+        let bgCard = isSelected ? 'bg-blue-50 border-blue-400 shadow-md transform scale-[0.98]' : 'bg-white border-slate-200 shadow-sm';
         
         if(g.metode === 'Debt') {
-            if(g.statusLunas) {
+            // [LOGIKA BARU] Cek Silang: Pastikan SEMUA item di dalam kotak ini benar-benar lunas
+            let semuaLunas = g.rawIds.every(id => {
+                let itemAsli = cashierHistory.find(x => x.id === id);
+                return itemAsli ? itemAsli.statusLunas : true;
+            });
+
+            if(semuaLunas) {
                 teksStatus = 'Lunas / Ditutup'; badgeWarna = 'bg-emerald-100 text-emerald-700';
             } else {
-                // Detektif Cerdas: Cek apakah ada pelunasan sebagian (Pembelah Sel) untuk struk ini
-                let pelunasanTerkait = cashierHistory.filter(p => p.isPelunasan && p.idTerkait && g.rawIds.includes(parseInt(p.idTerkait)));
-                if(pelunasanTerkait.length > 0) {
+                let historiGrup = cashierHistory.filter(p => p.isPelunasan && p.idTerkait && g.rawIds.includes(parseInt(p.idTerkait)) && !p.isIndukBorongan);
+                if(historiGrup.length > 0) {
                     teksStatus = 'Lunas Sebagian';
                     badgeWarna = 'bg-amber-100 text-amber-700';
-                    // Suntikkan baris coretan (strikethrough) ke dalam rincian faktur
-                    pelunasanTerkait.forEach(p => {
-                        let namaP = p.obat.replace('Pelunasan Eceran: ', '');
-                        let nominalP = (p.total).toLocaleString('id-ID');
-                        g.rincian.push(`
-                        <div class="flex items-start w-full mb-1.5 opacity-60">
-                            <div class="text-[10px] text-slate-600 font-semibold leading-tight flex-1 line-through"><i class="fa-solid fa-check text-emerald-500 mr-1"></i> ${namaP} [via ${p.metodeBayar || p.metode}]</div>
-                            <div class="w-[75px] shrink-0 flex text-[11px] font-black text-slate-800 pl-1 line-through">
-                                <span class="w-[20px]">Rp</span><span class="flex-1 text-right">${nominalP}</span>
-                            </div>
-                        </div>`);
-                    });
+                    if(!isSelected) bgCard = 'bg-white border-amber-300 shadow-sm border-2'; 
                 }
             }
         }
+
         if(g.isPelunasan) teksStatus = 'Uang Masuk (Kasbon)';
         
-        let isSelected = g.rawIds.some(id => itemTerpilihRiwayat.includes(id));
-        let bgCard = isSelected ? 'bg-blue-50 border-blue-400 shadow-md transform scale-[0.98]' : 'bg-white border-slate-200 shadow-sm';
         let starIcon = g.isBintang ? `<i class="fa-solid fa-star text-amber-400 text-xs drop-shadow-sm ml-1.5 align-middle -mt-0.5"></i>` : '';
-        
-        // SUNTIKAN: Perubahan Judul menjadi "X Item (Y Stok)" agar sinkron dan akurat
-        let totalStokFisik = 0;
-        if(g.rincian.length > 0 && !g.isPelunasan) {
-             g.rawIds.forEach(id => {
-                 let trx = cashierHistory.find(x => x.id === id);
-                 if(trx) totalStokFisik += (trx.item || 1);
-             });
-        } else { totalStokFisik = g.item; }
-        
-        let judulObat = g.isPelunasan ? g.obat : `<i class="fa-solid fa-box-open mr-1 text-slate-400"></i> ${g.rincian.length} Item (${totalStokFisik} Stok)`;
-        
+        let judulObat = g.isPelunasan ? g.obat : `<i class="fa-solid fa-box-open mr-1 text-slate-400"></i> ${g.rincian.length} Item (${g.item} Stok)`;
         let teksKonsumen = (g.pelanggan && g.pelanggan !== 'UMUM' && !g.isPelunasan) ? `<p class="text-[10px] text-corporate-600 font-black mt-0.5 uppercase">Konsumen: ${g.pelanggan}</p>` : '';
         
         let areaRincian = '';
         if (!g.isPelunasan && g.rincian.length > 0) {
-            areaRincian = `
-            <div class="mt-3 mb-2 pt-2 border-t border-dashed border-slate-200">
-                <p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Rincian Faktur:</p>
-                <div class="w-full">${g.rincian.join('')}</div>
-            </div>`;
+            areaRincian = `<div class="mt-3 mb-2 pt-2 border-t border-dashed border-slate-200"><p class="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Rincian Faktur:</p><div class="w-full">${g.rincian.join('')}</div></div>`;
         }
 
         let tombolPortal = (g.metode === 'Debt' && g.pelanggan) ? `<button onclick="event.stopPropagation(); lompatKeBukuPiutang('${g.pelanggan}')" class="mt-2 text-[9px] font-bold text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors flex items-center gap-1.5 w-max active:scale-95"><i class="fa-solid fa-book-open"></i> Lihat Buku Piutang</button>` : '';
@@ -651,28 +667,7 @@ function renderRiwayatMobile() {
                 <button onclick="event.stopPropagation(); prosesCetakStrukMobile(${g.rawIds[0]}, this)" class="text-[10px] text-blue-600 hover:bg-blue-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-blue-100 shadow-sm active:scale-95"><i class="fa-solid fa-print"></i> Cetak</button>
             </div>`;
             
-        return `
-        <div id="kartu-riwayat-${g.waktu.replace(':','')}-${g.pelanggan ? g.pelanggan.replace(/\s/g,'') : 'UMUM'}" onpointerdown="mulaiTekanRiwayat(${g.rawIds[0]})" onpointerup="lepasTekanRiwayat()" onpointerleave="lepasTekanRiwayat()" onclick="klikItemRiwayat(${g.rawIds[0]})" class="${bgCard} select-none border rounded-2xl p-4 flex flex-col transition-all cursor-pointer relative group">
-            <div class="flex justify-between items-start pointer-events-none">
-                <div class="pr-2 flex-1">
-                    <!-- SUNTIKAN: Tanggal kecil dan rapi di atas -->
-                    <p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mb-1">
-                        <i class="fa-regular fa-calendar-days"></i> ${g.tanggal || tglFilter} • ${g.waktu}
-                    </p>
-                    <h3 class="font-bold text-slate-800 text-sm leading-tight inline-block mb-1">${judulObat} ${starIcon}</h3>
-                    <p class="text-[10px] text-slate-500 font-medium">Oleh: ${g.kasir}</p>
-                    ${teksKonsumen}
-                </div>
-                <div class="text-right shrink-0">
-                    <p class="font-black ${isSelected ? 'text-blue-700' : 'text-corporate-700'} text-base">${rupiah(g.total)}</p>
-                    <span class="inline-block mt-1.5 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider ${badgeWarna}">${teksStatus}</span>
-                </div>
-            </div>
-            
-            ${areaRincian}
-            ${tombolPortal}
-            ${tombolAksi}
-        </div>`;
+        return `<div id="kartu-riwayat-${g.waktu.replace(':','')}-${g.pelanggan ? g.pelanggan.replace(/\s/g,'') : 'UMUM'}" onpointerdown="mulaiTekanRiwayat(${g.rawIds[0]})" onpointerup="lepasTekanRiwayat()" onpointerleave="lepasTekanRiwayat()" onclick="klikItemRiwayat(${g.rawIds[0]})" class="${bgCard} select-none rounded-2xl p-4 flex flex-col transition-all cursor-pointer relative group"><div class="flex justify-between items-start pointer-events-none"><div class="pr-2 flex-1"><p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mb-1"><i class="fa-regular fa-calendar-days"></i> ${g.tanggal || tglFilter} • ${g.waktu}</p><h3 class="font-bold text-slate-800 text-sm leading-tight inline-block mb-1">${judulObat} ${starIcon}</h3><p class="text-[10px] text-slate-500 font-medium">Oleh: ${g.kasir}</p>${teksKonsumen}</div><div class="text-right shrink-0"><p class="font-black ${isSelected ? 'text-blue-700' : 'text-corporate-700'} text-base">${rupiah(g.total)}</p><span class="inline-block mt-1.5 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider ${badgeWarna}">${teksStatus}</span></div></div>${areaRincian}${tombolPortal}${tombolAksi}</div>`;
     }).join('');
 }
 
@@ -685,11 +680,7 @@ function renderPiutangMobile() {
     const filterTeks = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
     let totalPiutang = 0;
-    
-    // Ambil SEMUA transaksi Debt (Lunas & Belum) + Pelunasan untuk diracik jadi Rekening Koran
     const dataDebtMentah = cashierHistory.filter(t => t.metode === 'Debt' || t.isPelunasan);
-    
-    // Agregasi Pelanggan (Grup Utama)
     let agregasiPelanggan = {};
     
     dataDebtMentah.forEach(t => {
@@ -704,28 +695,40 @@ function renderPiutangMobile() {
         }
 
         if (t.isPelunasan) {
-            // Masukkan ke Zona Hijau
             agregasiPelanggan[namaNormal].riwayatLunas.push(t);
         } else if (!t.statusLunas) {
-            // Masukkan ke Zona Merah & Grupkan berdasarkan WAKTU (Ilusi Visual Waktu)
-            agregasiPelanggan[namaNormal].totalAktif += (t.total || 0);
-            agregasiPelanggan[namaNormal].idsAktif.push(t.id);
-            totalPiutang += (t.total || 0);
-            
-            let keyWaktu = t.tanggal + '_' + t.waktu;
-            if(!agregasiPelanggan[namaNormal].tunggakanAktif[keyWaktu]) {
-                agregasiPelanggan[namaNormal].tunggakanAktif[keyWaktu] = {
-                    tanggal: t.tanggal, waktu: t.waktu, totalWaktuIni: 0, items: []
-                };
+            // [LOGIKA ASISTEN] Hitung sisa tagihan dari riwayat kuitansi tanpa merusak data asli
+            let historiCicilan = cashierHistory.filter(p => p.isPelunasan && p.idTerkait == t.id && !p.isIndukBorongan);
+            let nominalTertebus = historiCicilan.reduce((sum, p) => sum + (p.total || 0), 0);
+            let sisaTagihan = (t.total || 0) - nominalTertebus;
+
+            if (sisaTagihan > 0) {
+                agregasiPelanggan[namaNormal].totalAktif += sisaTagihan;
+                agregasiPelanggan[namaNormal].idsAktif.push(t.id);
+                totalPiutang += sisaTagihan;
+                
+                let keyWaktu = t.tanggal + '_' + t.waktu;
+                if(!agregasiPelanggan[namaNormal].tunggakanAktif[keyWaktu]) {
+                    agregasiPelanggan[namaNormal].tunggakanAktif[keyWaktu] = {
+                        tanggal: t.tanggal, waktu: t.waktu, totalWaktuIni: 0, items: []
+                    };
+                }
+                agregasiPelanggan[namaNormal].tunggakanAktif[keyWaktu].totalWaktuIni += sisaTagihan;
+                
+                // Kita tanamkan sisa tagihan ke object agar gampang digambar nanti
+                let itemCopy = JSON.parse(JSON.stringify(t));
+                itemCopy.sisaTagihan = sisaTagihan;
+                
+                let qtyTertebus = historiCicilan.reduce((sum, p) => sum + (p.item || 0), 0);
+                itemCopy.qtySisa = (t.item || 1) - qtyTertebus;
+                
+                agregasiPelanggan[namaNormal].tunggakanAktif[keyWaktu].items.push(itemCopy);
             }
-            agregasiPelanggan[namaNormal].tunggakanAktif[keyWaktu].totalWaktuIni += t.total;
-            agregasiPelanggan[namaNormal].tunggakanAktif[keyWaktu].items.push(t);
         }
     });
 
     document.getElementById('headerTotalPiutangMobile').textContent = rupiah(totalPiutang);
 
-    // Filter Pencarian & Aktifkan MEMORI ABADI (Pelanggan Lunas tetap tampil)
     let listTampil = Object.values(agregasiPelanggan)
         .filter(p => (p.totalAktif > 0 || p.riwayatLunas.length > 0) && (filterTeks === '' || p.nama.toLowerCase().includes(filterTeks)));
 
@@ -739,61 +742,37 @@ function renderPiutangMobile() {
     }
 
     wadah.innerHTML = listTampil.map(p => {
-        
-        // Logika Pintar: Cek apakah total utang pelanggan ini > 1
-        let isMultiUtang = p.idsAktif.length > 1; 
-
-        // ==========================================
-        // RENDER ZONA MERAH (Tunggakan Dikelompokkan by Waktu)
-        // ==========================================
         let zonaMerahHtml = Object.values(p.tunggakanAktif).map(grup => {
-            
-            // Logika Pintar: Cek apakah di dalam kotak waktu ini ada > 1 barang
             let isMultiDalamSatuWaktu = grup.items.length > 1; 
             
-            // Baris Obat & Tombol Centang Kecil (Eceran)
             let itemLines = grup.items.map(itemDb => {
-                let qtyTampil = 1;
                 let namaLengkap = itemDb.obat;
-                
-                // SUNTIKAN: Ekstraksi Nama Cerdas (Nama + Varian + Kategori)
                 if (itemDb.detailKeranjang && itemDb.detailKeranjang.length > 0) {
                     let k = itemDb.detailKeranjang[0];
-                    qtyTampil = k.qty;
                     namaLengkap = k.nama;
                     if(k.varian) namaLengkap += ` ${k.varian}`;
                     if(k.kategori) namaLengkap += ` • ${k.kategori}`;
-                } else {
-                    qtyTampil = itemDb.item || 1;
                 }
                 
-                // Param fungsi pelunasan di-escape agar tidak merusak tombol jika namanya ada tanda kutip
                 let namaObatParam = namaLengkap.replace(/'/g, "\\'");
-                
-                // Kotak Centang Checkbox Aman (Select-Then-Action) & Perataan Rp Absolut
                 let isChecked = seleksiPiutangEceran.some(x => x.id === itemDb.id) ? 'checked' : '';
                 let checkboxHtml = `
                 <div class="relative flex items-center justify-center pt-0.5 z-20">
-                    <input type="checkbox" ${isChecked} onchange="togglePilihPiutangAman('${itemDb.id}', '${namaObatParam}', ${itemDb.total}, ${qtyTampil}, '${p.nama}', this)" class="w-4 h-4 text-emerald-500 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer shadow-sm">
+                    <input type="checkbox" ${isChecked} onchange="togglePilihPiutangAman('${itemDb.id}', '${namaObatParam}', ${itemDb.sisaTagihan}, ${itemDb.qtySisa}, '${p.nama}', this)" class="w-4 h-4 text-emerald-500 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer shadow-sm">
                 </div>`;
 
-                let nominalPiutang = (itemDb.total).toLocaleString('id-ID');
                 return `
                 <div class="flex items-start w-full mb-1.5 group/item hover:bg-slate-100 p-1.5 -mx-1.5 rounded-lg transition-colors cursor-pointer">
-                    <div class="flex items-start gap-2 shrink-0">
-                        ${checkboxHtml}
-                    </div>
-                    <div class="text-[10.5px] text-slate-700 font-semibold leading-tight pt-0.5 flex-1 pl-1">${namaLengkap} (x${qtyTampil})</div>
+                    <div class="flex items-start gap-2 shrink-0">${checkboxHtml}</div>
+                    <div class="text-[10.5px] text-slate-700 font-semibold leading-tight pt-0.5 flex-1 pl-1">${namaLengkap} (x${itemDb.qtySisa})</div>
                     <div class="w-[80px] shrink-0 flex items-start pt-0.5 text-[11px] font-black text-slate-800 pl-1">
-                        <span class="w-[20px]">Rp</span><span class="flex-1 text-right">${nominalPiutang}</span>
+                        <span class="w-[20px]">Rp</span><span class="flex-1 text-right">${(itemDb.sisaTagihan).toLocaleString('id-ID')}</span>
                     </div>
                 </div>`;
             }).join('');
 
-            // Teks Harga di Sudut Kanan Atas Waktu (Dihilangkan jika hanya 1 item dalam waktu tersebut)
             let totalWaktuHtml = isMultiDalamSatuWaktu ? `<span class="font-black text-red-600 text-xs bg-red-50 px-2 py-1 rounded-md border border-red-100 shadow-inner">${rupiah(grup.totalWaktuIni)}</span>` : '';
 
-            // Perubahan Desain: Outline Card Penuh (Bukan sekadar garis kiri)
             return `
             <div class="bg-white border border-red-200 rounded-xl p-3.5 mb-3 shadow-sm relative overflow-hidden">
                 <div class="absolute left-0 top-0 bottom-0 w-1 bg-red-400"></div>
@@ -801,9 +780,7 @@ function renderPiutangMobile() {
                     <span class="text-[10px] font-bold text-slate-500 flex items-center gap-1.5"><i class="fa-regular fa-calendar-days text-slate-400"></i> ${grup.tanggal} (${grup.waktu})</span>
                     ${totalWaktuHtml}
                 </div>
-                <div class="pl-1.5 mb-3">
-                    ${itemLines}
-                </div>
+                <div class="pl-1.5 mb-3">${itemLines}</div>
                 <div class="pl-1.5">
                     <button onclick="lompatKeRiwayat('${grup.tanggal}', '${grup.waktu}', '${p.nama}')" class="text-[9px] font-bold text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors flex items-center gap-1.5 w-max active:scale-95 shadow-sm">
                         <i class="fa-solid fa-clock-rotate-left"></i> Cek Jejak Asli
@@ -812,16 +789,12 @@ function renderPiutangMobile() {
             </div>`;
         }).join('');
 
-        // ==========================================
-        // RENDER ZONA HIJAU (Rekening Koran Pelunasan)
-        // ==========================================
         let zonaHijauHtml = '';
         if (p.riwayatLunas.length > 0) {
-            // Urutkan dari yang paling baru
             p.riwayatLunas.sort((a, b) => b.id - a.id);
-            let limitTampil = p.riwayatLunas.slice(0, 3); // Tampilkan max 3 terakhir agar tidak kepanjangan
+            let limitTampil = p.riwayatLunas;
             
-          let lunasLines = limitTampil.map(lunasDb => {
+            let lunasLines = limitTampil.map(lunasDb => {
                 let waktuAsal = '-';
                 if(lunasDb.idTerkait) {
                     let utangAsal = cashierHistory.find(x => x.id.toString() === lunasDb.idTerkait.toString());
@@ -844,19 +817,18 @@ function renderPiutangMobile() {
                 </div>`;
             }).join('');
             
-            zonaHijauHtml = `
-            <div class="mt-5 pt-4 border-t border-slate-200">
-                <div class="flex items-center gap-2 mb-3">
-                    <div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600"><i class="fa-solid fa-clock-rotate-left text-[10px]"></i></div>
-                    <p class="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Riwayat Pelunasan Abadi</p>
-                </div>
-                ${lunasLines}
-            </div>`;
+            zonaHijauHtml = `<div class="mt-5 pt-4 border-t border-slate-200"><div class="flex items-center gap-2 mb-3"><div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600"><i class="fa-solid fa-clock-rotate-left text-[10px]"></i></div><p class="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Riwayat Pelunasan Abadi</p></div>${lunasLines}</div>`;
         }
         
-        // Logika Status Bersih & Label Baru
         let totalStokGantung = 0;
-        p.idsAktif.forEach(id => { let t = cashierHistory.find(x => x.id === id); if(t) totalStokGantung += (t.item || 1); });
+        p.idsAktif.forEach(id => { 
+            let t = cashierHistory.find(x => x.id === id); 
+            if(t) {
+                let historiCicilan = cashierHistory.filter(o => o.isPelunasan && o.idTerkait == t.id && !o.isIndukBorongan);
+                let qtyTertebus = historiCicilan.reduce((sum, o) => sum + (o.item || 0), 0);
+                totalStokGantung += ((t.item || 1) - qtyTertebus); 
+            }
+        });
         
         if (p.totalAktif === 0) {
             zonaMerahHtml = `<div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-3 text-center shadow-sm"><p class="text-[11px] font-black text-emerald-600 uppercase tracking-widest mb-0.5"><i class="fa-solid fa-circle-check text-lg mb-1 block"></i> STATUS BERSIH</p><p class="text-[9px] font-bold text-emerald-800">Tidak ada tunggakan aktif.</p></div>`;
@@ -867,7 +839,6 @@ function renderPiutangMobile() {
         let totalTagihanTombol = p.totalAktif;
         let funcTombol = `bukaModalPelunasanMobile('${p.idsAktif.join(',')}', '${p.nama}', ${p.totalAktif})`;
         
-        // Membaca Keranjang "Pembelah Sel"
         let keranjangOrangIni = seleksiPiutangEceran.filter(x => x.namaPelanggan === p.nama);
         if(keranjangOrangIni.length > 0) {
             totalTagihanTombol = keranjangOrangIni.reduce((sum, i) => sum + i.hargaTebus, 0);
@@ -875,13 +846,10 @@ function renderPiutangMobile() {
             btnColorClass = 'from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 border-emerald-400 shadow-[0_4px_15px_rgba(16,185,129,0.3)]';
             funcTombol = `bukaModalPelunasanMobile('CERDAS', '${p.nama}', ${totalTagihanTombol})`;
         }
-        // ==========================================
-        // KARTU UTAMA MUKRIN
-        // ==========================================
+
         return `
         <div id="kartu-piutang-${p.nama.replace(/\s/g,'')}" class="bg-slate-50 border-2 border-slate-200 rounded-[1.5rem] p-5 shadow-md relative transition-all duration-500 overflow-hidden">
             <div class="absolute top-0 right-0 w-24 h-24 bg-white rounded-bl-full -z-0 opacity-60 pointer-events-none"></div>
-            
             <div class="flex justify-between items-start mb-4 relative z-10">
                 <div class="flex items-center gap-3">
                     <div class="w-12 h-12 rounded-full bg-slate-200 text-slate-500 flex items-center justify-center text-xl shadow-inner border border-slate-300"><i class="fa-solid fa-user"></i></div>
@@ -891,43 +859,29 @@ function renderPiutangMobile() {
                     </div>
                 </div>
                 <div class="flex gap-2 shrink-0">
-                    <button onclick="tagihWAMultiPiutang('${p.nama}')" class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-200 shadow-sm active:scale-95 transition-transform" title="Kirim Tagihan WA">
-                        <i class="fa-brands fa-whatsapp text-xl"></i>
-                    </button>
-                    <button onclick="bukaKasirKhususPiutang('${p.nama}', '${p.wa || ''}')" class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-200 shadow-sm active:scale-95 transition-transform" title="Tambah Utang Baru">
-                        <i class="fa-solid fa-cart-plus text-lg"></i>
-                    </button>
+                    <button onclick="tagihWAMultiPiutang('${p.nama}')" class="w-10 h-10 bg-emerald-50 text-emerald-600 rounded-xl flex items-center justify-center border border-emerald-200 shadow-sm active:scale-95 transition-transform" title="Kirim Tagihan WA"><i class="fa-brands fa-whatsapp text-xl"></i></button>
+                    <button onclick="bukaKasirKhususPiutang('${p.nama}', '${p.wa || ''}')" class="w-10 h-10 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center border border-blue-200 shadow-sm active:scale-95 transition-transform" title="Tambah Utang Baru"><i class="fa-solid fa-cart-plus text-lg"></i></button>
                 </div>
             </div>
-
             <div class="mb-2 relative z-10">
                 <div class="flex items-center gap-2 mb-3">
                     <div class="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center text-red-600"><i class="fa-solid fa-triangle-exclamation text-[10px] animate-pulse"></i></div>
                     <p class="text-[10px] font-black text-red-600 uppercase tracking-widest">Tunggakan Aktif</p>
                 </div>
-                <div class="max-h-[300px] overflow-y-auto hide-scrollbar pb-1">
-                    ${zonaMerahHtml}
-                </div>
+                <div class="max-h-[300px] overflow-y-auto hide-scrollbar pb-1">${zonaMerahHtml}</div>
             </div>
-            
-            <div class="relative z-10">
-                ${zonaHijauHtml}
-            </div>
-
+            <div class="relative z-10">${zonaHijauHtml}</div>
             <div class="bg-white border border-slate-200 rounded-xl p-4 mt-4 relative z-10 shadow-sm">
                 <div class="flex items-center justify-between mb-3">
                     <span class="text-xs font-black text-slate-500 uppercase tracking-wider">Total Tunggakan</span>
                     <span class="text-2xl font-black text-red-600 tracking-tight drop-shadow-sm">${rupiah(p.totalAktif)}</span>
                 </div>
-
-                ${p.totalAktif > 0 ? `
-                <button onclick="${funcTombol}" class="w-full bg-gradient-to-r ${btnColorClass} text-white font-black py-4 rounded-xl transition-transform active:scale-95 flex items-center justify-center gap-2 text-[13px] uppercase tracking-wider border">
-                    <i class="fa-solid fa-hand-holding-dollar text-lg"></i> ${teksTombolLunas} (${rupiah(totalTagihanTombol)})
-                </button>` : ''}
+                ${p.totalAktif > 0 ? `<button onclick="${funcTombol}" class="w-full bg-gradient-to-r ${btnColorClass} text-white font-black py-4 rounded-xl transition-transform active:scale-95 flex items-center justify-center gap-2 text-[13px] uppercase tracking-wider border"><i class="fa-solid fa-hand-holding-dollar text-lg"></i> ${teksTombolLunas} (${rupiah(totalTagihanTombol)})</button>` : ''}
             </div>
         </div>`;
     }).join('');
 }
+
 
 // FUNGSI SHORTCUT PIUTANG -> KASIR
 function bukaKasirKhususPiutang(nama, wa) {
@@ -1017,7 +971,7 @@ function togglePilihPiutangAman(id, namaObat, totalHarga, qtyMax, namaPelanggan,
     renderPiutangMobile(); // Refresh tombol bawah
 }
 
-// MESIN EKSEKUSI PEMBELAH SEL (LUNAS CERDAS)
+// MESIN EKSEKUSI PEMBELAH SEL (LUNAS CERDAS DENGAN ASISTEN)
 function eksekusiPelunasanCerdas(metode) {
     let namaPelanggan = document.getElementById('pelunasanNamaMobile').textContent;
     let keranjangTarget = idsPelunasanMultiMobile === 'CERDAS' ? seleksiPiutangEceran.filter(x => x.namaPelanggan === namaPelanggan) : null;
@@ -1028,20 +982,24 @@ function eksekusiPelunasanCerdas(metode) {
     const strTanggal = getTanggalLokal(); const strWaktu = tglWaktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
     if (idsPelunasanMultiMobile === 'CERDAS') {
-        // MODE PEMBELAH SEL (ECERAN/SEBAGIAN)
+        // MODE CERDAS: ASISTEN PENCATAT SALDO (TIDAK MERUSAK DATA ASLI)
         keranjangTarget.forEach((sel, idx) => {
             let t = cashierHistory.find(x => x.id.toString() === sel.id.toString());
             if(!t) return;
             totalBayar += sel.hargaTebus; if(t.wa) waPelanggan = t.wa;
             
-            if(sel.qtyTebus < sel.qtyMax) {
-                t.item -= sel.qtyTebus; t.total -= sel.hargaTebus;
-                if(t.detailKeranjang && t.detailKeranjang.length > 0) { t.detailKeranjang[0].qty -= sel.qtyTebus; }
-            } else { t.statusLunas = true; t.idTerkait = idPelunasanBaru; } // Lunas total 1 baris
+            // Hitung total tebusan sebelumnya untuk cek apakah dengan tambahan ini lunas total
+            let historiCicilan = cashierHistory.filter(p => p.isPelunasan && p.idTerkait == t.id && !p.isIndukBorongan);
+            let totalQtyTertebus = historiCicilan.reduce((sum, p) => sum + (p.item || 0), 0);
             
+            if((totalQtyTertebus + sel.qtyTebus) >= (t.item || 1)) { 
+                t.statusLunas = true; // Kunci status lunas jika genap
+            } 
+            
+            // CATAT KUITANSI SEBAGAI BUKTI (Tanpa mengotak-atik t.item dan t.total asli)
             cashierHistory.unshift({
                 id: idPelunasanBaru + idx, tanggal: strTanggal, waktu: strWaktu,
-                obat: `Pelunasan Eceran: ${sel.namaObat} (x${sel.qtyTebus})`,
+                obat: `Pelunasan Eceran: ${sel.namaObat.replace(/ \([^)]*\)/, '')}`, 
                 kasir: 'Pemilik', item: sel.qtyTebus, total: sel.hargaTebus, metode: 'Tunai', metodeBayar: metode, laba: 0, pelanggan: namaPelanggan, wa: waPelanggan, isPelunasan: true, idTerkait: sel.id
             });
         });
@@ -1050,11 +1008,27 @@ function eksekusiPelunasanCerdas(metode) {
         // MODE LUNAS SEMUA BORONGAN
         cashierHistory.forEach(t => {
             if (arrIdsAsli.includes(t.id.toString()) && !t.statusLunas) {
-                t.statusLunas = true; t.idTerkait = idPelunasanBaru; totalBayar += (t.total || 0); if(t.wa) waPelanggan = t.wa;
+                t.statusLunas = true; totalBayar += (t.total || 0); if(t.wa) waPelanggan = t.wa;
+                
+                // Beri tahu asisten sisa yang belum dibayar, lalu buatan kuitansi anaknya
+                let historiCicilan = cashierHistory.filter(p => p.isPelunasan && p.idTerkait == t.id && !p.isIndukBorongan);
+                let qtyTertebusSebelumnya = historiCicilan.reduce((sum, p) => sum + (p.item || 0), 0);
+                let nominalTertebusSebelumnya = historiCicilan.reduce((sum, p) => sum + (p.total || 0), 0);
+                
+                let sisaQtyYgDiborong = (t.item || 1) - qtyTertebusSebelumnya;
+                let sisaNominalYgDiborong = (t.total || 0) - nominalTertebusSebelumnya;
+                
+                if(sisaQtyYgDiborong > 0) {
+                    cashierHistory.unshift({
+                        id: idPelunasanBaru + Math.floor(Math.random()*10000), tanggal: strTanggal, waktu: strWaktu, 
+                        obat: `PELUNASAN GABUNGAN: ${namaPelanggan}`, kasir: 'Pemilik', item: sisaQtyYgDiborong, total: sisaNominalYgDiborong, metode: 'Tunai', metodeBayar: metode, laba: 0, pelanggan: namaPelanggan, wa: waPelanggan, isPelunasan: true, idTerkait: t.id, isBorongan: true, grupBorongan: idPelunasanBaru
+                    });
+                }
             }
         });
+        // Kuitansi Induk untuk muncul di Riwayat Hari Ini
         cashierHistory.unshift({
-            id: idPelunasanBaru, tanggal: strTanggal, waktu: strWaktu, obat: `PELUNASAN GABUNGAN: ${namaPelanggan}`, kasir: 'Pemilik', item: arrIdsAsli.length, total: totalBayar, metode: 'Tunai', metodeBayar: metode, laba: 0, pelanggan: namaPelanggan, wa: waPelanggan, isPelunasan: true, idTerkait: idsPelunasanMultiMobile
+            id: idPelunasanBaru, tanggal: strTanggal, waktu: strWaktu, obat: `PELUNASAN GABUNGAN: ${namaPelanggan}`, kasir: 'Pemilik', item: arrIdsAsli.length, total: totalBayar, metode: 'Tunai', metodeBayar: metode, laba: 0, pelanggan: namaPelanggan, wa: waPelanggan, isPelunasan: true, isIndukBorongan: true, idTerkait: idsPelunasanMultiMobile
         });
     }
 
@@ -1066,6 +1040,7 @@ function eksekusiPelunasanCerdas(metode) {
         triggerHaptic([100, 50, 100]); alert(`✅ Pembayaran via ${metode} Berhasil! Transaksi telah dicatat ke Laporan.`);
     }
 }
+
 function renderLaporanMobile() {
     const wadah = document.getElementById('kontenLaporanMobile');
     let tglFilter = document.getElementById('filterTglLaporanMobile').value;
@@ -2006,16 +1981,18 @@ function prosesBatalTransaksiMobile(idTransaksi) {
                 siklusAktif.uangMasuk -= (trx.total || 0); 
                 if (siklusAktif.uangMasuk < 0) siklusAktif.uangMasuk = 0;
                 
-                // Bangkitkan Utang Lama (Multi-ID) dari Tali Pusar
+                // Bangkitkan Utang Lama dari Tali Pusar (Sistem Asisten)
                 if (trx.idTerkait) {
                     let listIdUtang = trx.idTerkait.toString().split(',');
                     cashierHistory.forEach(t => {
                         if(listIdUtang.includes(t.id.toString())) {
-                            t.statusLunas = false;
-                            delete t.idTerkait; 
+                            t.statusLunas = false; // Kembalikan statusnya ke belum lunas
+                            // Kita tidak menghapus/merestore t.item asli, karena t.item nota asli TIDAK PERNAH dikurangi.
+                            // Saat Kuitansi ini dihapus, Asisten otomatis tahu bahwa cicilan batal, dan utang kembali utuh.
                         }
                     });
                 }
+
                 kirimNotifikasiMobile('Batal Pelunasan', `Pelunasan ${trx.pelanggan || ''} dibatalkan. Utang aktif kembali.`, 'batal', trx.total);
                 
             } else {
