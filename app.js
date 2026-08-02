@@ -549,13 +549,14 @@ function renderRiwayatMobile() {
         if (t.isBorongan) return; 
         
         let key = t.isPelunasan ? `PELUNASAN_${t.id}` : `${t.waktu}_${t.pelanggan || 'UMUM'}_${t.metode}`;
-        if (!grupRiwayat[key]) {
-            grupRiwayat[key] = {
-                idGabungan: t.id, waktu: t.waktu, metode: t.metode, pelanggan: t.pelanggan, kasir: t.kasir,
-                isPelunasan: t.isPelunasan, isBintang: t.isBintang, statusLunas: t.statusLunas,
-                total: 0, item: 0, rincian: [], rawIds: []
-            };
-        }
+                                if (!grupRiwayat[key]) {
+                grupRiwayat[key] = {
+                    idGabungan: t.id, waktu: t.waktu, metode: t.metode, pelanggan: t.pelanggan, kasir: t.kasir,
+                    isPelunasan: t.isPelunasan, isBintang: t.isBintang, statusLunas: t.statusLunas,
+                    total: 0, item: 0, rincian: [], rawIds: [], metodeBayar: t.metodeBayar
+                };
+            }
+
         grupRiwayat[key].total += (t.total || 0);
         grupRiwayat[key].item += (t.item || 1);
         grupRiwayat[key].rawIds.push(t.id);
@@ -661,14 +662,41 @@ function renderRiwayatMobile() {
 
         let tombolPortal = (g.metode === 'Debt' && g.pelanggan) ? `<button onclick="event.stopPropagation(); lompatKeBukuPiutang('${g.pelanggan}')" class="mt-2 text-[9px] font-bold text-blue-600 bg-blue-50 px-2.5 py-1.5 rounded-lg border border-blue-100 hover:bg-blue-100 transition-colors flex items-center gap-1.5 w-max active:scale-95"><i class="fa-solid fa-book-open"></i> Lihat Buku Piutang</button>` : '';
 
+        // [PERISAI LOGIKA] Sembunyikan tombol batal jika utang (Debt) sudah dicicil atau lunas
+        let isUtangTercicil = g.metode === 'Debt' && cashierHistory.some(p => p.isPelunasan && p.idTerkait && g.rawIds.includes(parseInt(p.idTerkait)));
+        let isUtangLunas = g.metode === 'Debt' && g.rawIds.every(id => { let k = cashierHistory.find(x => x.id === id); return k ? k.statusLunas : true; });
+        
+                        // --- INJEKSI UI PELUNASAN ELEGAN ---
+        let badgePelunasanHtml = '';
+        if (g.isPelunasan) {
+            let pName = (g.pelanggan && g.pelanggan !== 'UMUM') ? g.pelanggan : 'TIDAK DIKETAHUI';
+            let qtyTebus = g.item || 1;
+            let metode = (g.metodeBayar || 'TUNAI').toUpperCase();
+            
+            // Logika Ikon & Warna Dinamis
+            let iconMetode = metode === 'QRIS' ? '<i class="fa-solid fa-qrcode"></i>' : '<i class="fa-solid fa-money-bill-wave"></i>';
+            let warnaMetode = metode === 'QRIS' ? 'bg-blue-50/80 text-blue-700 border-blue-200/60' : 'bg-emerald-50/80 text-emerald-700 border-emerald-200/60';
+            
+            badgePelunasanHtml = `
+            <div class="flex items-center flex-wrap gap-1.5 mt-2.5 z-10">
+                <span class="bg-slate-50 text-slate-600 px-2 py-0.5 rounded text-[9.5px] font-bold border border-slate-200 uppercase tracking-widest shadow-sm">👤 ${pName}</span>
+                <span class="bg-slate-50 text-slate-600 px-2 py-0.5 rounded text-[9.5px] font-bold border border-slate-200 uppercase tracking-widest shadow-sm">📦 x${qtyTebus} STOK</span>
+                <span class="${warnaMetode} px-2 py-0.5 rounded text-[9.5px] font-bold border uppercase tracking-widest shadow-sm">${iconMetode} ${metode}</span>
+            </div>`;
+        }
+        // -----------------------------------
+
+
+        let btnBatalHtml = (isUtangTercicil || isUtangLunas) ? '' : `<button onclick="event.stopPropagation(); prosesBatalTransaksiMobile(${g.rawIds[0]})" class="text-[10px] text-red-500 hover:bg-red-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-red-100 shadow-sm active:scale-95"><i class="fa-solid fa-rotate-left"></i> Batal</button>`;
+
         let tombolAksi = modeSeleksiRiwayatAktif ? '' : `
             <div class="flex gap-2 relative z-10 mt-3 justify-end border-t border-slate-100 pt-3">
-                <button onclick="event.stopPropagation(); prosesBatalTransaksiMobile(${g.rawIds[0]})" class="text-[10px] text-red-500 hover:bg-red-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-red-100 shadow-sm active:scale-95"><i class="fa-solid fa-rotate-left"></i> Batal</button>
+                ${btnBatalHtml}
                 <button onclick="event.stopPropagation(); prosesCetakStrukMobile(${g.rawIds[0]}, this)" class="text-[10px] text-blue-600 hover:bg-blue-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-blue-100 shadow-sm active:scale-95"><i class="fa-solid fa-print"></i> Cetak</button>
             </div>`;
             
-        return `<div id="kartu-riwayat-${g.waktu.replace(':','')}-${g.pelanggan ? g.pelanggan.replace(/\s/g,'') : 'UMUM'}" onpointerdown="mulaiTekanRiwayat(${g.rawIds[0]})" onpointerup="lepasTekanRiwayat()" onpointerleave="lepasTekanRiwayat()" onclick="klikItemRiwayat(${g.rawIds[0]})" class="${bgCard} select-none rounded-2xl p-4 flex flex-col transition-all cursor-pointer relative group"><div class="flex justify-between items-start pointer-events-none"><div class="pr-2 flex-1"><p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mb-1"><i class="fa-regular fa-calendar-days"></i> ${g.tanggal || tglFilter} • ${g.waktu}</p><h3 class="font-bold text-slate-800 text-sm leading-tight inline-block mb-1">${judulObat} ${starIcon}</h3><p class="text-[10px] text-slate-500 font-medium">Oleh: ${g.kasir}</p>${teksKonsumen}</div><div class="text-right shrink-0"><p class="font-black ${isSelected ? 'text-blue-700' : 'text-corporate-700'} text-base">${rupiah(g.total)}</p><span class="inline-block mt-1.5 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider ${badgeWarna}">${teksStatus}</span></div></div>${areaRincian}${tombolPortal}${tombolAksi}</div>`;
-    }).join('');
+               return `<div id="kartu-riwayat-${g.waktu.replace(':','')}-${g.pelanggan ? g.pelanggan.replace(/\s/g,'') : 'UMUM'}" onpointerdown="mulaiTekanRiwayat(${g.rawIds[0]})" onpointerup="lepasTekanRiwayat()" onpointerleave="lepasTekanRiwayat()" onclick="klikItemRiwayat(${g.rawIds[0]})" class="${bgCard} select-none rounded-2xl p-4 flex flex-col transition-all cursor-pointer relative group"><div class="flex justify-between items-start pointer-events-none"><div class="pr-2 flex-1"><p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mb-1"><i class="fa-regular fa-calendar-days"></i> ${g.tanggal || tglFilter} • ${g.waktu}</p><h3 class="font-bold text-slate-800 text-sm leading-tight inline-block mb-1">${judulObat} ${starIcon}</h3><p class="text-[10px] text-slate-500 font-medium">Oleh: ${g.kasir}</p>${badgePelunasanHtml}${teksKonsumen}</div><div class="text-right shrink-0"><p class="font-black ${isSelected ? 'text-blue-700' : 'text-corporate-700'} text-base">${rupiah(g.total)}</p><span class="inline-block mt-1.5 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider ${badgeWarna}">${teksStatus}</span></div></div>${areaRincian}${tombolPortal}${tombolAksi}</div>`;
+  }).join('');
 }
 
 // ==========================================
@@ -754,19 +782,34 @@ function renderPiutangMobile() {
                     if(k.kategori) namaLengkap += ` • ${k.kategori}`;
                 }
                 
-                let namaObatParam = namaLengkap.replace(/'/g, "\\'");
-                let isChecked = seleksiPiutangEceran.some(x => x.id === itemDb.id) ? 'checked' : '';
+                                let namaObatParam = namaLengkap.replace(/'/g, "\\'");
+                
+                // --- INJEKSI UI/UX: LOGIKA PEMBACAAN PRESISI & TRANSFORMASI VISUAL ---
+                // 1. Perbaikan Bug Centang: Paksa ID menjadi Teks agar cocok 100%
+                let itemTerpilih = seleksiPiutangEceran.find(x => x.id.toString() === itemDb.id.toString());
+                let isChecked = itemTerpilih ? 'checked' : '';
+                
                 let checkboxHtml = `
                 <div class="relative flex items-center justify-center pt-0.5 z-20">
                     <input type="checkbox" ${isChecked} onchange="togglePilihPiutangAman('${itemDb.id}', '${namaObatParam}', ${itemDb.sisaTagihan}, ${itemDb.qtySisa}, '${p.nama}', this)" class="w-4 h-4 text-emerald-500 rounded border-slate-300 focus:ring-emerald-500 cursor-pointer shadow-sm">
                 </div>`;
 
+                // 2. Transformasi Desain: Berubah warna dan teks saat masuk keranjang
+                let bgBaris = itemTerpilih ? 'bg-emerald-50 border border-emerald-200 shadow-inner' : 'hover:bg-slate-100 border border-transparent';
+                
+                let teksTebus = itemTerpilih ? 
+                    `<span class="bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded text-[9px] font-black ml-1.5 shadow-sm border border-emerald-200">Ditebus x${itemTerpilih.qtyTebus} dari ${itemDb.qtySisa}</span>` 
+                    : ` <span class="text-slate-500">(x${itemDb.qtySisa})</span>`;
+                    
+                let nominalTampil = itemTerpilih ? itemTerpilih.hargaTebus : itemDb.sisaTagihan;
+                let warnaNominal = itemTerpilih ? 'text-emerald-700 font-black' : 'text-slate-800 font-black';
+
                 return `
-                <div class="flex items-start w-full mb-1.5 group/item hover:bg-slate-100 p-1.5 -mx-1.5 rounded-lg transition-colors cursor-pointer">
+                <div class="flex items-start w-full mb-1.5 group/item p-1.5 -mx-1.5 rounded-lg transition-all cursor-pointer ${bgBaris}">
                     <div class="flex items-start gap-2 shrink-0">${checkboxHtml}</div>
-                    <div class="text-[10.5px] text-slate-700 font-semibold leading-tight pt-0.5 flex-1 pl-1">${namaLengkap} (x${itemDb.qtySisa})</div>
-                    <div class="w-[80px] shrink-0 flex items-start pt-0.5 text-[11px] font-black text-slate-800 pl-1">
-                        <span class="w-[20px]">Rp</span><span class="flex-1 text-right">${(itemDb.sisaTagihan).toLocaleString('id-ID')}</span>
+                    <div class="text-[10.5px] text-slate-700 font-semibold leading-tight pt-0.5 flex-1 pl-1">${namaLengkap}${teksTebus}</div>
+                    <div class="w-[80px] shrink-0 flex items-start pt-0.5 text-[11px] ${warnaNominal} pl-1">
+                        <span class="w-[20px]">Rp</span><span class="flex-1 text-right">${(nominalTampil).toLocaleString('id-ID')}</span>
                     </div>
                 </div>`;
             }).join('');
@@ -794,12 +837,27 @@ function renderPiutangMobile() {
             p.riwayatLunas.sort((a, b) => b.id - a.id);
             let limitTampil = p.riwayatLunas;
             
-            let lunasLines = limitTampil.map(lunasDb => {
+                        let lunasLines = limitTampil.map(lunasDb => {
                 let waktuAsal = '-';
+                let btnJejakHtml = ''; // Siapkan variabel untuk tombol Cek Jejak Asli
+                
                 if(lunasDb.idTerkait) {
                     let utangAsal = cashierHistory.find(x => x.id.toString() === lunasDb.idTerkait.toString());
-                    if(utangAsal) waktuAsal = `${utangAsal.tanggal} (${utangAsal.waktu})`;
+                    if(utangAsal) {
+                        waktuAsal = `${utangAsal.tanggal} (${utangAsal.waktu})`;
+                        // Tombol Cek Jejak Asli yang mengarah ke nota utang aslinya (Hutang Asal)
+                        btnJejakHtml = `
+                        <div class="mt-2.5">
+                            <button onclick="lompatKeRiwayat('${utangAsal.tanggal}', '${utangAsal.waktu}', '${p.nama}')" class="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-100 hover:bg-emerald-100 transition-colors flex items-center gap-1.5 w-max active:scale-95 shadow-sm">
+                                <i class="fa-solid fa-clock-rotate-left"></i> Cek Jejak Asli
+                            </button>
+                        </div>`;
+                    }
                 }
+                
+                let namaObatBersih = lunasDb.obat.replace('PELUNASAN GABUNGAN: ','').replace('Pelunasan Eceran: ','');
+                let qtyTebus = lunasDb.item || 1; // Menangkap jumlah stok yang dilunasi
+                
                 return `
                 <div class="bg-white border border-emerald-200 rounded-xl p-3 mb-2 shadow-sm relative overflow-hidden">
                     <div class="absolute left-0 top-0 bottom-0 w-1 bg-emerald-400"></div>
@@ -812,10 +870,12 @@ function renderPiutangMobile() {
                         <p class="text-[9px] text-slate-600 font-bold"><span class="inline-block w-16 text-slate-400">Hutang Asal</span>: ${waktuAsal}</p>
                         <p class="text-[9px] text-slate-600 font-bold"><span class="inline-block w-16 text-slate-400">Metode</span>: <span class="text-blue-600 uppercase font-black">${lunasDb.metodeBayar || lunasDb.metode}</span></p>
                         <div class="border-t border-dashed border-emerald-100 my-1.5"></div>
-                        <p class="text-[9px] text-slate-500 font-medium italic">Menebus: <span class="text-slate-700">${lunasDb.obat.replace('PELUNASAN GABUNGAN: ','').replace('Pelunasan Eceran: ','')}</span></p>
+                        <p class="text-[9px] text-slate-500 font-medium italic leading-tight">Menebus: <span class="text-slate-700 font-bold">${namaObatBersih} <span class="text-emerald-600 font-black">(x${qtyTebus})</span></span></p>
+                        ${btnJejakHtml}
                     </div>
                 </div>`;
             }).join('');
+
             
             zonaHijauHtml = `<div class="mt-5 pt-4 border-t border-slate-200"><div class="flex items-center gap-2 mb-3"><div class="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-600"><i class="fa-solid fa-clock-rotate-left text-[10px]"></i></div><p class="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Riwayat Pelunasan Abadi</p></div>${lunasLines}</div>`;
         }
@@ -834,18 +894,23 @@ function renderPiutangMobile() {
             zonaMerahHtml = `<div class="bg-emerald-50 border border-emerald-200 rounded-xl p-3 mb-3 text-center shadow-sm"><p class="text-[11px] font-black text-emerald-600 uppercase tracking-widest mb-0.5"><i class="fa-solid fa-circle-check text-lg mb-1 block"></i> STATUS BERSIH</p><p class="text-[9px] font-bold text-emerald-800">Tidak ada tunggakan aktif.</p></div>`;
         }
 
-        let teksTombolLunas = 'LUNASI SEMUA';
-        let btnColorClass = 'from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 border-red-400 shadow-[0_4px_15px_rgba(239,68,68,0.3)]';
-        let totalTagihanTombol = p.totalAktif;
-        let funcTombol = `bukaModalPelunasanMobile('${p.idsAktif.join(',')}', '${p.nama}', ${p.totalAktif})`;
+                let keranjangOrangIni = seleksiPiutangEceran.filter(x => x.namaPelanggan === p.nama);
         
-        let keranjangOrangIni = seleksiPiutangEceran.filter(x => x.namaPelanggan === p.nama);
+        // LOGIKA BARU: Wajib Centang (Tombol Default Mati/Abu-abu)
+        let teksTombolLunas = 'PILIH ITEM DULU';
+        let btnColorClass = 'from-slate-400 to-slate-500 border-slate-300 opacity-70';
+        let totalTagihanTombol = 0;
+        let funcTombol = `alert('Silakan centang item utang di atas yang ingin dilunasi terlebih dahulu.')`;
+        
+        // Jika sudah ada yang dicentang, tombol hidup (Hijau)
         if(keranjangOrangIni.length > 0) {
             totalTagihanTombol = keranjangOrangIni.reduce((sum, i) => sum + i.hargaTebus, 0);
             teksTombolLunas = 'LUNASI TERPILIH';
             btnColorClass = 'from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 border-emerald-400 shadow-[0_4px_15px_rgba(16,185,129,0.3)]';
             funcTombol = `bukaModalPelunasanMobile('CERDAS', '${p.nama}', ${totalTagihanTombol})`;
         }
+        
+        let tampilanTombolBawah = p.totalAktif > 0 ? `<button onclick="${funcTombol}" class="w-full bg-gradient-to-r ${btnColorClass} text-white font-black py-4 rounded-xl transition-transform active:scale-95 flex items-center justify-center gap-2 text-[13px] uppercase tracking-wider border"><i class="fa-solid fa-hand-holding-dollar text-lg"></i> ${teksTombolLunas} ${keranjangOrangIni.length > 0 ? '(' + rupiah(totalTagihanTombol) + ')' : ''}</button>` : '';
 
         return `
         <div id="kartu-piutang-${p.nama.replace(/\s/g,'')}" class="bg-slate-50 border-2 border-slate-200 rounded-[1.5rem] p-5 shadow-md relative transition-all duration-500 overflow-hidden">
@@ -876,7 +941,7 @@ function renderPiutangMobile() {
                     <span class="text-xs font-black text-slate-500 uppercase tracking-wider">Total Tunggakan</span>
                     <span class="text-2xl font-black text-red-600 tracking-tight drop-shadow-sm">${rupiah(p.totalAktif)}</span>
                 </div>
-                ${p.totalAktif > 0 ? `<button onclick="${funcTombol}" class="w-full bg-gradient-to-r ${btnColorClass} text-white font-black py-4 rounded-xl transition-transform active:scale-95 flex items-center justify-center gap-2 text-[13px] uppercase tracking-wider border"><i class="fa-solid fa-hand-holding-dollar text-lg"></i> ${teksTombolLunas} (${rupiah(totalTagihanTombol)})</button>` : ''}
+                ${tampilanTombolBawah}
             </div>
         </div>`;
     }).join('');
@@ -971,66 +1036,40 @@ function togglePilihPiutangAman(id, namaObat, totalHarga, qtyMax, namaPelanggan,
     renderPiutangMobile(); // Refresh tombol bawah
 }
 
-// MESIN EKSEKUSI PEMBELAH SEL (LUNAS CERDAS DENGAN ASISTEN)
+// MESIN EKSEKUSI PEMBELAH SEL (MURNI FOKUS CENTANG)
 function eksekusiPelunasanCerdas(metode) {
     let namaPelanggan = document.getElementById('pelunasanNamaMobile').textContent;
-    let keranjangTarget = idsPelunasanMultiMobile === 'CERDAS' ? seleksiPiutangEceran.filter(x => x.namaPelanggan === namaPelanggan) : null;
-    let arrIdsAsli = idsPelunasanMultiMobile !== 'CERDAS' ? idsPelunasanMultiMobile.split(',') : [];
+    let keranjangTarget = seleksiPiutangEceran.filter(x => x.namaPelanggan === namaPelanggan);
     
+    if (keranjangTarget.length === 0) return alert("⚠️ Anda belum memilih item utang yang akan dilunasi.");
+
     let totalBayar = 0; let waPelanggan = '';
     const idPelunasanBaru = Date.now(); const tglWaktu = new Date();
     const strTanggal = getTanggalLokal(); const strWaktu = tglWaktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
-    if (idsPelunasanMultiMobile === 'CERDAS') {
-        // MODE CERDAS: ASISTEN PENCATAT SALDO (TIDAK MERUSAK DATA ASLI)
-        keranjangTarget.forEach((sel, idx) => {
-            let t = cashierHistory.find(x => x.id.toString() === sel.id.toString());
-            if(!t) return;
-            totalBayar += sel.hargaTebus; if(t.wa) waPelanggan = t.wa;
-            
-            // Hitung total tebusan sebelumnya untuk cek apakah dengan tambahan ini lunas total
-            let historiCicilan = cashierHistory.filter(p => p.isPelunasan && p.idTerkait == t.id && !p.isIndukBorongan);
-            let totalQtyTertebus = historiCicilan.reduce((sum, p) => sum + (p.item || 0), 0);
-            
-            if((totalQtyTertebus + sel.qtyTebus) >= (t.item || 1)) { 
-                t.statusLunas = true; // Kunci status lunas jika genap
-            } 
-            
-            // CATAT KUITANSI SEBAGAI BUKTI (Tanpa mengotak-atik t.item dan t.total asli)
-            cashierHistory.unshift({
-                id: idPelunasanBaru + idx, tanggal: strTanggal, waktu: strWaktu,
-                obat: `Pelunasan Eceran: ${sel.namaObat.replace(/ \([^)]*\)/, '')}`, 
-                kasir: 'Pemilik', item: sel.qtyTebus, total: sel.hargaTebus, metode: 'Tunai', metodeBayar: metode, laba: 0, pelanggan: namaPelanggan, wa: waPelanggan, isPelunasan: true, idTerkait: sel.id
-            });
-        });
-        seleksiPiutangEceran = seleksiPiutangEceran.filter(x => x.namaPelanggan !== namaPelanggan); // Bersihkan keranjang
-    } else {
-        // MODE LUNAS SEMUA BORONGAN
-        cashierHistory.forEach(t => {
-            if (arrIdsAsli.includes(t.id.toString()) && !t.statusLunas) {
-                t.statusLunas = true; totalBayar += (t.total || 0); if(t.wa) waPelanggan = t.wa;
-                
-                // Beri tahu asisten sisa yang belum dibayar, lalu buatan kuitansi anaknya
-                let historiCicilan = cashierHistory.filter(p => p.isPelunasan && p.idTerkait == t.id && !p.isIndukBorongan);
-                let qtyTertebusSebelumnya = historiCicilan.reduce((sum, p) => sum + (p.item || 0), 0);
-                let nominalTertebusSebelumnya = historiCicilan.reduce((sum, p) => sum + (p.total || 0), 0);
-                
-                let sisaQtyYgDiborong = (t.item || 1) - qtyTertebusSebelumnya;
-                let sisaNominalYgDiborong = (t.total || 0) - nominalTertebusSebelumnya;
-                
-                if(sisaQtyYgDiborong > 0) {
-                    cashierHistory.unshift({
-                        id: idPelunasanBaru + Math.floor(Math.random()*10000), tanggal: strTanggal, waktu: strWaktu, 
-                        obat: `PELUNASAN GABUNGAN: ${namaPelanggan}`, kasir: 'Pemilik', item: sisaQtyYgDiborong, total: sisaNominalYgDiborong, metode: 'Tunai', metodeBayar: metode, laba: 0, pelanggan: namaPelanggan, wa: waPelanggan, isPelunasan: true, idTerkait: t.id, isBorongan: true, grupBorongan: idPelunasanBaru
-                    });
-                }
-            }
-        });
-        // Kuitansi Induk untuk muncul di Riwayat Hari Ini
+    // MODE CERDAS: ASISTEN PENCATAT SALDO
+    keranjangTarget.forEach((sel, idx) => {
+        let t = cashierHistory.find(x => x.id.toString() === sel.id.toString());
+        if(!t) return;
+        totalBayar += sel.hargaTebus; if(t.wa) waPelanggan = t.wa;
+        
+        let historiCicilan = cashierHistory.filter(p => p.isPelunasan && p.idTerkait == t.id && !p.isIndukBorongan);
+        let totalQtyTertebus = historiCicilan.reduce((sum, p) => sum + (p.item || 0), 0);
+        
+        if((totalQtyTertebus + sel.qtyTebus) >= (t.item || 1)) { 
+            t.statusLunas = true; // Kunci status lunas jika genap
+        } 
+        
+        // CATAT KUITANSI SEBAGAI BUKTI
         cashierHistory.unshift({
-            id: idPelunasanBaru, tanggal: strTanggal, waktu: strWaktu, obat: `PELUNASAN GABUNGAN: ${namaPelanggan}`, kasir: 'Pemilik', item: arrIdsAsli.length, total: totalBayar, metode: 'Tunai', metodeBayar: metode, laba: 0, pelanggan: namaPelanggan, wa: waPelanggan, isPelunasan: true, isIndukBorongan: true, idTerkait: idsPelunasanMultiMobile
+            id: idPelunasanBaru + idx, tanggal: strTanggal, waktu: strWaktu,
+            obat: `Pelunasan Eceran: ${sel.namaObat.replace(/ \([^)]*\)/, '')}`, 
+            kasir: 'Pemilik', item: sel.qtyTebus, total: sel.hargaTebus, metode: 'Tunai', metodeBayar: metode, laba: 0, pelanggan: namaPelanggan, wa: waPelanggan, isPelunasan: true, idTerkait: sel.id
         });
-    }
+    });
+    
+    // Bersihkan keranjang
+    seleksiPiutangEceran = seleksiPiutangEceran.filter(x => x.namaPelanggan !== namaPelanggan);
 
     if (totalBayar > 0) {
         siklusAktif.uangMasuk += totalBayar;
@@ -1040,6 +1079,7 @@ function eksekusiPelunasanCerdas(metode) {
         triggerHaptic([100, 50, 100]); alert(`✅ Pembayaran via ${metode} Berhasil! Transaksi telah dicatat ke Laporan.`);
     }
 }
+
 
 function renderLaporanMobile() {
     const wadah = document.getElementById('kontenLaporanMobile');
