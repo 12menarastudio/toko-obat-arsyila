@@ -445,17 +445,9 @@ let timerLongPressRiwayat;
 function ubahTabRiwayat(tab) {
     riwayatTabAktifMobile = tab;
     batalSeleksiRiwayat(); 
-        
-    ['semua', 'bintang', 'arsip'].forEach(t => {
-        let btn = document.getElementById('tabRiwayat-' + t);
-        if(t === tab) {
-            btn.className = (t === 'semua') ? "px-4 py-2 rounded-xl text-[11px] font-black bg-white text-corporate-700 shadow-sm transition-all uppercase tracking-wider" : "px-3.5 py-2 rounded-xl text-[11px] font-bold bg-white shadow-sm transition-all";
-        } else {
-            btn.className = (t === 'semua') ? "px-4 py-2 rounded-xl text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-all uppercase tracking-wider" : "px-3.5 py-2 rounded-xl text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-all";
-        }
-    });
     renderRiwayatMobile();
 }
+
 
 function mulaiTekanRiwayat(id) {
     if(modeSeleksiRiwayatAktif) return; 
@@ -504,6 +496,60 @@ function pilihSemuaRiwayat() {
     document.getElementById('teksJumlahSeleksi').textContent = itemTerpilihRiwayat.length + " Dipilih";
     renderRiwayatMobile();
 }
+function prosesHapusMasalRiwayat() {
+    if(itemTerpilihRiwayat.length === 0) return;
+
+    // 1. MESIN PEMILAH ABSOLUT: Hanya 2 Jalur (Hangus & Kebal)
+    let idHangus = [];
+    let idDilindungi = [];
+
+    itemTerpilihRiwayat.forEach(idTarget => {
+        let trx = cashierHistory.find(t => t.id === idTarget);
+        if (!trx) return;
+
+        // ATURAN BESI BARU: Semua jenis Piutang (Debt) & Laporan Pelunasan DITOLAK MUTLAK
+        if (trx.metode === 'Debt' || trx.isPelunasan) {
+            idDilindungi.push(idTarget);
+        } 
+        // HANYA Transaksi Normal (Tunai/QRIS) yang BOLEH DIHAPUS PERMANEN
+        else {
+            idHangus.push(idTarget);
+        }
+    });
+
+    // 2. CEK BLOKIR TOTAL
+    if (idHangus.length === 0) {
+        return alert(`🛡️ AKSES DITOLAK!\n\nSeluruh ${itemTerpilihRiwayat.length} transaksi yang dipilih adalah data Kasbon/Pelunasan. Sistem melindunginya secara mutlak agar Buku Piutang tidak rusak.`);
+    }
+
+    // 3. PESAN KONFIRMASI CERDAS
+    let pesanConfirm = `Hapus permanen ${idHangus.length} riwayat transaksi normal terpilih?\n\n(Total Uang di Brankas & Laporan Tutup Buku tetap aman).`;
+    
+    if (idDilindungi.length > 0) {
+        pesanConfirm = `Dari ${itemTerpilihRiwayat.length} transaksi, ada ${idDilindungi.length} item Piutang/Pelunasan yang 🛡️ DILINDUNGI.\n\nLanjutkan menghapus sisa ${idHangus.length} transaksi normal?`;
+    }
+
+    tampilkanConfirmMobile(pesanConfirm, function() {
+        
+        // 4. EKSEKUSI PEMUSNAHAN MURNI HANYA UNTUK TRANSAKSI NORMAL
+        cashierHistory = cashierHistory.filter(t => !idHangus.includes(t.id));
+
+        saveApotekDB('apotek_cashierHistory', cashierHistory);
+
+        batalSeleksiRiwayat();
+        renderBerandaMobile();
+        if(!document.getElementById('layar-piutang').classList.contains('hidden')) renderPiutangMobile();
+
+        triggerHaptic([100,50,100]);
+
+        // 5. LAPORAN HASIL AKHIR
+        let pesanSukses = `✅ ${idHangus.length} Riwayat normal berhasil dihapus permanen.`;
+        if (idDilindungi.length > 0) {
+            pesanSukses += `\n🛡️ ${idDilindungi.length} riwayat DITOLAK penghapusannya demi menjaga rantai Piutang.`;
+        }
+        alert(pesanSukses);
+    });
+}
 
 function prosesBintangMasalRiwayat() {
     if(itemTerpilihRiwayat.length === 0) return;
@@ -537,10 +583,10 @@ function renderRiwayatMobile() {
         return;
     }
     
-    if(modeSeleksiRiwayatAktif) {
+        if(modeSeleksiRiwayatAktif) {
         document.getElementById('teksJumlahSeleksi').textContent = itemTerpilihRiwayat.length + " Dipilih";
-        document.getElementById('btnArsipHeaderSeleksi').innerHTML = riwayatTabAktifMobile === 'arsip' ? '<i class="fa-solid fa-eye"></i>' : '<i class="fa-solid fa-eye-slash"></i>';
     }
+
     
         // [PENYEMPURNAAN 2] ILUSI VISUAL GROUPING BERDASAR WAKTU & NAMA
     let grupRiwayat = {};
@@ -695,7 +741,7 @@ function renderRiwayatMobile() {
                 <button onclick="event.stopPropagation(); prosesCetakStrukMobile(${g.rawIds[0]}, this)" class="text-[10px] text-blue-600 hover:bg-blue-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-blue-100 shadow-sm active:scale-95"><i class="fa-solid fa-print"></i> Cetak</button>
             </div>`;
             
-               return `<div id="kartu-riwayat-${g.waktu.replace(':','')}-${g.pelanggan ? g.pelanggan.replace(/\s/g,'') : 'UMUM'}" onpointerdown="mulaiTekanRiwayat(${g.rawIds[0]})" onpointerup="lepasTekanRiwayat()" onpointerleave="lepasTekanRiwayat()" onclick="klikItemRiwayat(${g.rawIds[0]})" class="${bgCard} select-none rounded-2xl p-4 flex flex-col transition-all cursor-pointer relative group"><div class="flex justify-between items-start pointer-events-none"><div class="pr-2 flex-1"><p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mb-1"><i class="fa-regular fa-calendar-days"></i> ${g.tanggal || tglFilter} • ${g.waktu}</p><h3 class="font-bold text-slate-800 text-sm leading-tight inline-block mb-1">${judulObat} ${starIcon}</h3><p class="text-[10px] text-slate-500 font-medium">Oleh: ${g.kasir}</p>${badgePelunasanHtml}${teksKonsumen}</div><div class="text-right shrink-0"><p class="font-black ${isSelected ? 'text-blue-700' : 'text-corporate-700'} text-base">${rupiah(g.total)}</p><span class="inline-block mt-1.5 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider ${badgeWarna}">${teksStatus}</span></div></div>${areaRincian}${tombolPortal}${tombolAksi}</div>`;
+                       return `<div id="kartu-riwayat-${g.waktu.replace(/[:\.]/g,'')}-${g.pelanggan ? g.pelanggan.toUpperCase().replace(/\s/g,'') : 'UMUM'}" onpointerdown="mulaiTekanRiwayat(${g.rawIds[0]})" onpointerup="lepasTekanRiwayat()" onpointerleave="lepasTekanRiwayat()" onclick="klikItemRiwayat(${g.rawIds[0]})" class="${bgCard} select-none rounded-2xl p-4 flex flex-col transition-all cursor-pointer relative group"><div class="flex justify-between items-start pointer-events-none"><div class="pr-2 flex-1"><p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mb-1"><i class="fa-regular fa-calendar-days"></i> ${g.tanggal || tglFilter} • ${g.waktu}</p><h3 class="font-bold text-slate-800 text-sm leading-tight inline-block mb-1">${judulObat} ${starIcon}</h3><p class="text-[10px] text-slate-500 font-medium">Oleh: ${g.kasir}</p>${badgePelunasanHtml}${teksKonsumen}</div><div class="text-right shrink-0"><p class="font-black ${isSelected ? 'text-blue-700' : 'text-corporate-700'} text-base">${rupiah(g.total)}</p><span class="inline-block mt-1.5 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider ${badgeWarna}">${teksStatus}</span></div></div>${areaRincian}${tombolPortal}${tombolAksi}</div>`;
   }).join('');
 }
 
@@ -961,23 +1007,24 @@ function bukaKasirKhususPiutang(nama, wa) {
     }, 100);
 }
 
-// FUNGSI MESIN WAKTU -> RIWAYAT TANGGAL ASLI
-function lompatKeRiwayat(tanggal) {
-    document.getElementById('filterTglRiwayatMobile').value = tanggal;
-    ubahTabRiwayat('semua');
-    bukaLayar('riwayat');
-    setTimeout(() => showToast(`⏰ Melompat ke arsip tanggal ${tanggal}`), 300);
-}
-// [PENYEMPURNAAN 3 & 4] PORTAL NAVIGASI DUA ARAH & ANIMASI BERKEDIP
+// FUNGSI MESIN WAKTU -> RIWAYAT TANGGAL ASLI & PORTAL ANIMASI
 function lompatKeRiwayat(tanggal, waktuJam, nama) {
     document.getElementById('filterTglRiwayatMobile').value = tanggal;
     ubahTabRiwayat('semua');
     bukaLayar('riwayat');
     
-    // Mesin Animasi Pencari Kotak Waktu
+    // Jika dipanggil tanpa waktu spesifik, cukup buka harinya saja
+    if(!waktuJam || !nama) {
+        setTimeout(() => showToast(`⏰ Melompat ke arsip tanggal ${tanggal}`), 300);
+        return;
+    }
+
+    // Mesin Animasi Pencari Kotak Waktu (Presisi Tinggi)
     setTimeout(() => {
-        let idTarget = `kartu-riwayat-${waktuJam.replace(':','')}-${nama.replace(/\s/g,'')}`;
+        // Membersihkan titik/titik dua pada jam, dan memaksa NAMA jadi UPPERCASE
+        let idTarget = `kartu-riwayat-${waktuJam.replace(/[:\.]/g,'')}-${nama.toUpperCase().replace(/\s/g,'')}`;
         let kotakTujuan = document.getElementById(idTarget);
+        
         if(kotakTujuan) {
             kotakTujuan.scrollIntoView({ behavior: 'smooth', block: 'center' });
             // Efek Sihir Nyala Kuning
@@ -986,9 +1033,11 @@ function lompatKeRiwayat(tanggal, waktuJam, nama) {
             setTimeout(() => {
                 kotakTujuan.classList.remove('bg-amber-100', 'border-amber-400', 'shadow-[0_0_20px_rgba(251,191,36,0.5)]');
                 kotakTujuan.classList.add('bg-white', 'border-slate-200');
-            }, 2500); // Padam setelah 2.5 detik
+            }, 2500); 
+            showToast(`⏰ Tiba di riwayat ${waktuJam}`);
+        } else {
+            alert(`⚠️ JEJAK TIDAK DITEMUKAN\n\nStruk pada pukul ${waktuJam} atas nama ${nama} tidak ditemukan di layar Riwayat ini.`);
         }
-        showToast(`⏰ Tiba di riwayat ${waktuJam}`);
     }, 400);
 }
 

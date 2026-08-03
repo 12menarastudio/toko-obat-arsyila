@@ -296,6 +296,7 @@ tailwind.config = {
         </div> 
         
         <div id="layar-riwayat" class="layar-app hidden pb-6">
+            <!-- 1. HEADER NORMAL: Tetap ada fitur Lacak ID -->
             <div id="headerNormalRiwayat" class="sticky top-0 bg-[#f1f5f9]/90 backdrop-blur-md z-20 px-6 pt-10 pb-4 border-b border-slate-200/60 flex items-center gap-3 transition-all">
                 <button onclick="bukaLayar('beranda')" class="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm active:scale-95 transition-transform"><i class="fa-solid fa-arrow-left"></i></button>
                 <div class="flex-1">
@@ -307,32 +308,29 @@ tailwind.config = {
                 </button>
             </div>
 
-            <div id="headerSeleksiRiwayat" class="sticky top-0 bg-blue-600 z-30 px-4 pt-10 pb-4 hidden flex items-center justify-between shadow-md transition-all">
+            <!-- 2. HEADER SELEKSI (LONG PRESS): Hanya ada Pilih Semua & Tong Sampah -->
+            <div id="headerSeleksiRiwayat" class="sticky top-0 bg-red-600 z-30 px-4 pt-10 pb-4 hidden flex items-center justify-between shadow-md transition-all">
                 <button onclick="batalSeleksiRiwayat()" class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white active:scale-95 transition-transform"><i class="fa-solid fa-xmark text-lg"></i></button>
                 <div class="font-black text-white text-lg tracking-tight" id="teksJumlahSeleksi">0 Dipilih</div>
                 <div class="flex items-center gap-2">
                     <button onclick="pilihSemuaRiwayat()" class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center text-white active:scale-95 transition-transform shadow-sm"><i class="fa-solid fa-check-double"></i></button>
-                    <button onclick="prosesBintangMasalRiwayat()" class="w-10 h-10 rounded-full bg-amber-500 flex items-center justify-center text-white active:scale-95 transition-transform shadow-sm"><i class="fa-solid fa-star"></i></button>
-                    <button onclick="prosesArsipMasalRiwayat()" class="w-10 h-10 rounded-full bg-slate-800 flex items-center justify-center text-white active:scale-95 transition-transform shadow-sm" id="btnArsipHeaderSeleksi"><i class="fa-solid fa-eye-slash"></i></button>
+                    <button onclick="prosesHapusMasalRiwayat()" class="w-10 h-10 rounded-full bg-slate-900 flex items-center justify-center text-white active:scale-95 transition-transform shadow-sm"><i class="fa-solid fa-trash"></i></button>
                 </div>
             </div>
 
-            <div class="px-6 py-4 flex justify-between items-center bg-[#f8fafc] border-b border-slate-100 shadow-sm sticky top-[88px] z-10">
-                <div class="flex gap-1 bg-slate-200/60 p-1.5 rounded-2xl shadow-inner">
-                    <button onclick="ubahTabRiwayat('semua')" id="tabRiwayat-semua" class="px-4 py-2 rounded-xl text-[11px] font-black bg-white text-corporate-700 shadow-sm transition-all uppercase tracking-wider">Semua</button>
-                    <button onclick="ubahTabRiwayat('bintang')" id="tabRiwayat-bintang" class="px-3.5 py-2 rounded-xl text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-all"><i class="fa-solid fa-star text-amber-400 text-sm"></i></button>
-                    <button onclick="ubahTabRiwayat('arsip')" id="tabRiwayat-arsip" class="px-3.5 py-2 rounded-xl text-[11px] font-bold text-slate-500 hover:text-slate-800 transition-all"><i class="fa-solid fa-eye-slash text-sm"></i></button>
-                </div>
+            <!-- 3. BARIS FILTER: Bersih tanpa Tab, Murni hanya Filter Tanggal -->
+            <div class="px-6 py-4 bg-[#f8fafc] border-b border-slate-100 shadow-sm sticky top-[88px] z-10">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Cari Berdasarkan Tanggal</label>
                 <div class="relative">
-                    <input type="date" id="filterTglRiwayatMobile" onchange="renderRiwayatMobile()" class="absolute opacity-0 w-full h-full cursor-pointer top-0 left-0 z-10">
-                    <div class="w-10 h-10 bg-corporate-50 border border-corporate-200 text-corporate-600 rounded-xl flex items-center justify-center shadow-sm relative z-0 hover:bg-corporate-100 transition-colors">
-                        <i class="fa-regular fa-calendar-days text-lg"></i>
-                    </div>
+                    <i class="fa-regular fa-calendar-days absolute left-4 top-1/2 -translate-y-1/2 text-corporate-500 text-lg"></i>
+                    <input type="date" id="filterTglRiwayatMobile" onchange="renderRiwayatMobile()" class="w-full bg-white border border-slate-200 rounded-2xl pl-12 pr-4 py-3 text-sm font-bold text-slate-800 shadow-sm focus:outline-none">
                 </div>
             </div>
 
+            <!-- 4. WADAH KUITANSI -->
             <div class="px-6 pt-5 pb-8 space-y-3" id="daftarRiwayatMobile"></div>
         </div>
+
 
         <div id="layar-piutang" class="layar-app hidden pb-6">
             <div class="sticky top-0 bg-[#f1f5f9]/90 backdrop-blur-md z-20 px-6 pt-10 pb-4 border-b border-slate-200/60 flex items-center justify-between">
