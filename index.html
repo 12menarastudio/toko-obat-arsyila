@@ -495,14 +495,101 @@ tailwind.config = {
                     <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Varian Nama</label>
                     <input type="text" id="editVarianMobile" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none transition-all">
                 </div>
-                <div>
-                    <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Kategori</label>
-                    <input type="text" id="editKategoriMobile" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none transition-all">
+                                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Kategori <span class="text-red-500">*</span></label>
+                        <select id="editKategoriMobile" onchange="toggleKategoriKustomEditMobile()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-sm font-bold text-slate-700 focus:outline-none appearance-none">
+                            <option value="" disabled selected hidden>Pilih Kategori</option>
+                            <option value="Sakit Kepala">Sakit Kepala</option>
+                            <option value="Vitamin">Vitamin</option>
+                            <option value="Sirup">Sirup</option>
+                            <option value="Analgesik">Analgesik</option>
+                            <option value="Antibiotik">Antibiotik</option>
+                            <option value="Salep">Salep</option>
+                            <option value="kustom">Kustom (Manual)...</option>
+                        </select>
+                        <input type="text" id="editKategoriKustom" placeholder="Ketik Kategori..." class="hidden w-full bg-white border border-blue-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 focus:outline-none mt-2 shadow-inner transition-all">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Sat. Eceran <span class="text-red-500">*</span></label>
+                        <select id="editSatuanEceran" onchange="kalkulatorEditBatchMobile()" class="w-full bg-[#eef5ef] border border-[#b2d5bb] rounded-xl px-3 py-3 text-sm font-bold text-[#274f31] focus:outline-none appearance-none">
+                            <option value="" disabled selected hidden>Pilih (Cth: Strip)</option>
+                            <option value="Strip">Strip</option>
+                            <option value="Biji">Biji</option>
+                            <option value="Pcs">Pcs</option>
+                            <option value="Botol">Botol</option>
+                            <option value="Saset">Saset</option>
+                            <option value="Tube">Tube</option>
+                            <option value="Kotak / Box">Kotak / Box</option>
+                            <option value="Blister">Blister</option>
+                            <option value="Pak">Pak</option>
+                            <option value="Lembar">Lembar</option>
+                            <option value="Pot">Pot</option>
+                            <option value="Bungkus">Bungkus</option>
+                            <option value="Kaleng">Kaleng</option>
+                            <option value="Roll">Roll</option>
+                            <option value="Pasang">Pasang</option>
+                            <option value="Ampul">Ampul</option>
+                            <option value="Suppositoria">Suppositoria</option>
+                            <option value="Pen / Stik">Pen / Stik</option>
+                            <option value="Set">Set</option>
+                            <option value="Flabot">Flabot</option>
+                            <option value="Kantong">Kantong</option>
+                        </select>
+                    </div>
                 </div>
+
+                <!-- KOTAK KALKULATOR PEMBELIAN & KONVERSI (DISAMAKAN DGN TAMBAH OBAT) -->
+                <div class="bg-blue-50 border border-blue-100 rounded-2xl p-4 shadow-inner mb-2 mt-2">
+                    <div class="flex items-center justify-between mb-3 border-b border-blue-200/50 pb-2">
+                        <label class="text-[10px] font-black text-blue-700 uppercase tracking-wider"><i class="fa-solid fa-calculator"></i> Pembelian & Konversi</label>
+                        <div class="relative inline-block w-10 h-5 align-middle select-none">
+                            <input type="checkbox" id="editToggleGrosir" onchange="kalkulatorEditBatchMobile()" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-2 appearance-none cursor-pointer opacity-0"/>
+                            <label for="editToggleGrosir" class="toggle-label block overflow-hidden h-5 rounded-full bg-slate-300 cursor-pointer">
+                                <span class="toggle-knob absolute block w-5 h-5 rounded-full bg-white transition-transform duration-300 transform"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-3 mb-3">
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Jumlah Dibeli</label>
+                            <input type="number" id="editQtyBeli" oninput="kalkulatorEditBatchMobile()" placeholder="Misal: 5" class="w-full bg-white border border-blue-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none text-center">
+                        </div>
+                        <div>
+                            <label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Satuan Beli</label>
+                            <select id="editSatuanBesar" onchange="kalkulatorEditBatchMobile()" class="w-full bg-white border border-blue-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none appearance-none">
+                                <option value="" disabled selected hidden>Pilih (Cth: Box)</option>
+                                <option value="Bal">Bal</option>
+                                <option value="Botol">Botol</option>
+                                <option value="Box / Kotak">Box / Kotak</option>
+                                <option value="Dos / Karton">Dos / Karton</option>
+                                <option value="Kaleng">Kaleng</option>
+                                <option value="Pak">Pak</option>
+                                <option value="Renteng">Renteng</option>
+                                <option value="Hanger">Hanger</option>
+                                <option value="Lusin">Lusin</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="wadahIsiPerBoxEdit" class="hidden mb-3 border-t border-blue-100 pt-3">
+                        <label id="labelMultiplierEdit" class="block text-[9px] font-bold text-slate-500 mb-1 uppercase tracking-wider text-center">1 Box isi Berapa Eceran?</label>
+                        <input type="number" id="editIsiPerBox" oninput="kalkulatorEditBatchMobile()" placeholder="Misal: 10" class="w-full bg-white border border-blue-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none text-center">
+                    </div>
+                    
+                    <div>
+                        <label id="labelModalKotorEdit" class="block text-[9px] font-bold text-slate-500 mb-1 uppercase tracking-wider text-center">Modal Beli (Kotor)</label>
+                        <input type="text" inputmode="numeric" id="editModalKotor" oninput="formatAngkaRibuan(this); kalkulatorEditBatchMobile()" placeholder="Rp 0" class="w-full bg-white border border-blue-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none text-center shadow-inner">
+                    </div>
+                    <p id="infoKalkulasiEdit" class="text-[9px] text-blue-600 font-medium text-center mt-2">Nyalakan saklar jika beli dlm bentuk Grosir (Box/Dos)</p>
+                </div>
+
+
                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Modal (HPP)</label>
-                        <input type="number" id="editModalMobile" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none transition-all">
+   <input type="number" id="editModalMobile" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none transition-all">
                     </div>
                     <div>
                         <div class="flex justify-between items-center mb-1.5 pl-1">
@@ -1283,6 +1370,23 @@ tailwind.config = {
                         <div class="sign">Pemilik / Owner<div class="sign-line"></div><span style="font-weight: 700; color: #2563eb;" id="p-owner">Harlianto</span></div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- MODAL DETAIL OBAT GUDANG -->
+    <div id="modalDetailObatMobile" class="fixed inset-0 z-50 hidden">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="tutupModalMobile('modalDetailObatMobile')"></div>
+        <div id="panelDetailObatMobile" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-[2rem] shadow-2xl transform translate-y-full transition-transform duration-300 max-h-[85vh] flex flex-col">
+            <div class="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 rounded-t-[2rem]">
+                <div>
+                    <h3 class="font-black text-slate-800 text-lg flex items-center gap-2"><i class="fa-solid fa-notes-medical text-blue-500"></i> Detail Lengkap Obat</h3>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5" id="detailObatNamaTitle">Nama Obat</p>
+                </div>
+                <button onclick="tutupModalMobile('modalDetailObatMobile')" class="w-10 h-10 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center font-bold active:scale-95 transition-transform"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="p-5 overflow-y-auto hide-scrollbar" id="bodyDetailObatMobile">
+                <!-- Konten Cerdas Akan Diinjeksi ke Sini oleh app.js -->
             </div>
         </div>
     </div>
