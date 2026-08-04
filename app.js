@@ -2413,30 +2413,69 @@ function prosesBatalTransaksiMobile(idTransaksi) {
                     if (siklusAktif.uangMasuk < 0) siklusAktif.uangMasuk = 0; 
                 }
                 
-                // Kembalikan Stok ke Etalase
+                                // Kembalikan Stok ke Etalase & Suntik Ulang ke Fase Keuangan Master (Rollback Perpetual)
                 if (trx.detailKeranjang && trx.detailKeranjang.length > 0) {
                     trx.detailKeranjang.forEach(itemRetur => {
+                        let qtyDiRetur = itemRetur.qty;
+                        let qtyUntukFase = itemRetur.qty; // Disiapkan untuk dipotong saat loop fase
+                        
+                        // 1. KEMBALIKAN KE ETALASE FISIK
                         let bEtalase = etalaseItems.find(i => i.nama === itemRetur.nama);
                         let idBatchRetur = 'RETUR-' + Date.now() + '-' + Math.floor(Math.random() * 1000); 
-                        
                         let modalReturKembali = itemRetur.hppTotalModal !== undefined ? itemRetur.hppTotalModal : ((itemRetur.hppSatuan || (itemRetur.jual * 0.8)) * itemRetur.qty);
+                        
                         if (bEtalase) { 
-                            bEtalase.stok += itemRetur.qty; if(!bEtalase.antreanFIFO) bEtalase.antreanFIFO = [];
-                            bEtalase.antreanFIFO.unshift({ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: itemRetur.qty, expired: '', totalModal: modalReturKembali });
+                            bEtalase.stok += qtyDiRetur; 
+                            if(!bEtalase.antreanFIFO) bEtalase.antreanFIFO = [];
+                            bEtalase.antreanFIFO.unshift({ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: qtyDiRetur, expired: '', totalModal: modalReturKembali });
                         } else {
-                            etalaseItems.push({ dnaInduk: 'DNA-RETUR-' + Date.now(), nama: itemRetur.nama, kategori: '⚠️ Barang Retur', jual: itemRetur.jual, stok: itemRetur.qty, antreanFIFO: [{ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: itemRetur.qty, expired: '', totalModal: modalReturKembali }] }); 
+                            etalaseItems.push({ dnaInduk: 'DNA-RETUR-' + Date.now(), nama: itemRetur.nama, kategori: itemRetur.kategori || 'Obat', jual: itemRetur.jual, stok: qtyDiRetur, antreanFIFO: [{ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: qtyDiRetur, expired: '', totalModal: modalReturKembali }] }); 
+                        }
+
+                        // 2. OPERASI BYPASS: SUNTIK KEMBALI KE FASE KEUANGAN MASTER (AGAR DETAIL OBAT NORMAL)
+                        let masterObatTerkait = masterItems.filter(m => m.nama === itemRetur.nama);
+                        
+                        // Gunakan Reverse-FIFO (Prioritaskan menyuntik stok ke fase terbaru yang terpotong)
+                        masterObatTerkait.sort((a, b) => new Date(b.expired || '2099-12-31') - new Date(a.expired || '2099-12-31'));
+                        
+                        for (let m of masterObatTerkait) {
+                            if (qtyUntukFase <= 0) break;
+                            
+                            // Kembalikan total global Master
+                            m.stok += qtyUntukFase;
+                            if (m.totalModal !== undefined) m.totalModal += modalReturKembali;
+                            
+                            // Suntik masuk ke dalam Perut Fase
+                            if (m.fase_keuangan) {
+                                for (let i = m.fase_keuangan.length - 1; i >= 0; i--) {
+                                    let f = m.fase_keuangan[i];
+                                    if (qtyUntukFase <= 0) break;
+                                    
+                                    let sisaFaseIni = (f.sisaGudang || 0) + (f.sisaEtalase || 0);
+                                    let stokAwalFase = f.stokAwal || sisaFaseIni;
+                                    let kapasitasKosong = stokAwalFase - sisaFaseIni; // Ruang yang bolong gara-gara kasir
+                                    
+                                    if (kapasitasKosong > 0) {
+                                        let jumlahDikembalikan = Math.min(kapasitasKosong, qtyUntukFase);
+                                        f.sisaEtalase = (f.sisaEtalase || 0) + jumlahDikembalikan; // Suntik ke Etalase
+                                        qtyUntukFase -= jumlahDikembalikan;
+                                    }
+                                }
+                            }
                         }
                     });
                 } else { 
+                    // Fallback untuk riwayat lama (sebelum sistem keranjang)
                     let qty = trx.item || 1; let hppRetur = Math.round(((trx.total || 0) - (trx.laba || 0)) / qty);
                     etalaseItems.push({ dnaInduk: 'DNA-RETUR-OLD', nama: trx.obat, kategori: '⚠️ Barang Retur', jual: Math.round((trx.total || 0) / qty), stok: qty, antreanFIFO: [{ idBatch: 'RETUR-OLD', modal: hppRetur, stok: qty, expired: '' }] });
                 }
-                kirimNotifikasiMobile('Transaksi Batal', `Pembelian ${trx.obat} telah dibatalkan.`, 'batal', trx.total);
             }
             
             // Eksekusi Pemusnahan ID dari History
             cashierHistory = cashierHistory.filter(t => t.id !== idTransaksi);
 
+            // SIMPAN SEMUA MEMORI TERMASUK MASTER ITEMS YANG SUDAH DI-BYPASS
+            saveApotekDB('apotek_masterItems', masterItems); 
             saveApotekDB('apotek_etalaseItems', etalaseItems); 
             saveApotekDB('apotek_cashierHistory', cashierHistory); 
             saveApotekDB('apotek_siklusAktif', siklusAktif);
@@ -3755,55 +3794,210 @@ function bukaDetailObatMobile(dnaInduk) {
     
     document.getElementById('detailObatNamaTitle').textContent = referensi.nama.toUpperCase();
     
+    // VARIABEL AKUMULASI NERACA MIKRO (HELIKOPTER VIEW)
     let totalStokKeseluruhan = 0;
-    let totalModalMutlak = 0;
+    let totalModalTertanamKeseluruhan = 0;
+    let totalModalDikeluarkanKeseluruhan = 0;
     let htmlBatches = '';
     
     batches.forEach((b, indexBatch) => {
-        // Toleransi Data Migrasi jika belum punya struktur Fase
         let listFase = b.fase_keuangan || [{
             idFase: "F-MIGRASI", tanggalNota: b.riwayatAsal ? 'Data Awal' : '-', hpp: b.modal, stokAwal: b.stok, sisaGudang: b.stok, sisaEtalase: 0, modalKeluar: (b.totalModal !== undefined ? b.totalModal : (b.modal * b.stok))
         }];
         
+        // VARIABEL SIKLUS MODAL PERPETUAL (PER BATCH)
         let sisaStokBatchIni = 0;
+        let terjualBatchIni = 0;
+        let totalModalBatch = 0;
+        let modalTertanamBatch = 0;
+        
+        let pendapatanBatchIni = 0;
+        let hppKeluarBatchIni = 0;
+        let labaBatchIni = 0;
+
         let htmlFase = '';
         
         listFase.forEach((f, indexFase) => {
-            let sisaFaseIni = (f.sisaGudang || 0) + (f.sisaEtalase || 0);
-            sisaStokBatchIni += sisaFaseIni;
-            totalStokKeseluruhan += sisaFaseIni;
-            totalModalMutlak += (sisaFaseIni * (f.hpp || 0));
+            let sisaGudang = f.sisaGudang || 0;
+            let sisaEtalase = f.sisaEtalase || 0;
+            let sisaFaseIni = sisaGudang + sisaEtalase;
+            let stokAwalFase = f.stokAwal || sisaFaseIni; 
+            let hppFase = f.hpp || 0;
             
-            let terjualFase = (f.stokAwal || 0) - sisaFaseIni;
+            let terjualFase = stokAwalFase - sisaFaseIni;
             if (terjualFase < 0) terjualFase = 0;
             
-            let isFaseHabis = sisaFaseIni <= 0;
-            let bgFase = isFaseHabis ? 'bg-slate-50 opacity-60' : 'bg-white';
-            let borderFase = isFaseHabis ? 'border-slate-200' : 'border-emerald-100 shadow-sm';
+            // KALKULASI FINANSIAL SPESIFIK FASE INI
+            let totalModalFaseIni = stokAwalFase * hppFase;
+            let omsetFase = terjualFase * referensi.jual;
+            let hppKeluarFase = terjualFase * hppFase;
+            let labaFase = omsetFase - hppKeluarFase;
+
+            // AKUMULASI KE BATCH
+            sisaStokBatchIni += sisaFaseIni;
+            terjualBatchIni += terjualFase;
+            totalModalBatch += totalModalFaseIni; 
+            modalTertanamBatch += (sisaFaseIni * hppFase); 
+            
+            pendapatanBatchIni += omsetFase;
+            hppKeluarBatchIni += hppKeluarFase;
+            labaBatchIni += labaFase;
+            
+            // RENDERING HEADER KULAKAN FASE (INJEKSI BARU)
+            let riwayat = f.riwayatAsal || b.riwayatAsal; // Deteksi letak data riwayat kulakan
+            let htmlKulakanFase = '';
+            
+            if(riwayat) {
+                if(riwayat.isGrosir) {
+                    let hargaPerBox = hppFase * riwayat.isiPerBox;
+                    htmlKulakanFase = `
+                    <div class="bg-indigo-50/80 border-b border-indigo-100 p-2.5 flex items-start gap-2.5">
+                        <div class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center shrink-0"><i class="fa-solid fa-boxes-packing text-indigo-500 text-[10px]"></i></div>
+                        <div class="flex-1 w-full">
+                            <p class="text-[9px] font-black text-indigo-700 uppercase tracking-widest mb-0.5">Kulakan Grosir</p>
+                            <p class="text-[11px] font-bold text-indigo-900 leading-tight">${riwayat.qtyBeli} ${riwayat.satuanBesar} <span class="text-indigo-300 mx-1">|</span> @ ${riwayat.isiPerBox} ${riwayat.satuanEcer}</p>
+                            
+                            <div class="mt-2 flex justify-between items-center bg-white/70 p-1.5 rounded-lg border border-indigo-100/50 shadow-sm">
+                                <div>
+                                    <span class="block text-[8px] font-bold text-indigo-400 uppercase tracking-wider mb-0.5">Harga / ${riwayat.satuanBesar}</span>
+                                    <span class="text-[10.5px] font-black text-indigo-700">${rupiah(Math.round(hargaPerBox))}</span>
+                                </div>
+                                <div class="text-right">
+                                    <span class="block text-[8px] font-bold text-indigo-400 uppercase tracking-wider mb-0.5">Modal Beli Fase</span>
+                                    <span class="text-[10.5px] font-black text-indigo-700">${rupiah(Math.round(totalModalFaseIni))}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                } else {
+                    htmlKulakanFase = `
+                    <div class="bg-indigo-50/80 border-b border-indigo-100 p-2.5 flex items-start gap-2.5">
+                        <div class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center shrink-0"><i class="fa-solid fa-box-open text-indigo-500 text-[10px]"></i></div>
+                        <div class="flex-1 w-full">
+                            <p class="text-[9px] font-black text-indigo-700 uppercase tracking-widest mb-0.5">Kulakan Eceran</p>
+                            <p class="text-[11px] font-bold text-indigo-900 leading-tight">${riwayat.qtyBeli} ${riwayat.satuanEcer}</p>
+                            
+                            <div class="mt-2 flex justify-end items-center bg-white/70 p-1.5 rounded-lg border border-indigo-100/50 shadow-sm">
+                                <div class="text-right">
+                                    <span class="block text-[8px] font-bold text-indigo-400 uppercase tracking-wider mb-0.5">Modal Beli Fase</span>
+                                    <span class="text-[10.5px] font-black text-indigo-700">${rupiah(Math.round(totalModalFaseIni))}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>`;
+                }
+            } else {
+                htmlKulakanFase = `
+                <div class="bg-slate-50 border-b border-slate-100 p-2 flex items-center justify-between">
+                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Data Awal / Migrasi</span>
+                    <div class="text-right">
+                        <span class="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Modal Fase</span>
+                        <span class="text-[10px] font-black text-slate-600">${rupiah(Math.round(totalModalFaseIni))}</span>
+                    </div>
+                </div>`;
+            }
+
+                        let isFaseHabis = sisaFaseIni <= 0;
+            
+            // --- PEMBARUAN VISUAL KARTU FASE (ELEGAN & TERPISAH TEGAS) ---
+            // Memberikan border kiri tebal (accent) dan shadow untuk memisahkan antar fase
+            let cardWrapperStyle = isFaseHabis 
+                ? 'bg-slate-50 border border-slate-200 border-l-[5px] border-l-slate-300 rounded-xl mb-4 shadow-sm opacity-80' 
+                : 'bg-white border border-slate-200 border-l-[5px] border-l-indigo-500 rounded-xl mb-4 shadow-md';
+                
             let teksStokFase = isFaseHabis ? 'text-slate-400' : 'text-emerald-600';
+            let headerFaseStyle = isFaseHabis ? 'bg-slate-100/60 text-slate-400' : 'bg-slate-100 text-slate-600';
+            let iconFaseStyle = isFaseHabis ? 'text-slate-300' : 'text-indigo-400';
             
             htmlFase += `
-            <div class="${bgFase} border ${borderFase} rounded-xl p-3 mb-2 transition-all">
-                <div class="flex justify-between items-center mb-2 border-b border-slate-100 pb-1.5">
-                    <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest"><i class="fa-solid fa-layer-group text-slate-300 mr-1"></i> Fase ${indexFase + 1}</span>
-                    <span class="text-[9px] font-bold text-slate-400">${f.tanggalNota || '-'}</span>
+            <div class="${cardWrapperStyle} transition-all relative overflow-hidden flex flex-col">
+                
+                <!-- HEADER FASE (LEBIH MENONJOL & TEGAS) -->
+                <div class="flex justify-between items-center ${headerFaseStyle} px-3 py-2 border-b border-slate-200">
+                    <span class="text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
+                        <i class="fa-solid fa-layer-group ${iconFaseStyle}"></i> Fase ${indexFase + 1}
+                    </span>
+                    <span class="text-[9px] font-bold text-slate-500 bg-white/80 px-2 py-0.5 rounded border border-slate-200/70 shadow-sm">${f.tanggalNota || '-'}</span>
                 </div>
-                <div class="flex justify-between items-end">
-                    <div>
-                        <p class="text-[9px] font-bold text-slate-400 uppercase">Harga Modal (HPP)</p>
-                        <p class="text-sm font-black text-slate-700">${rupiah(Math.round(f.hpp || 0))}</p>
+
+
+                <!-- BLOK KULAKAN (INJEKSI) -->
+                ${htmlKulakanFase}
+
+                <!-- BLOK HPP & STOK -->
+                <div class="p-3">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <p class="text-[9px] font-bold text-slate-400 uppercase mb-0.5 tracking-wider">Harga Modal (HPP)</p>
+                            <p class="text-[13px] font-black text-slate-700">${rupiah(Math.round(hppFase))}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-[9px] font-bold text-slate-400 uppercase mb-0.5 tracking-wider">Sisa Stok</p>
+                            <p class="text-lg font-black ${teksStokFase} leading-none drop-shadow-sm">${sisaFaseIni}</p>
+                            <!-- PEMECAHAN LOKASI GUDANG & ETALASE -->
+                            <div class="flex items-center justify-end gap-1 mt-1.5">
+                                <span class="text-[8px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded flex items-center gap-1 border border-slate-200"><i class="fa-solid fa-box text-slate-400"></i> G: <span class="text-slate-700 font-black">${sisaGudang}</span></span>
+                                <span class="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded flex items-center gap-1 border border-emerald-100"><i class="fa-solid fa-store text-emerald-400"></i> E: <span class="text-emerald-700 font-black">${sisaEtalase}</span></span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="text-right">
-                        <p class="text-[9px] font-bold text-slate-400 uppercase">Sisa Stok</p>
-                        <p class="text-base font-black ${teksStokFase} leading-none drop-shadow-sm">${sisaFaseIni}</p>
+
+                    <!-- PROGRESS TERJUAL -->
+                    <div class="flex justify-between items-center pt-2 border-t border-slate-100/80 mb-3">
+                        <p class="text-[10px] font-bold text-slate-500"><span class="text-amber-500 font-black">${terjualFase}</span> Terjual</p>
+                        <p class="text-[10px] font-bold text-slate-400">Awal: ${stokAwalFase}</p>
                     </div>
-                </div>
-                <div class="flex justify-between items-center mt-2 pt-2 border-t border-slate-50">
-                    <p class="text-[9px] font-bold text-slate-500"><span class="text-amber-500">${terjualFase}</span> Terjual</p>
-                    <p class="text-[9px] font-bold text-slate-500">Awal: ${f.stokAwal || 0}</p>
+
+                    <!-- MINI DASHBOARD FINANSIAL FASE -->
+                    <div class="grid grid-cols-3 gap-1.5 mt-2 bg-slate-50/50 p-1.5 rounded-lg border border-slate-100/50">
+                        <div class="bg-white rounded p-1.5 border border-blue-100 shadow-sm text-center">
+                            <p class="text-[7.5px] font-black text-blue-500 uppercase tracking-widest mb-0.5">Omset</p>
+                            <p class="text-[9px] font-black text-blue-700">${rupiah(Math.round(omsetFase))}</p>
+                        </div>
+                        <div class="bg-white rounded p-1.5 border border-rose-100 shadow-sm text-center">
+                            <p class="text-[7.5px] font-black text-rose-500 uppercase tracking-widest mb-0.5">HPP Keluar</p>
+                            <p class="text-[9px] font-black text-rose-700">${rupiah(Math.round(hppKeluarFase))}</p>
+                        </div>
+                        <div class="bg-emerald-50 rounded p-1.5 border border-emerald-200 shadow-sm text-center">
+                            <p class="text-[7.5px] font-black text-emerald-600 uppercase tracking-widest mb-0.5">Laba Fase</p>
+                            <p class="text-[9px] font-black text-emerald-700">${rupiah(Math.round(labaFase))}</p>
+                        </div>
+                    </div>
                 </div>
             </div>`;
         });
+
+        // AKUMULASI KE NERACA KESELURUHAN (GLOBAL)
+        totalStokKeseluruhan += sisaStokBatchIni;
+        totalModalTertanamKeseluruhan += modalTertanamBatch;
+        totalModalDikeluarkanKeseluruhan += totalModalBatch;
+        
+        let htmlFinansialBatch = `
+        <div class="mt-3 pt-3 border-t border-slate-200 border-dashed">
+            <p class="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-2 pl-1 text-center"><i class="fa-solid fa-calculator text-slate-400 mr-1"></i> Total Performa Batch</p>
+            
+            <!-- SUNTIKAN RINCIAN MODAL BATCH -->
+            <div class="flex justify-between items-center text-[8.5px] font-bold text-slate-500 mb-2 px-1">
+                <span class="bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200"><i class="fa-solid fa-sack-dollar text-slate-400 mr-1"></i>Modal: <span class="text-slate-700">${rupiah(Math.round(totalModalBatch))}</span></span>
+                <span class="bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200"><i class="fa-solid fa-box-archive text-slate-400 mr-1"></i>Tertanam: <span class="text-slate-700">${rupiah(Math.round(modalTertanamBatch))}</span></span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-1.5">
+                <div class="bg-blue-50/70 rounded-lg p-2 border border-blue-100 text-center flex flex-col justify-center">
+                    <p class="text-[7.5px] font-black text-blue-600 uppercase tracking-widest mb-0.5">T. Omset</p>
+                    <p class="text-[11px] font-black text-blue-800">${rupiah(Math.round(pendapatanBatchIni))}</p>
+                </div>
+                <div class="bg-rose-50/70 rounded-lg p-2 border border-rose-100 text-center flex flex-col justify-center">
+                    <p class="text-[7.5px] font-black text-rose-600 uppercase tracking-widest mb-0.5">T. HPP</p>
+                    <p class="text-[11px] font-black text-rose-800">${rupiah(Math.round(hppKeluarBatchIni))}</p>
+                </div>
+                <div class="bg-emerald-50/70 rounded-lg p-2 border border-emerald-100 text-center shadow-inner flex flex-col justify-center">
+                    <p class="text-[7.5px] font-black text-emerald-600 uppercase tracking-widest mb-0.5">T. Laba</p>
+                    <p class="text-[11px] font-black text-emerald-700">${rupiah(Math.round(labaBatchIni))}</p>
+                </div>
+            </div>
+            <p class="text-[8px] font-bold text-slate-400 text-center mt-2 italic">*Kalkulasi presisi perpetual dari akumulasi ${terjualBatchIni} stok terjual pada Batch ini.</p>
+        </div>`;
 
         let isBatchHabis = sisaStokBatchIni <= 0;
         let pitaBatch = isBatchHabis ? 'bg-slate-300' : 'bg-blue-400';
@@ -3812,41 +4006,55 @@ function bukaDetailObatMobile(dnaInduk) {
         let expTeks = b.expired ? `<span class="${isBatchHabis ? 'text-slate-400' : 'text-red-500'} font-bold">${b.expired}</span>` : `<span class="text-slate-400 font-medium">Tanpa Exp</span>`;
         
         htmlBatches += `
-        <div class="bg-white border border-slate-200 rounded-2xl p-1 shadow-sm mb-4 relative overflow-hidden group">
+        <div class="bg-white border border-slate-200 rounded-2xl p-1.5 shadow-sm mb-4 relative overflow-hidden group">
             <div class="absolute left-0 top-0 bottom-0 w-1.5 ${pitaBatch}"></div>
-            <div class="pl-2.5 pr-1 py-1">
+            <div class="pl-3 pr-1 py-1">
                 <div class="${bgHeaderBatch} rounded-xl px-3 py-2 flex justify-between items-center mb-3 border border-slate-100">
                     <span class="text-[11px] font-black ${teksHeaderBatch} uppercase tracking-widest">BATCH ${indexBatch + 1}</span>
                     <span class="text-[10px] font-bold text-slate-600">Exp: ${expTeks}</span>
                 </div>
-                <div class="pl-1 pr-2">
+                <div class="pl-0.5 pr-1.5 pb-1">
                     ${htmlFase}
+                    ${htmlFinansialBatch}
                 </div>
             </div>
         </div>`;
     });
 
+    let barcodeHTML = '';
+    if(referensi.barcode || referensi.qrcode) {
+        barcodeHTML = `
+        <div class="flex justify-between items-center border-t border-slate-50 pt-2 mt-2">
+            <span class="text-xs font-semibold text-slate-500"><i class="fa-solid fa-barcode text-slate-400 w-4 text-center mr-1"></i> Barcode / QR</span>
+            <span class="text-[10px] font-black text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200">${referensi.barcode || referensi.qrcode}</span>
+        </div>`;
+    }
+
     let html = `
     <div class="space-y-3 pb-4">
         
         <!-- INFORMASI PRODUK INDUK -->
-        <div class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm mt-2">
-            <div class="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Informasi Etalase</p>
-                <span class="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">${referensi.kategori || '-'}</span>
-            </div>
-            <div class="flex justify-between items-center mb-2">
-                <span class="text-xs font-semibold text-slate-500">Varian / Kemasan</span>
-                <span class="text-xs font-bold text-slate-800">${referensi.varian || '-'}</span>
-            </div>
-            <div class="flex justify-between items-center border-t border-slate-50 pt-2">
-                <span class="text-xs font-semibold text-slate-500">Harga Jual (Satu Nyawa)</span>
-                <span class="text-base font-black text-emerald-600">${rupiah(referensi.jual)}</span>
+        <div class="bg-white border border-slate-200 p-4 rounded-2xl shadow-sm mt-2 relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-24 h-24 bg-emerald-50 rounded-bl-full -z-0 opacity-50 pointer-events-none"></div>
+            <div class="relative z-10">
+                <div class="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Informasi Etalase</p>
+                    <span class="text-[9px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 shadow-sm">${referensi.kategori || '-'}</span>
+                </div>
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-semibold text-slate-500">Varian / Kemasan</span>
+                    <span class="text-xs font-bold text-slate-800">${referensi.varian || '-'}</span>
+                </div>
+                <div class="flex justify-between items-center border-t border-slate-50 pt-2">
+                    <span class="text-xs font-semibold text-slate-500">Harga Jual (Satu Nyawa)</span>
+                    <span class="text-base font-black text-emerald-600">${rupiah(referensi.jual)}</span>
+                </div>
+                ${barcodeHTML}
             </div>
         </div>
 
-        <div class="mt-5 mb-2 flex items-center gap-2 pl-1">
-            <i class="fa-solid fa-book-open-reader text-corporate-500"></i>
+        <div class="mt-5 mb-2 flex items-center gap-2 pl-1 border-l-2 border-corporate-500">
+            <i class="fa-solid fa-book-open-reader text-corporate-500 ml-2"></i>
             <h4 class="text-[11px] font-black text-slate-700 uppercase tracking-wider">Buku Rekening Obat (Batch & Fase)</h4>
         </div>
         
@@ -3855,14 +4063,24 @@ function bukaDetailObatMobile(dnaInduk) {
         <!-- KOTAK BIRU REKAPITULASI TOTAL ASET -->
         <div class="bg-gradient-to-br from-corporate-700 to-corporate-900 text-white p-5 rounded-2xl mt-4 relative overflow-hidden shadow-lg border border-corporate-600">
             <i class="fa-solid fa-vault absolute -right-6 -bottom-6 text-7xl text-corporate-500 opacity-20 transform -rotate-12"></i>
-            <p class="text-[10px] font-black text-corporate-200 uppercase tracking-widest mb-3 relative z-10 border-b border-corporate-600 pb-2">Neraca Mikro Keseluruhan</p>
-            <div class="flex justify-between items-end mb-2 relative z-10">
+            <p class="text-[10px] font-black text-corporate-200 uppercase tracking-widest mb-3 relative z-10 border-b border-corporate-600 pb-2 flex justify-between items-center">
+                <span>Neraca Mikro Keseluruhan</span>
+                <i class="fa-solid fa-chart-pie opacity-70"></i>
+            </p>
+            
+            <div class="flex justify-between items-center mb-3 relative z-10">
                 <span class="text-xs font-medium text-corporate-100">Total Fisik Obat:</span>
-                <span class="text-lg font-black text-white drop-shadow-sm">${totalStokKeseluruhan} Biji</span>
+                <span class="text-base font-black text-white drop-shadow-sm">${totalStokKeseluruhan} Biji</span>
             </div>
-            <div class="flex justify-between items-end relative z-10">
-                <span class="text-xs font-medium text-corporate-100">Nilai Aset Modal Murni:</span>
-                <span class="text-2xl font-black text-amber-400 drop-shadow-md">${rupiah(Math.round(totalModalMutlak))}</span>
+            
+            <div class="flex justify-between items-center mb-3 relative z-10">
+                <span class="text-[11px] font-medium text-corporate-200">Modal Dikeluarkan:</span>
+                <span class="text-sm font-bold text-corporate-100">${rupiah(Math.round(totalModalDikeluarkanKeseluruhan))}</span>
+            </div>
+            
+            <div class="flex justify-between items-end relative z-10 border-t border-corporate-600/50 pt-3">
+                <span class="text-xs font-bold text-corporate-100">Aset Modal Tersisa:</span>
+                <span class="text-2xl font-black text-amber-400 drop-shadow-md">${rupiah(Math.round(totalModalTertanamKeseluruhan))}</span>
             </div>
         </div>
         
