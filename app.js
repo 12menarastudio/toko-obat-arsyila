@@ -1680,16 +1680,18 @@ function eksekusiSimpanEditLanjutanMobile(isKulakanBaru, nBaru, vBaru, kBaru, mB
         }
     }
     
-    if (isKulakanBaru || isAddingNewBatchMobile) {
+       if (isKulakanBaru || isAddingNewBatchMobile) {
         let nilaiSuntikanMutlak = Math.round(qtySuntikan * hppPresisi);
         
         // [PERBAIKAN BUG TAHAP 1] - LOGIKA DETEKTOR kulakan UNTUK EDIT
         let batchAda = masterItems.find(m => m.dnaInduk === referensi.dnaInduk && m.expired === expBaru);
 
-                if (batchAda) {
+        if (batchAda) {
             // BATCH SUDAH ADA (TGL EXP SAMA) -> Buka Kamar kulakan!
             if (!batchAda.kulakan_keuangan) batchAda.kulakan_keuangan = [];
-            let kulakanAda = batchAda.kulakan_keuangan.find(f => f.hpp === mBaru);
+            
+            // ✅ KABEL 1 DIPERBAIKI: Mesin mencari berdasarkan hppPresisi
+            let kulakanAda = batchAda.kulakan_keuangan.find(f => f.hpp === hppPresisi); 
 
             if (kulakanAda) {
                 kulakanAda.stokAwal += qtySuntikan;
@@ -1698,34 +1700,30 @@ function eksekusiSimpanEditLanjutanMobile(isKulakanBaru, nBaru, vBaru, kBaru, mB
                 
                 // --- INJEKSI KABEL BARU: AKUMULASI RIWAYAT KULAKAN ---
                 if (kulakanAda.riwayatAsal && riwayatAsalBaru) {
-                    // Jika satuannya sama persis (misal sama-sama Box), kita tambahkan angkanya!
                     if (kulakanAda.riwayatAsal.satuanBesar === riwayatAsalBaru.satuanBesar && kulakanAda.riwayatAsal.isGrosir === riwayatAsalBaru.isGrosir) {
                         kulakanAda.riwayatAsal.qtyBeli += (parseFloat(riwayatAsalBaru.qtyBeli) || 0);
                     } else {
-                        // Jika satuan beda, timpa dengan yang terbaru
                         kulakanAda.riwayatAsal = JSON.parse(JSON.stringify(riwayatAsalBaru));
                     }
                 } else {
                     kulakanAda.riwayatAsal = JSON.parse(JSON.stringify(riwayatAsalBaru));
                 }
-                // -----------------------------------------------------
-
             } else {
                 batchAda.kulakan_keuangan.push({
                     idkulakan: "F-" + Date.now() + Math.floor(Math.random() * 100),
                     tanggalNota: getTanggalLokal(),
-                    hpp: mBaru,
+                    hpp: hppPresisi, // ✅ KABEL 1 DIPERBAIKI: Simpan HPP asli, bukan pembulatan
                     stokAwal: qtySuntikan,
                     sisaGudang: qtySuntikan,
                     sisaEtalase: 0,
                     modalKeluar: nilaiSuntikanMutlak,
-                    riwayatAsal: JSON.parse(JSON.stringify(riwayatAsalBaru)) // SUNTIK KE kulakan BARU
+                    riwayatAsal: JSON.parse(JSON.stringify(riwayatAsalBaru))
                 });
             }
             batchAda.stok += qtySuntikan;
             batchAda.totalModal += nilaiSuntikanMutlak;
             batchAda.modal = mBaru; 
-            batchAda.riwayatAsal = riwayatAsalBaru; // Backup di Induk
+            batchAda.riwayatAsal = riwayatAsalBaru; 
             alert("📦 Sukses! Kulakan baru telah dilebur ke dalam kulakan pada Batch yang sama.");
             
         } else {
@@ -1736,9 +1734,11 @@ function eksekusiSimpanEditLanjutanMobile(isKulakanBaru, nBaru, vBaru, kBaru, mB
                 nama: nBaru, varian: vBaru, keterangan: '', kategori: kBaru, modal: mBaru, jual: jBaru, stok: qtySuntikan, expired: expBaru,
                 totalModal: nilaiSuntikanMutlak, riwayatAsal: riwayatAsalBaru,
                 kulakan_keuangan: [{
-                    idkulakan: "F-" + Date.now(), tanggalNota: getTanggalLokal(), hpp: mBaru, stokAwal: qtySuntikan,
+                    idkulakan: "F-" + Date.now(), tanggalNota: getTanggalLokal(), 
+                    hpp: hppPresisi, // ✅ KABEL 1 DIPERBAIKI
+                    stokAwal: qtySuntikan,
                     sisaGudang: qtySuntikan, sisaEtalase: 0, modalKeluar: nilaiSuntikanMutlak,
-                    riwayatAsal: JSON.parse(JSON.stringify(riwayatAsalBaru)) // SUNTIK KE kulakan BARU
+                    riwayatAsal: JSON.parse(JSON.stringify(riwayatAsalBaru)) 
                 }]
             });
 
@@ -1761,14 +1761,15 @@ function eksekusiSimpanEditLanjutanMobile(isKulakanBaru, nBaru, vBaru, kBaru, mB
         // Update kulakan terakhir jika dikoreksi manual
         if (barang.kulakan_keuangan && barang.kulakan_keuangan.length > 0) {
             let fTerakhir = barang.kulakan_keuangan[barang.kulakan_keuangan.length - 1];
-            fTerakhir.hpp = mBaru;
+            fTerakhir.hpp = hppPresisi; // ✅ KABEL 1 DIPERBAIKI
             fTerakhir.sisaGudang = Math.max(0, (fTerakhir.sisaGudang || 0) + selisihStok);
             fTerakhir.stokAwal = Math.max(0, (fTerakhir.stokAwal || 0) + selisihStok);
-            fTerakhir.modalKeluar = fTerakhir.stokAwal * mBaru;
+            fTerakhir.modalKeluar = fTerakhir.stokAwal * hppPresisi; // ✅ KABEL 1 DIPERBAIKI
         }
         
         alert("✅ Data berhasil diperbarui!");
     }
+
     
     masterItems.forEach(m => {
         if (m.dnaInduk === referensi.dnaInduk) { 
@@ -1829,11 +1830,11 @@ function simpanEditLanjutanMobile() {
         } else {
             let barang = masterItems.find(i => i.idBatch === idBatchAktif);
             if(!barang) return; let selisihStok = sBaru - barang.stok;
-            if (selisihStok > 0 && (expBaru !== barang.expired || mBaru !== barang.modal)) {
-                tampilkanConfirmMobile("📦 DETEKSI KULAKAN BARU:\n\nSistem melihat Anda menambah stok (+ " + selisihStok + ") sekaligus merubah Tgl Kedaluwarsa/Harga Modal.\n\nApakah ini barang Kulakan Baru? (Klik 'Ya, Lanjut' agar otomatis dibuatkan Batch baru).", 
-                function() { eksekusiSimpanEditLanjutanMobile(true, nBaru, vBaru, kBaru, mBaru, jBaru, sBaru, expBaru, selisihStok, riwayatAsalBaru, hppPresisi); });
-            } else { eksekusiSimpanEditLanjutanMobile(false, nBaru, vBaru, kBaru, mBaru, jBaru, sBaru, expBaru, selisihStok, riwayatAsalBaru, hppPresisi); }
-        }
+            if (selisihStok > 0 && ((expBaru || '') !== (barang.expired || '') || mBaru !== barang.modal)) {
+        tampilkanConfirmMobile("📦 DETEKSI KULAKAN BARU:\n\nSistem melihat Anda menambah stok (+ " + selisihStok + ") sekaligus merubah Tgl Kedaluwarsa/Harga Modal.\n\nApakah ini barang Kulakan Baru? (Klik 'Ya, Lanjut' agar otomatis dibuatkan Batch baru).", 
+        function() { eksekusiSimpanEditLanjutanMobile(true, nBaru, vBaru, kBaru, mBaru, jBaru, sBaru, expBaru, selisihStok, riwayatAsalBaru, hppPresisi); });
+    } else { eksekusiSimpanEditLanjutanMobile(false, nBaru, vBaru, kBaru, mBaru, jBaru, sBaru, expBaru, selisihStok, riwayatAsalBaru, hppPresisi); }
+  }
     };
 
     if (jBaru !== hargaJualLama) {
@@ -2446,57 +2447,76 @@ function prosesBatalTransaksiMobile(idTransaksi) {
                     if (siklusAktif.uangMasuk < 0) siklusAktif.uangMasuk = 0; 
                 }
                 
-                                // Kembalikan Stok ke Etalase & Suntik Ulang ke kulakan Keuangan Master (Rollback Perpetual)
+                                                // Kembalikan Stok ke Etalase & Suntik Ulang ke kulakan Keuangan Master (Rollback Perpetual)
                 if (trx.detailKeranjang && trx.detailKeranjang.length > 0) {
                     trx.detailKeranjang.forEach(itemRetur => {
                         let qtyDiRetur = itemRetur.qty;
-                        let qtyUntukkulakan = itemRetur.qty; // Disiapkan untuk dipotong saat loop kulakan
+                        let sisaYgHarusDikembalikan = qtyDiRetur; 
                         
-                        // 1. KEMBALIKAN KE ETALASE FISIK
+                        // 1. KEMBALIKAN KE ETALASE FISIK (SIAPKAN WADAHNYA SAJA DULU)
                         let bEtalase = etalaseItems.find(i => i.nama === itemRetur.nama);
-                        let idBatchRetur = 'RETUR-' + Date.now() + '-' + Math.floor(Math.random() * 1000); 
-                        let modalReturKembali = itemRetur.hppTotalModal !== undefined ? itemRetur.hppTotalModal : ((itemRetur.hppSatuan || (itemRetur.jual * 0.8)) * itemRetur.qty);
-                        
                         if (bEtalase) { 
                             bEtalase.stok += qtyDiRetur; 
                             if(!bEtalase.antreanFIFO) bEtalase.antreanFIFO = [];
-                            bEtalase.antreanFIFO.unshift({ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: qtyDiRetur, expired: '', totalModal: modalReturKembali });
                         } else {
-                            etalaseItems.push({ dnaInduk: 'DNA-RETUR-' + Date.now(), nama: itemRetur.nama, kategori: itemRetur.kategori || 'Obat', jual: itemRetur.jual, stok: qtyDiRetur, antreanFIFO: [{ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: qtyDiRetur, expired: '', totalModal: modalReturKembali }] }); 
+                            bEtalase = { dnaInduk: 'DNA-RETUR-' + Date.now(), nama: itemRetur.nama, kategori: itemRetur.kategori || 'Obat', jual: itemRetur.jual, stok: qtyDiRetur, antreanFIFO: [] };
+                            etalaseItems.push(bEtalase); 
                         }
 
-                        // 2. OPERASI BYPASS: SUNTIK KEMBALI KE kulakan KEUANGAN MASTER (AGAR DETAIL OBAT NORMAL)
+                        // 2. OPERASI BYPASS: SUNTIK KEMBALI DENGAN MENGGUNAKAN ID BATCH ASLI (ANTI SABOTASE AUTO-HEALER)
                         let masterObatTerkait = masterItems.filter(m => m.nama === itemRetur.nama);
-                        
-                        // Gunakan Reverse-FIFO (Prioritaskan menyuntik stok ke kulakan terbaru yang terpotong)
                         masterObatTerkait.sort((a, b) => new Date(b.expired || '2099-12-31') - new Date(a.expired || '2099-12-31'));
                         
                         for (let m of masterObatTerkait) {
-                            if (qtyUntukkulakan <= 0) break;
-                            
-                            // Kembalikan total global Master
-                            m.stok += qtyUntukkulakan;
-                            if (m.totalModal !== undefined) m.totalModal += modalReturKembali;
+                            if (sisaYgHarusDikembalikan <= 0) break;
                             
                             // Suntik masuk ke dalam Perut kulakan
                             if (m.kulakan_keuangan) {
                                 for (let i = m.kulakan_keuangan.length - 1; i >= 0; i--) {
                                     let f = m.kulakan_keuangan[i];
-                                    if (qtyUntukkulakan <= 0) break;
+                                    if (sisaYgHarusDikembalikan <= 0) break;
                                     
                                     let sisakulakanIni = (f.sisaGudang || 0) + (f.sisaEtalase || 0);
                                     let stokAwalkulakan = f.stokAwal || sisakulakanIni;
-                                    let kapasitasKosong = stokAwalkulakan - sisakulakanIni; // Ruang yang bolong gara-gara kasir
+                                    let kapasitasKosong = stokAwalkulakan - sisakulakanIni; 
                                     
                                     if (kapasitasKosong > 0) {
-                                        let jumlahDikembalikan = Math.min(kapasitasKosong, qtyUntukkulakan);
-                                        f.sisaEtalase = (f.sisaEtalase || 0) + jumlahDikembalikan; // Suntik ke Etalase
-                                        qtyUntukkulakan -= jumlahDikembalikan;
+                                        let jumlahDikembalikan = Math.min(kapasitasKosong, sisaYgHarusDikembalikan);
+                                        
+                                        // A. Suntik Catatan ke Master 
+                                        f.sisaEtalase = (f.sisaEtalase || 0) + jumlahDikembalikan;
+                                        
+                                        // B. Suntik Fisik ke Etalase FIFO dengan ID Batch yang SAMA PERSIS dengan Master
+                                        let modalReturKembali = itemRetur.hppSatuan || f.hpp || (itemRetur.jual * 0.8);
+                                        let batchSamaDiEtalase = bEtalase.antreanFIFO.find(x => x.idBatch === m.idBatch);
+                                        
+                                        if (batchSamaDiEtalase) {
+                                            batchSamaDiEtalase.stok += jumlahDikembalikan;
+                                            if (batchSamaDiEtalase.totalModal !== undefined) batchSamaDiEtalase.totalModal += (jumlahDikembalikan * modalReturKembali);
+                                        } else {
+                                            bEtalase.antreanFIFO.unshift({ 
+                                                idBatch: m.idBatch, // PENTING: Gunakan ID asli, BUKAN 'RETUR-xxx'
+                                                modal: modalReturKembali, 
+                                                stok: jumlahDikembalikan, 
+                                                expired: m.expired || '', 
+                                                totalModal: (jumlahDikembalikan * modalReturKembali) 
+                                            });
+                                        }
+
+                                        sisaYgHarusDikembalikan -= jumlahDikembalikan;
                                     }
                                 }
                             }
                         }
+                        
+                        // 3. JIKA MASIH ADA SISA (Kapasitas Master Penuh/Data Kacau), BARU BUANG KE ID RETUR
+                        if (sisaYgHarusDikembalikan > 0) {
+                             let idBatchRetur = 'RETUR-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+                             let modalReturKembali = itemRetur.hppSatuan || (itemRetur.jual * 0.8);
+                             bEtalase.antreanFIFO.unshift({ idBatch: idBatchRetur, modal: modalReturKembali, stok: sisaYgHarusDikembalikan, expired: '', totalModal: (sisaYgHarusDikembalikan * modalReturKembali) });
+                        }
                     });
+
                 } else { 
                     // Fallback untuk riwayat lama (sebelum sistem keranjang)
                     let qty = trx.item || 1; let hppRetur = Math.round(((trx.total || 0) - (trx.laba || 0)) / qty);
@@ -3921,7 +3941,7 @@ function bukaDetailObatMobile(dnaInduk) {
                         <div class="flex flex-col mb-3">
                             <p class="text-[12px] font-black text-indigo-900 uppercase tracking-widest leading-none">KULAKAN GROSIR</p>
                             <p class="text-[10px] font-bold text-slate-600 uppercase tracking-wide mt-1 flex flex-wrap gap-1">
-                                SATUAN UNIT: ${riwayat.qtyBeli} ${riwayat.satuanBesar} <span class="text-indigo-300">|</span> <span>@ ${riwayat.isiPerBox} ${namaSatuan}</span>
+                                Pembelian: ${riwayat.qtyBeli} ${riwayat.satuanBesar} <span class="text-indigo-300">|</span> <span>@ ${riwayat.isiPerBox} ${namaSatuan}</span>
                             </p>
                         </div>
                         
