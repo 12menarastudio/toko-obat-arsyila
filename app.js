@@ -58,13 +58,13 @@ try {
     if (!siklusAktif.tanggalStart) siklusAktif.tanggalStart = getTanggalLokal();
 } catch(e) { console.error("Gagal memuat memori", e); }
 
-// [MODIFIKASI TAHAP 1] - SENSOR IMUNITAS (MIGRASI DATA KE FASE)
+// [MODIFIKASI TAHAP 1] - SENSOR IMUNITAS (MIGRASI DATA KE kulakan)
 // Mengubah data tunggal menjadi bersarang (Nested) secara otomatis tanpa merusak aplikasi
 masterItems.forEach(obat => {
-    if (!obat.fase_keuangan) {
-        obat.fase_keuangan = [
+    if (!obat.kulakan_keuangan) {
+        obat.kulakan_keuangan = [
             {
-                idFase: "F-MIGRASI-" + obat.idBatch,
+                idkulakan: "F-MIGRASI-" + obat.idBatch,
                 tanggalNota: "Data Sistem Lama",
                 hpp: obat.modal || 0,
                 stokAwal: obat.stok || 0,
@@ -186,34 +186,34 @@ function renderBerandaMobile() {
         }
     });
 
-    // --- 1. KALKULASI ASET FISIK SAAT INI (KARTU 4 FASE) ---
-    let asetGudangFase = 0; let stokGudangFase = 0;
+    // --- 1. KALKULASI ASET FISIK SAAT INI (KARTU 4 kulakan) ---
+    let asetGudangkulakan = 0; let stokGudangkulakan = 0;
     masterItems.forEach(i => { 
         if (i.nama !== '___SYSTEM_AUTH___' && i.kategori !== '⚠️ Barang Retur') { 
-            asetGudangFase += (i.totalModal !== undefined ? i.totalModal : (i.modal * i.stok)); // KIBLAT MUTLAK
-            stokGudangFase += (i.stok || 0); 
+            asetGudangkulakan += (i.totalModal !== undefined ? i.totalModal : (i.modal * i.stok)); // KIBLAT MUTLAK
+            stokGudangkulakan += (i.stok || 0); 
         } 
     });
     
-    let asetEtalaseFase = 0; let stokEtalaseFase = 0;
+    let asetEtalasekulakan = 0; let stokEtalasekulakan = 0;
     etalaseItems.forEach(i => {
         if(i.antreanFIFO && i.antreanFIFO.length > 0) {
             i.antreanFIFO.forEach(fifo => { 
-                asetEtalaseFase += (fifo.totalModal !== undefined ? fifo.totalModal : (fifo.modal * fifo.stok)); // KIBLAT MUTLAK
+                asetEtalasekulakan += (fifo.totalModal !== undefined ? fifo.totalModal : (fifo.modal * fifo.stok)); // KIBLAT MUTLAK
             });
         } else {
             let masterNya = masterItems.find(m => m.dnaInduk === i.dnaInduk || m.nama === i.nama); 
             let hpp = masterNya ? (masterNya.modal || 0) : 0;
-            asetEtalaseFase += (hpp * (i.stok || 0)); 
+            asetEtalasekulakan += (hpp * (i.stok || 0)); 
         }
-        stokEtalaseFase += (i.stok || 0);
+        stokEtalasekulakan += (i.stok || 0);
     });
 
     
-    let totalAsetFisik = asetGudangFase + asetEtalaseFase;
-    let totalStokFisik = stokGudangFase + stokEtalaseFase;
+    let totalAsetFisik = asetGudangkulakan + asetEtalasekulakan;
+    let totalStokFisik = stokGudangkulakan + stokEtalasekulakan;
     
-    // --- 2. LOGIKA KARTU MULTI-FASE (DEFISIT vs LIKUIDASI) ---
+    // --- 2. LOGIKA KARTU MULTI-kulakan (DEFISIT vs LIKUIDASI) ---
     let topModalMurni = (siklusAktif.modalAwal || 0) + (siklusAktif.modalTambahan || 0);
     let topQtyMurni = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
     let tercapai = siklusAktif.uangMasuk || 0;
@@ -225,7 +225,7 @@ function renderBerandaMobile() {
     let progressBar = document.getElementById('berandaProgressSiklus');
 
     if (siklusAktif.isLikuidasi) {
-        // 🟢 FASE LIKUIDASI (Gambar 4 - Habiskan Sisa Profit)
+        // 🟢 kulakan LIKUIDASI (Gambar 4 - Habiskan Sisa Profit)
         if (document.getElementById('berandaTotalStokMasuk')) document.getElementById('berandaTotalStokMasuk').textContent = totalStokFisik + " Stok Persediaan";
         document.getElementById('berandaAset').textContent = rupiah(totalAsetFisik);
         let patokanAwal = siklusAktif.modalAwal || 1; 
@@ -234,7 +234,7 @@ function renderBerandaMobile() {
         if (labelBawah) labelBawah.innerHTML = `Persediaan Awal: <span class="text-emerald-500 font-black">${rupiah(totalAsetFisik)}</span>`;
         if (progressBar) { progressBar.className = "h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-1000"; progressBar.style.width = persenLikuidasi + "%"; }
     } else {
-        // 🔴/🟡/🟢 FASE STANDAR & LANJUTAN DEFISIT (Gambar 1, 2, 5, 6, 7)
+        // 🔴/🟡/🟢 kulakan STANDAR & LANJUTAN DEFISIT (Gambar 1, 2, 5, 6, 7)
         let teksAtasLabel = siklusAktif.isLanjutanDefisit ? "Stok Terakhir" : "Stok Dibeli";
         if (document.getElementById('berandaTotalStokMasuk')) document.getElementById('berandaTotalStokMasuk').textContent = topQtyMurni + " " + teksAtasLabel;
         document.getElementById('berandaAset').textContent = rupiah(topModalMurni);
@@ -407,7 +407,7 @@ function renderGudangMobile(filter = '') {
                 </div>
             </div>
             
-            <div class="flex items-center justify-between border-y border-slate-100 py-2.5 my-3">
+                        <div class="flex items-center justify-between border-y border-slate-100 py-2.5 my-3">
                 <div class="flex-1 text-center bg-slate-100 py-2 rounded-xl border border-slate-200 mr-1 shadow-inner">
                     <p class="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-boxes-stacked"></i> Stok Modal</p>
                     <p class="text-sm font-black text-slate-800 leading-none">${qtyAwal}</p>
@@ -416,9 +416,9 @@ function renderGudangMobile(filter = '') {
                     <p class="text-[8px] font-black text-amber-500 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-cart-arrow-down"></i> Terjual</p>
                     <p class="text-sm font-black text-amber-600 leading-none drop-shadow-sm">${qtyTerjual}</p>
                 </div>
-                <div class="flex-1 text-center animate-pulse">
-                    <p class="text-[8px] font-black text-emerald-500 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-check-circle"></i> Stok Gudang</p>
-                    <p class="text-sm font-black text-emerald-600 leading-none drop-shadow-sm">${g.totalStok}</p>
+                <div class="flex-1 text-center">
+                    <p class="text-[8px] font-black text-emerald-500 uppercase tracking-widest mb-1 flex items-center justify-center gap-1"><i class="fa-solid fa-check-circle"></i> Sisa Stok</p>
+                    <p class="text-sm font-black text-emerald-600 leading-none drop-shadow-sm">${sisaFisik}</p>
                 </div>
             </div>
             
@@ -1437,16 +1437,16 @@ function prosesTransferMobile() {
                     if (batch.totalModal !== undefined) batch.totalModal -= nilaiModalDipindah;
                     batch.stok -= jumlahDiambil;
                     
-                    // [MODIFIKASI TAHAP 2] - MIGRASI FASE (Gudang -> Etalase)
-                    let sisaPindahFase = jumlahDiambil;
-                    if (batch.fase_keuangan) {
-                        for (let f of batch.fase_keuangan) {
-                            if (sisaPindahFase <= 0) break;
+                    // [MODIFIKASI TAHAP 2] - MIGRASI kulakan (Gudang -> Etalase)
+                    let sisaPindahkulakan = jumlahDiambil;
+                    if (batch.kulakan_keuangan) {
+                        for (let f of batch.kulakan_keuangan) {
+                            if (sisaPindahkulakan <= 0) break;
                             if (f.sisaGudang > 0) {
-                                let ambilDrFase = Math.min(sisaPindahFase, f.sisaGudang);
-                                f.sisaGudang -= ambilDrFase;
-                                f.sisaEtalase = (f.sisaEtalase || 0) + ambilDrFase;
-                                sisaPindahFase -= ambilDrFase;
+                                let ambilDrkulakan = Math.min(sisaPindahkulakan, f.sisaGudang);
+                                f.sisaGudang -= ambilDrkulakan;
+                                f.sisaEtalase = (f.sisaEtalase || 0) + ambilDrkulakan;
+                                sisaPindahkulakan -= ambilDrkulakan;
                             }
                         }
                     }
@@ -1683,34 +1683,50 @@ function eksekusiSimpanEditLanjutanMobile(isKulakanBaru, nBaru, vBaru, kBaru, mB
     if (isKulakanBaru || isAddingNewBatchMobile) {
         let nilaiSuntikanMutlak = Math.round(qtySuntikan * hppPresisi);
         
-        // [PERBAIKAN BUG TAHAP 1] - LOGIKA DETEKTOR FASE UNTUK EDIT
+        // [PERBAIKAN BUG TAHAP 1] - LOGIKA DETEKTOR kulakan UNTUK EDIT
         let batchAda = masterItems.find(m => m.dnaInduk === referensi.dnaInduk && m.expired === expBaru);
 
-        if (batchAda) {
-            // BATCH SUDAH ADA (TGL EXP SAMA) -> Buka Kamar Fase!
-            if (!batchAda.fase_keuangan) batchAda.fase_keuangan = [];
-            let faseAda = batchAda.fase_keuangan.find(f => f.hpp === mBaru);
+                if (batchAda) {
+            // BATCH SUDAH ADA (TGL EXP SAMA) -> Buka Kamar kulakan!
+            if (!batchAda.kulakan_keuangan) batchAda.kulakan_keuangan = [];
+            let kulakanAda = batchAda.kulakan_keuangan.find(f => f.hpp === mBaru);
 
-            if (faseAda) {
-                faseAda.stokAwal += qtySuntikan;
-                faseAda.sisaGudang += qtySuntikan;
-                faseAda.modalKeluar += nilaiSuntikanMutlak;
+            if (kulakanAda) {
+                kulakanAda.stokAwal += qtySuntikan;
+                kulakanAda.sisaGudang += qtySuntikan;
+                kulakanAda.modalKeluar += nilaiSuntikanMutlak;
+                
+                // --- INJEKSI KABEL BARU: AKUMULASI RIWAYAT KULAKAN ---
+                if (kulakanAda.riwayatAsal && riwayatAsalBaru) {
+                    // Jika satuannya sama persis (misal sama-sama Box), kita tambahkan angkanya!
+                    if (kulakanAda.riwayatAsal.satuanBesar === riwayatAsalBaru.satuanBesar && kulakanAda.riwayatAsal.isGrosir === riwayatAsalBaru.isGrosir) {
+                        kulakanAda.riwayatAsal.qtyBeli += (parseFloat(riwayatAsalBaru.qtyBeli) || 0);
+                    } else {
+                        // Jika satuan beda, timpa dengan yang terbaru
+                        kulakanAda.riwayatAsal = JSON.parse(JSON.stringify(riwayatAsalBaru));
+                    }
+                } else {
+                    kulakanAda.riwayatAsal = JSON.parse(JSON.stringify(riwayatAsalBaru));
+                }
+                // -----------------------------------------------------
+
             } else {
-                batchAda.fase_keuangan.push({
-                    idFase: "F-" + Date.now() + Math.floor(Math.random() * 100),
+                batchAda.kulakan_keuangan.push({
+                    idkulakan: "F-" + Date.now() + Math.floor(Math.random() * 100),
                     tanggalNota: getTanggalLokal(),
                     hpp: mBaru,
                     stokAwal: qtySuntikan,
                     sisaGudang: qtySuntikan,
                     sisaEtalase: 0,
-                    modalKeluar: nilaiSuntikanMutlak
+                    modalKeluar: nilaiSuntikanMutlak,
+                    riwayatAsal: JSON.parse(JSON.stringify(riwayatAsalBaru)) // SUNTIK KE kulakan BARU
                 });
             }
             batchAda.stok += qtySuntikan;
             batchAda.totalModal += nilaiSuntikanMutlak;
             batchAda.modal = mBaru; 
-            batchAda.riwayatAsal = riwayatAsalBaru;
-            alert("📦 Sukses! Kulakan baru telah dilebur ke dalam Fase pada Batch yang sama.");
+            batchAda.riwayatAsal = riwayatAsalBaru; // Backup di Induk
+            alert("📦 Sukses! Kulakan baru telah dilebur ke dalam kulakan pada Batch yang sama.");
             
         } else {
             // BATCH BENAR-BENAR BARU
@@ -1719,11 +1735,13 @@ function eksekusiSimpanEditLanjutanMobile(isKulakanBaru, nBaru, vBaru, kBaru, mB
                 idBatch: idBatchBaru, dnaInduk: referensi.dnaInduk, barcode: referensi.barcode, qrcode: referensi.qrcode,
                 nama: nBaru, varian: vBaru, keterangan: '', kategori: kBaru, modal: mBaru, jual: jBaru, stok: qtySuntikan, expired: expBaru,
                 totalModal: nilaiSuntikanMutlak, riwayatAsal: riwayatAsalBaru,
-                fase_keuangan: [{
-                    idFase: "F-" + Date.now(), tanggalNota: getTanggalLokal(), hpp: mBaru, stokAwal: qtySuntikan,
-                    sisaGudang: qtySuntikan, sisaEtalase: 0, modalKeluar: nilaiSuntikanMutlak
+                kulakan_keuangan: [{
+                    idkulakan: "F-" + Date.now(), tanggalNota: getTanggalLokal(), hpp: mBaru, stokAwal: qtySuntikan,
+                    sisaGudang: qtySuntikan, sisaEtalase: 0, modalKeluar: nilaiSuntikanMutlak,
+                    riwayatAsal: JSON.parse(JSON.stringify(riwayatAsalBaru)) // SUNTIK KE kulakan BARU
                 }]
             });
+
             if(!isAddingNewBatchMobile) alert("📦 Sukses! Sistem otomatis merakitkan Batch Kulakan Baru di Gudang.");
             else alert("📦 Sukses! Batch baru berhasil ditambahkan.");
         }
@@ -1740,9 +1758,9 @@ function eksekusiSimpanEditLanjutanMobile(isKulakanBaru, nBaru, vBaru, kBaru, mB
         barang.totalModal = Math.round(sBaru * hppPresisi); 
         barang.riwayatAsal = riwayatAsalBaru; 
         
-        // Update fase terakhir jika dikoreksi manual
-        if (barang.fase_keuangan && barang.fase_keuangan.length > 0) {
-            let fTerakhir = barang.fase_keuangan[barang.fase_keuangan.length - 1];
+        // Update kulakan terakhir jika dikoreksi manual
+        if (barang.kulakan_keuangan && barang.kulakan_keuangan.length > 0) {
+            let fTerakhir = barang.kulakan_keuangan[barang.kulakan_keuangan.length - 1];
             fTerakhir.hpp = mBaru;
             fTerakhir.sisaGudang = Math.max(0, (fTerakhir.sisaGudang || 0) + selisihStok);
             fTerakhir.stokAwal = Math.max(0, (fTerakhir.stokAwal || 0) + selisihStok);
@@ -2075,29 +2093,43 @@ function prosesSimpanObatBaruMobile() {
     const isiPerSatuan = parseFloat(document.getElementById('tambahIsiPerSatuan').value) || 1;
     let riwayatAsal = { isGrosir: isBulk, satuanEcer: satEcer, satuanBesar: satBesar, qtyBeli: qtyBeliAwal, isiPerBox: isiPerSatuan };
 
-    // [MODIFIKASI TAHAP 1] - MESIN PEMILAH BATCH & FASE
+    // [MODIFIKASI TAHAP 1] - MESIN PEMILAH BATCH & kulakan
     let batchAda = masterItems.find(m => m.dnaInduk === dnaInduk && m.expired === expired);
 
-    if (batchAda) {
+        if (batchAda) {
         // SKENARIO A: BATCH (TGL EXP) SUDAH ADA
-        if (!batchAda.fase_keuangan) batchAda.fase_keuangan = [];
-        let faseAda = batchAda.fase_keuangan.find(f => f.hpp === modal);
+        if (!batchAda.kulakan_keuangan) batchAda.kulakan_keuangan = [];
+        let kulakanAda = batchAda.kulakan_keuangan.find(f => f.hpp === modal);
 
-        if (faseAda) {
-            // HPP Sama: Lebur ke Fase yang ada
-            faseAda.stokAwal += stok;
-            faseAda.sisaGudang += stok;
-            faseAda.modalKeluar += tagihanMutlak;
+        if (kulakanAda) {
+            // HPP Sama: Lebur ke kulakan yang ada
+            kulakanAda.stokAwal += stok;
+            kulakanAda.sisaGudang += stok;
+            kulakanAda.modalKeluar += tagihanMutlak;
+            
+            // --- INJEKSI KABEL BARU: AKUMULASI RIWAYAT KULAKAN ---
+            if (kulakanAda.riwayatAsal && riwayatAsal) {
+                if (kulakanAda.riwayatAsal.satuanBesar === riwayatAsal.satuanBesar && kulakanAda.riwayatAsal.isGrosir === riwayatAsal.isGrosir) {
+                    kulakanAda.riwayatAsal.qtyBeli += (parseFloat(riwayatAsal.qtyBeli) || 0);
+                } else {
+                    kulakanAda.riwayatAsal = JSON.parse(JSON.stringify(riwayatAsal));
+                }
+            } else {
+                kulakanAda.riwayatAsal = JSON.parse(JSON.stringify(riwayatAsal));
+            }
+            // -----------------------------------------------------
+
         } else {
-            // HPP Beda: Buka kamar Fase Baru
-            batchAda.fase_keuangan.push({
-                idFase: "F-" + Date.now(),
+            // HPP Beda: Buka kamar kulakan Baru
+            batchAda.kulakan_keuangan.push({
+                idkulakan: "F-" + Date.now(),
                 tanggalNota: getTanggalLokal(),
                 hpp: modal,
                 stokAwal: stok,
                 sisaGudang: stok,
                 sisaEtalase: 0,
-                modalKeluar: tagihanMutlak
+                modalKeluar: tagihanMutlak,
+                riwayatAsal: JSON.parse(JSON.stringify(riwayatAsal)) // SUNTIK KE kulakan BARU
             });
         }
         
@@ -2105,22 +2137,23 @@ function prosesSimpanObatBaruMobile() {
         batchAda.stok += stok;
         batchAda.totalModal += tagihanMutlak;
         batchAda.modal = modal; // Tampilkan HPP terbaru sebagai perwakilan
-        batchAda.riwayatAsal = riwayatAsal;
+        batchAda.riwayatAsal = riwayatAsal; // Backup di Induk
 
     } else {
         // SKENARIO B: BATCH BARU (BARANG BARU ATAU TGL EXP BEDA)
         masterItems.unshift({ 
             idBatch, dnaInduk, barcode, qrcode, nama, varian: varian, keterangan: '', 
             kategori, modal, jual, stok, expired, totalModal: tagihanMutlak, riwayatAsal: riwayatAsal,
-            fase_keuangan: [
+            kulakan_keuangan: [
                 {
-                    idFase: "F-" + Date.now(),
+                    idkulakan: "F-" + Date.now(),
                     tanggalNota: getTanggalLokal(),
                     hpp: modal,
                     stokAwal: stok,
                     sisaGudang: stok,
                     sisaEtalase: 0,
-                    modalKeluar: tagihanMutlak
+                    modalKeluar: tagihanMutlak,
+                    riwayatAsal: JSON.parse(JSON.stringify(riwayatAsal)) // SUNTIK KE kulakan BARU
                 }
             ]
         });
@@ -2298,33 +2331,33 @@ function prosesBayarMobile() {
                 bEtalase.antreanFIFO = bEtalase.antreanFIFO.filter(b => b.stok > 0);
             }
             
-            // [MODIFIKASI TAHAP 2] - PEMOTONGAN FASE KEUANGAN
-            let sisaPotongFase = k.qty;
+            // [MODIFIKASI TAHAP 2] - PEMOTONGAN kulakan KEUANGAN
+            let sisaPotongkulakan = k.qty;
             let masterObatTerkait = masterItems.filter(m => m.nama === k.nama);
             masterObatTerkait.sort((a, b) => new Date(a.expired || '2099-12-31') - new Date(b.expired || '2099-12-31'));
             
             for (let m of masterObatTerkait) {
-                if (sisaPotongFase <= 0) break;
-                if (m.fase_keuangan) {
-                    for (let f of m.fase_keuangan) {
-                        if (sisaPotongFase <= 0) break;
-                        let stokTersediaDiFase = (f.sisaEtalase || 0) + (f.sisaGudang || 0); 
-                        if (stokTersediaDiFase > 0) {
-                            let ambilFase = Math.min(sisaPotongFase, stokTersediaDiFase);
-                            totalModalItemIni += (ambilFase * f.hpp); // Kunci Laba Murni
-                            if (f.sisaEtalase >= ambilFase) {
-                                f.sisaEtalase -= ambilFase;
+                if (sisaPotongkulakan <= 0) break;
+                if (m.kulakan_keuangan) {
+                    for (let f of m.kulakan_keuangan) {
+                        if (sisaPotongkulakan <= 0) break;
+                        let stokTersediaDikulakan = (f.sisaEtalase || 0) + (f.sisaGudang || 0); 
+                        if (stokTersediaDikulakan > 0) {
+                            let ambilkulakan = Math.min(sisaPotongkulakan, stokTersediaDikulakan);
+                            totalModalItemIni += (ambilkulakan * f.hpp); // Kunci Laba Murni
+                            if (f.sisaEtalase >= ambilkulakan) {
+                                f.sisaEtalase -= ambilkulakan;
                             } else {
-                                let sisaYgGudang = ambilFase - (f.sisaEtalase || 0);
+                                let sisaYgGudang = ambilkulakan - (f.sisaEtalase || 0);
                                 f.sisaEtalase = 0;
                                 f.sisaGudang -= sisaYgGudang;
                             }
-                            sisaPotongFase -= ambilFase;
+                            sisaPotongkulakan -= ambilkulakan;
                         }
                     }
                 }
             }
-            if (sisaPotongFase > 0 && masterObatTerkait.length > 0) totalModalItemIni += (sisaPotongFase * (masterObatTerkait[0].modal || 0));
+            if (sisaPotongkulakan > 0 && masterObatTerkait.length > 0) totalModalItemIni += (sisaPotongkulakan * (masterObatTerkait[0].modal || 0));
         }
         
                     totalLaba += ((k.jual * k.qty) - totalModalItemIni);
@@ -2413,11 +2446,11 @@ function prosesBatalTransaksiMobile(idTransaksi) {
                     if (siklusAktif.uangMasuk < 0) siklusAktif.uangMasuk = 0; 
                 }
                 
-                                // Kembalikan Stok ke Etalase & Suntik Ulang ke Fase Keuangan Master (Rollback Perpetual)
+                                // Kembalikan Stok ke Etalase & Suntik Ulang ke kulakan Keuangan Master (Rollback Perpetual)
                 if (trx.detailKeranjang && trx.detailKeranjang.length > 0) {
                     trx.detailKeranjang.forEach(itemRetur => {
                         let qtyDiRetur = itemRetur.qty;
-                        let qtyUntukFase = itemRetur.qty; // Disiapkan untuk dipotong saat loop fase
+                        let qtyUntukkulakan = itemRetur.qty; // Disiapkan untuk dipotong saat loop kulakan
                         
                         // 1. KEMBALIKAN KE ETALASE FISIK
                         let bEtalase = etalaseItems.find(i => i.nama === itemRetur.nama);
@@ -2432,33 +2465,33 @@ function prosesBatalTransaksiMobile(idTransaksi) {
                             etalaseItems.push({ dnaInduk: 'DNA-RETUR-' + Date.now(), nama: itemRetur.nama, kategori: itemRetur.kategori || 'Obat', jual: itemRetur.jual, stok: qtyDiRetur, antreanFIFO: [{ idBatch: idBatchRetur, modal: itemRetur.hppSatuan || (itemRetur.jual * 0.8), stok: qtyDiRetur, expired: '', totalModal: modalReturKembali }] }); 
                         }
 
-                        // 2. OPERASI BYPASS: SUNTIK KEMBALI KE FASE KEUANGAN MASTER (AGAR DETAIL OBAT NORMAL)
+                        // 2. OPERASI BYPASS: SUNTIK KEMBALI KE kulakan KEUANGAN MASTER (AGAR DETAIL OBAT NORMAL)
                         let masterObatTerkait = masterItems.filter(m => m.nama === itemRetur.nama);
                         
-                        // Gunakan Reverse-FIFO (Prioritaskan menyuntik stok ke fase terbaru yang terpotong)
+                        // Gunakan Reverse-FIFO (Prioritaskan menyuntik stok ke kulakan terbaru yang terpotong)
                         masterObatTerkait.sort((a, b) => new Date(b.expired || '2099-12-31') - new Date(a.expired || '2099-12-31'));
                         
                         for (let m of masterObatTerkait) {
-                            if (qtyUntukFase <= 0) break;
+                            if (qtyUntukkulakan <= 0) break;
                             
                             // Kembalikan total global Master
-                            m.stok += qtyUntukFase;
+                            m.stok += qtyUntukkulakan;
                             if (m.totalModal !== undefined) m.totalModal += modalReturKembali;
                             
-                            // Suntik masuk ke dalam Perut Fase
-                            if (m.fase_keuangan) {
-                                for (let i = m.fase_keuangan.length - 1; i >= 0; i--) {
-                                    let f = m.fase_keuangan[i];
-                                    if (qtyUntukFase <= 0) break;
+                            // Suntik masuk ke dalam Perut kulakan
+                            if (m.kulakan_keuangan) {
+                                for (let i = m.kulakan_keuangan.length - 1; i >= 0; i--) {
+                                    let f = m.kulakan_keuangan[i];
+                                    if (qtyUntukkulakan <= 0) break;
                                     
-                                    let sisaFaseIni = (f.sisaGudang || 0) + (f.sisaEtalase || 0);
-                                    let stokAwalFase = f.stokAwal || sisaFaseIni;
-                                    let kapasitasKosong = stokAwalFase - sisaFaseIni; // Ruang yang bolong gara-gara kasir
+                                    let sisakulakanIni = (f.sisaGudang || 0) + (f.sisaEtalase || 0);
+                                    let stokAwalkulakan = f.stokAwal || sisakulakanIni;
+                                    let kapasitasKosong = stokAwalkulakan - sisakulakanIni; // Ruang yang bolong gara-gara kasir
                                     
                                     if (kapasitasKosong > 0) {
-                                        let jumlahDikembalikan = Math.min(kapasitasKosong, qtyUntukFase);
+                                        let jumlahDikembalikan = Math.min(kapasitasKosong, qtyUntukkulakan);
                                         f.sisaEtalase = (f.sisaEtalase || 0) + jumlahDikembalikan; // Suntik ke Etalase
-                                        qtyUntukFase -= jumlahDikembalikan;
+                                        qtyUntukkulakan -= jumlahDikembalikan;
                                     }
                                 }
                             }
@@ -2651,16 +2684,16 @@ function prosesTransferMasalMobile() {
             if (batch.totalModal !== undefined) batch.totalModal -= nilaiModalDipindah;
             batch.stok -= jumlahDiambil;
             
-            // [MODIFIKASI TAHAP 2] - MIGRASI FASE MASAL
-            let sisaPindahFase = jumlahDiambil;
-            if (batch.fase_keuangan) {
-                for (let f of batch.fase_keuangan) {
-                    if (sisaPindahFase <= 0) break;
+            // [MODIFIKASI TAHAP 2] - MIGRASI kulakan MASAL
+            let sisaPindahkulakan = jumlahDiambil;
+            if (batch.kulakan_keuangan) {
+                for (let f of batch.kulakan_keuangan) {
+                    if (sisaPindahkulakan <= 0) break;
                     if (f.sisaGudang > 0) {
-                        let ambilDrFase = Math.min(sisaPindahFase, f.sisaGudang);
-                        f.sisaGudang -= ambilDrFase;
-                        f.sisaEtalase = (f.sisaEtalase || 0) + ambilDrFase;
-                        sisaPindahFase -= ambilDrFase;
+                        let ambilDrkulakan = Math.min(sisaPindahkulakan, f.sisaGudang);
+                        f.sisaGudang -= ambilDrkulakan;
+                        f.sisaEtalase = (f.sisaEtalase || 0) + ambilDrkulakan;
+                        sisaPindahkulakan -= ambilDrkulakan;
                     }
                 }
             }
@@ -3005,21 +3038,21 @@ function eksekusiTutupBukuMobile() {
         let sisaHutang = targetHutangLama - tercapai;
         if (sisaHutang < 0) sisaHutang = 0;
         
-        let asetGudangFase = 0; let qtyGudangFase = 0;
+        let asetGudangkulakan = 0; let qtyGudangkulakan = 0;
         masterItems.filter(i => i.nama !== '___SYSTEM_AUTH___' && i.kategori !== '⚠️ Barang Retur').forEach(b => { 
-             asetGudangFase += (b.modal || 0) * (b.stok || 0); qtyGudangFase += (b.stok || 0); 
+             asetGudangkulakan += (b.modal || 0) * (b.stok || 0); qtyGudangkulakan += (b.stok || 0); 
          });
         
-        let asetEtalaseFase = 0; let qtyEtalaseFase = 0;
+        let asetEtalasekulakan = 0; let qtyEtalasekulakan = 0;
         etalaseItems.forEach(b => {
             let totalModalBatchIni = 0;
             if(b.antreanFIFO && b.antreanFIFO.length > 0) { b.antreanFIFO.forEach(f => { totalModalBatchIni += ((f.modal || 0) * (f.stok || 0)); }); } 
             else { let m = masterItems.find(x => x.dnaInduk === b.dnaInduk || x.nama === b.nama); totalModalBatchIni = (m ? (m.modal || 0) : 0) * (b.stok || 0); }
-            asetEtalaseFase += totalModalBatchIni; qtyEtalaseFase += (b.stok || 0);
+            asetEtalasekulakan += totalModalBatchIni; qtyEtalasekulakan += (b.stok || 0);
         });
         
-        let totalAsetFisikSekarang = asetGudangFase + asetEtalaseFase;
-        let totalQtyFisikSekarang = qtyGudangFase + qtyEtalaseFase;
+        let totalAsetFisikSekarang = asetGudangkulakan + asetEtalasekulakan;
+        let totalQtyFisikSekarang = qtyGudangkulakan + qtyEtalasekulakan;
         
         let snapshotStok = {};
         masterItems.forEach(m => {
@@ -3491,7 +3524,7 @@ function prosesRenderDetailTigaSerangkai(jenis) {
         if(htmlKasbon) htmlContent += buatSubJudul('Tunggakan (Kasbon)', 'fa-solid fa-book-open', 'bg-red-100 text-red-600') + htmlKasbon;
         
     } else if (jenis === 'total') {
-        judul.textContent = "Total Keseluruhan Stok"; subJudul.textContent = "Sisa Tersedia + Terjual";
+        judul.textContent = "Total Keseluruhan Stok"; subJudul.textContent = "Sisa Stok + Terjual";
         htmlContent = `<div class="p-6 text-center text-slate-500 mt-10"><i class="fa-solid fa-layer-group text-4xl mb-3 text-slate-300"></i><p class="text-xs font-bold leading-relaxed">Daftar Lengkap di Panel Spesifik<br><br>Silakan buka panel Sisa atau Terjual secara terpisah untuk melihat rincian daftarnya secara spesifik.</p></div>`;
         totalQty = parseInt(document.getElementById('panelStokTotal').textContent);
         totalNominal = 0; 
@@ -3791,6 +3824,37 @@ function bukaDetailObatMobile(dnaInduk) {
     
     batches.sort((a, b) => a.idBatch.localeCompare(b.idBatch));
     let referensi = batches[batches.length - 1];
+
+    // --- 🩺 MESIN PENYELARAS (AUTO-HEALER) kulakan KEUANGAN ---
+    // Menyelaraskan data masa lalu yang tersangkut agar sinkron 100% dengan fisik
+    batches.forEach(b => {
+        let bEtalase = etalaseItems.find(e => e.dnaInduk === dnaInduk || e.nama === b.nama);
+        let stokEtalaseFisik = 0;
+        if (bEtalase && bEtalase.antreanFIFO) {
+            let fEtalase = bEtalase.antreanFIFO.find(x => x.idBatch === b.idBatch);
+            if (fEtalase) stokEtalaseFisik = parseInt(fEtalase.stok) || 0;
+        }
+
+        if (b.kulakan_keuangan) {
+            let sisaEtalaseTersedia = stokEtalaseFisik;
+            
+            b.kulakan_keuangan.forEach(f => {
+                let totalKapasitaskulakan = parseInt(f.sisaGudang || 0) + parseInt(f.sisaEtalase || 0);
+                
+                if (sisaEtalaseTersedia >= totalKapasitaskulakan) {
+                    f.sisaEtalase = totalKapasitaskulakan;
+                    f.sisaGudang = 0;
+                    sisaEtalaseTersedia -= totalKapasitaskulakan;
+                } else {
+                    f.sisaEtalase = sisaEtalaseTersedia;
+                    f.sisaGudang = totalKapasitaskulakan - sisaEtalaseTersedia;
+                    sisaEtalaseTersedia = 0;
+                }
+            });
+        }
+    });
+    saveApotekDB('apotek_masterItems', masterItems);
+    // -------------------------------------------------------
     
     document.getElementById('detailObatNamaTitle').textContent = referensi.nama.toUpperCase();
     
@@ -3801,8 +3865,8 @@ function bukaDetailObatMobile(dnaInduk) {
     let htmlBatches = '';
     
     batches.forEach((b, indexBatch) => {
-        let listFase = b.fase_keuangan || [{
-            idFase: "F-MIGRASI", tanggalNota: b.riwayatAsal ? 'Data Awal' : '-', hpp: b.modal, stokAwal: b.stok, sisaGudang: b.stok, sisaEtalase: 0, modalKeluar: (b.totalModal !== undefined ? b.totalModal : (b.modal * b.stok))
+        let listkulakan = b.kulakan_keuangan || [{
+            idkulakan: "F-MIGRASI", tanggalNota: b.riwayatAsal ? 'Data Awal' : '-', hpp: b.modal, stokAwal: b.stok, sisaGudang: b.stok, sisaEtalase: 0, modalKeluar: (b.totalModal !== undefined ? b.totalModal : (b.modal * b.stok))
         }];
         
         // VARIABEL SIKLUS MODAL PERPETUAL (PER BATCH)
@@ -3815,157 +3879,213 @@ function bukaDetailObatMobile(dnaInduk) {
         let hppKeluarBatchIni = 0;
         let labaBatchIni = 0;
 
-        let htmlFase = '';
+        let htmlkulakan = '';
         
-        listFase.forEach((f, indexFase) => {
+        listkulakan.forEach((f, indexkulakan) => {
             let sisaGudang = f.sisaGudang || 0;
             let sisaEtalase = f.sisaEtalase || 0;
-            let sisaFaseIni = sisaGudang + sisaEtalase;
-            let stokAwalFase = f.stokAwal || sisaFaseIni; 
-            let hppFase = f.hpp || 0;
+            let sisakulakanIni = sisaGudang + sisaEtalase;
+            let stokAwalkulakan = f.stokAwal || sisakulakanIni; 
+            let hppkulakan = f.hpp || 0;
             
-            let terjualFase = stokAwalFase - sisaFaseIni;
-            if (terjualFase < 0) terjualFase = 0;
+            let terjualkulakan = stokAwalkulakan - sisakulakanIni;
+            if (terjualkulakan < 0) terjualkulakan = 0;
             
-            // KALKULASI FINANSIAL SPESIFIK FASE INI
-            let totalModalFaseIni = stokAwalFase * hppFase;
-            let omsetFase = terjualFase * referensi.jual;
-            let hppKeluarFase = terjualFase * hppFase;
-            let labaFase = omsetFase - hppKeluarFase;
+            // KALKULASI FINANSIAL SPESIFIK kulakan INI
+            let totalModalkulakanIni = stokAwalkulakan * hppkulakan;
+            let omsetkulakan = terjualkulakan * referensi.jual;
+            let hppKeluarkulakan = terjualkulakan * hppkulakan;
+            let labakulakan = omsetkulakan - hppKeluarkulakan;
 
             // AKUMULASI KE BATCH
-            sisaStokBatchIni += sisaFaseIni;
-            terjualBatchIni += terjualFase;
-            totalModalBatch += totalModalFaseIni; 
-            modalTertanamBatch += (sisaFaseIni * hppFase); 
+            sisaStokBatchIni += sisakulakanIni;
+            terjualBatchIni += terjualkulakan;
+            totalModalBatch += totalModalkulakanIni; 
+            modalTertanamBatch += (sisakulakanIni * hppkulakan); 
             
-            pendapatanBatchIni += omsetFase;
-            hppKeluarBatchIni += hppKeluarFase;
-            labaBatchIni += labaFase;
+            pendapatanBatchIni += omsetkulakan;
+            hppKeluarBatchIni += hppKeluarkulakan;
+            labaBatchIni += labakulakan;
             
-            // RENDERING HEADER KULAKAN FASE (INJEKSI BARU)
-            let riwayat = f.riwayatAsal || b.riwayatAsal; // Deteksi letak data riwayat kulakan
-            let htmlKulakanFase = '';
+                        // RENDERING HEADER KULAKAN kulakan (DESAIN GRID 5 KOLOM SEJAJAR & ANTI-TURUN BARIS)
+            let riwayat = f.riwayatAsal || b.riwayatAsal; 
+            let htmlKulakankulakan = '';
             
             if(riwayat) {
+                let namaSatuan = riwayat.satuanEcer || 'Pcs';
                 if(riwayat.isGrosir) {
-                    let hargaPerBox = hppFase * riwayat.isiPerBox;
-                    htmlKulakanFase = `
-                    <div class="bg-indigo-50/80 border-b border-indigo-100 p-2.5 flex items-start gap-2.5">
-                        <div class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center shrink-0"><i class="fa-solid fa-boxes-packing text-indigo-500 text-[10px]"></i></div>
-                        <div class="flex-1 w-full">
-                            <p class="text-[9px] font-black text-indigo-700 uppercase tracking-widest mb-0.5">Kulakan Grosir</p>
-                            <p class="text-[11px] font-bold text-indigo-900 leading-tight">${riwayat.qtyBeli} ${riwayat.satuanBesar} <span class="text-indigo-300 mx-1">|</span> @ ${riwayat.isiPerBox} ${riwayat.satuanEcer}</p>
-                            
-                            <div class="mt-2 flex justify-between items-center bg-white/70 p-1.5 rounded-lg border border-indigo-100/50 shadow-sm">
-                                <div>
-                                    <span class="block text-[8px] font-bold text-indigo-400 uppercase tracking-wider mb-0.5">Harga / ${riwayat.satuanBesar}</span>
-                                    <span class="text-[10.5px] font-black text-indigo-700">${rupiah(Math.round(hargaPerBox))}</span>
-                                </div>
-                                <div class="text-right">
-                                    <span class="block text-[8px] font-bold text-indigo-400 uppercase tracking-wider mb-0.5">Modal Beli Fase</span>
-                                    <span class="text-[10.5px] font-black text-indigo-700">${rupiah(Math.round(totalModalFaseIni))}</span>
-                                </div>
+                    let hargaPerBox = hppkulakan * riwayat.isiPerBox;
+                    htmlKulakankulakan = `
+                    <div class="bg-indigo-50/40 border-b border-indigo-100/60 p-3.5">
+                        <!-- Header Tanpa Ikon (Ruang Diperlebar) -->
+                        <div class="flex flex-col mb-3">
+                            <p class="text-[12px] font-black text-indigo-900 uppercase tracking-widest leading-none">KULAKAN GROSIR</p>
+                            <p class="text-[10px] font-bold text-slate-600 uppercase tracking-wide mt-1 flex flex-wrap gap-1">
+                                SATUAN UNIT: ${riwayat.qtyBeli} ${riwayat.satuanBesar} <span class="text-indigo-300">|</span> <span>@ ${riwayat.isiPerBox} ${namaSatuan}</span>
+                            </p>
+                        </div>
+                        
+                        <!-- Box Detail Harga (Grid 5 Kolom: Rata Presisi Titik Dua, Rp, & Angka) -->
+                        <div class="bg-white border border-indigo-100/50 rounded-xl p-3.5 shadow-[0px_2px_10px_-3px_rgba(0,0,0,0.06)] overflow-hidden">
+                            <div class="grid grid-cols-[max-content_max-content_1fr_max-content_max-content] gap-x-1.5 items-center w-full text-[10px] whitespace-nowrap">
+                                
+                                <!-- BARIS 1: HARGA DOS -->
+                                <div class="font-bold text-indigo-900 uppercase tracking-wide">Harga / ${riwayat.satuanBesar}</div>
+                                <div class="font-black text-indigo-900">:</div>
+                                <div class="w-full"></div>
+                                <div class="font-bold text-indigo-900">Rp</div>
+                                <div class="font-black text-indigo-900 text-right text-[12px] sm:text-[14px] tracking-tight">${Math.round(hargaPerBox).toLocaleString('id-ID')}</div>
+                                
+                                <!-- BARIS 2: MODAL BELI kulakan -->
+                                <div class="font-bold text-indigo-900 uppercase tracking-wide mt-3">Modal Beli kulakan</div>
+                                <div class="font-black text-indigo-900 mt-3">:</div>
+                                <div class="w-full mt-3"></div>
+                                <div class="font-bold text-indigo-900 mt-3">Rp</div>
+                                <div class="font-black text-indigo-900 text-right text-[12px] sm:text-[14px] tracking-tight mt-3">${Math.round(totalModalkulakanIni).toLocaleString('id-ID')}</div>
+                                
+                                <!-- BARIS 3: HPP -->
+                                <div class="font-bold text-indigo-900 uppercase tracking-wide mt-3">HPP</div>
+                                <div class="font-black text-indigo-900 mt-3">:</div>
+                                <div class="w-full mt-3"></div>
+                                <div class="font-bold text-indigo-900 mt-3">Rp</div>
+                                <div class="font-black text-indigo-900 text-right text-[12px] sm:text-[14px] tracking-tight mt-3">${Math.round(hppkulakan).toLocaleString('id-ID')}</div>
+                                
                             </div>
                         </div>
                     </div>`;
                 } else {
-                    htmlKulakanFase = `
-                    <div class="bg-indigo-50/80 border-b border-indigo-100 p-2.5 flex items-start gap-2.5">
-                        <div class="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center shrink-0"><i class="fa-solid fa-box-open text-indigo-500 text-[10px]"></i></div>
-                        <div class="flex-1 w-full">
-                            <p class="text-[9px] font-black text-indigo-700 uppercase tracking-widest mb-0.5">Kulakan Eceran</p>
-                            <p class="text-[11px] font-bold text-indigo-900 leading-tight">${riwayat.qtyBeli} ${riwayat.satuanEcer}</p>
-                            
-                            <div class="mt-2 flex justify-end items-center bg-white/70 p-1.5 rounded-lg border border-indigo-100/50 shadow-sm">
-                                <div class="text-right">
-                                    <span class="block text-[8px] font-bold text-indigo-400 uppercase tracking-wider mb-0.5">Modal Beli Fase</span>
-                                    <span class="text-[10.5px] font-black text-indigo-700">${rupiah(Math.round(totalModalFaseIni))}</span>
-                                </div>
+                    htmlKulakankulakan = `
+                    <div class="bg-indigo-50/40 border-b border-indigo-100/60 p-3.5">
+                        <div class="flex flex-col mb-3">
+                            <p class="text-[12px] font-black text-indigo-900 uppercase tracking-widest leading-none">KULAKAN ECERAN</p>
+                            <p class="text-[10px] font-bold text-slate-600 uppercase tracking-wide mt-1">
+                                SATUAN UNIT: ${riwayat.qtyBeli} ${namaSatuan}
+                            </p>
+                        </div>
+                        
+                        <div class="bg-white border border-indigo-100/50 rounded-xl p-3.5 shadow-[0px_2px_10px_-3px_rgba(0,0,0,0.06)] overflow-hidden">
+                            <div class="grid grid-cols-[max-content_max-content_1fr_max-content_max-content] gap-x-1.5 items-center w-full text-[10px] whitespace-nowrap">
+                                
+                                <div class="font-bold text-indigo-900 uppercase tracking-wide">Modal Beli kulakan</div>
+                                <div class="font-black text-indigo-900">:</div>
+                                <div class="w-full"></div>
+                                <div class="font-bold text-indigo-900">Rp</div>
+                                <div class="font-black text-indigo-900 text-right text-[12px] sm:text-[14px] tracking-tight">${Math.round(totalModalkulakanIni).toLocaleString('id-ID')}</div>
+                                
+                                <div class="font-bold text-indigo-900 uppercase tracking-wide mt-3">HPP</div>
+                                <div class="font-black text-indigo-900 mt-3">:</div>
+                                <div class="w-full mt-3"></div>
+                                <div class="font-bold text-indigo-900 mt-3">Rp</div>
+                                <div class="font-black text-indigo-900 text-right text-[12px] sm:text-[14px] tracking-tight mt-3">${Math.round(hppkulakan).toLocaleString('id-ID')}</div>
+                                
                             </div>
                         </div>
                     </div>`;
                 }
             } else {
-                htmlKulakanFase = `
-                <div class="bg-slate-50 border-b border-slate-100 p-2 flex items-center justify-between">
-                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Data Awal / Migrasi</span>
-                    <div class="text-right">
-                        <span class="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Modal Fase</span>
-                        <span class="text-[10px] font-black text-slate-600">${rupiah(Math.round(totalModalFaseIni))}</span>
+                htmlKulakankulakan = `
+                <div class="bg-slate-50/80 border-b border-slate-100 p-3.5">
+                    <div class="flex flex-col mb-3">
+                        <p class="text-[12px] font-black text-slate-700 uppercase tracking-widest leading-none">Data Awal / Migrasi</p>
+                        <p class="text-[10px] font-bold text-slate-500 mt-1">Migrasi database lama</p>
+                    </div>
+                    
+                    <div class="bg-white border border-slate-200/70 rounded-xl p-3.5 shadow-[0px_2px_10px_-3px_rgba(0,0,0,0.06)] overflow-hidden">
+                        <div class="grid grid-cols-[max-content_max-content_1fr_max-content_max-content] gap-x-1.5 items-center w-full text-[10px] whitespace-nowrap">
+                            
+                            <div class="font-bold text-slate-600 uppercase tracking-wide">Modal kulakan</div>
+                            <div class="font-black text-slate-600">:</div>
+                            <div class="w-full"></div>
+                            <div class="font-bold text-slate-600">Rp</div>
+                            <div class="font-black text-slate-600 text-right text-[12px] sm:text-[14px] tracking-tight">${Math.round(totalModalkulakanIni).toLocaleString('id-ID')}</div>
+                            
+                            <div class="font-bold text-slate-600 uppercase tracking-wide mt-3">Harga Modal (HPP)</div>
+                            <div class="font-black text-slate-600 mt-3">:</div>
+                            <div class="w-full mt-3"></div>
+                            <div class="font-bold text-slate-600 mt-3">Rp</div>
+                            <div class="font-black text-slate-800 text-right text-[12px] sm:text-[14px] tracking-tight mt-3">${Math.round(hppkulakan).toLocaleString('id-ID')}</div>
+                            
+                        </div>
                     </div>
                 </div>`;
             }
 
-                        let isFaseHabis = sisaFaseIni <= 0;
+            let iskulakanHabis = sisakulakanIni <= 0;
             
-            // --- PEMBARUAN VISUAL KARTU FASE (ELEGAN & TERPISAH TEGAS) ---
-            // Memberikan border kiri tebal (accent) dan shadow untuk memisahkan antar fase
-            let cardWrapperStyle = isFaseHabis 
+            // --- PEMBARUAN VISUAL KARTU kulakan (ELEGAN & TERPISAH TEGAS) ---
+            let cardWrapperStyle = iskulakanHabis 
                 ? 'bg-slate-50 border border-slate-200 border-l-[5px] border-l-slate-300 rounded-xl mb-4 shadow-sm opacity-80' 
                 : 'bg-white border border-slate-200 border-l-[5px] border-l-indigo-500 rounded-xl mb-4 shadow-md';
                 
-            let teksStokFase = isFaseHabis ? 'text-slate-400' : 'text-emerald-600';
-            let headerFaseStyle = isFaseHabis ? 'bg-slate-100/60 text-slate-400' : 'bg-slate-100 text-slate-600';
-            let iconFaseStyle = isFaseHabis ? 'text-slate-300' : 'text-indigo-400';
+            let teksStokkulakan = iskulakanHabis ? 'text-slate-400' : 'text-emerald-600';
+            let headerkulakanStyle = iskulakanHabis ? 'bg-slate-100/60 text-slate-400' : 'bg-slate-100 text-slate-600';
+            let iconkulakanStyle = iskulakanHabis ? 'text-slate-300' : 'text-indigo-400';
             
-            htmlFase += `
+            htmlkulakan += `
             <div class="${cardWrapperStyle} transition-all relative overflow-hidden flex flex-col">
                 
-                <!-- HEADER FASE (LEBIH MENONJOL & TEGAS) -->
-                <div class="flex justify-between items-center ${headerFaseStyle} px-3 py-2 border-b border-slate-200">
+                <!-- HEADER kulakan (LEBIH MENONJOL & TEGAS) -->
+                <div class="flex justify-between items-center ${headerkulakanStyle} px-3 py-2 border-b border-slate-200">
                     <span class="text-[10px] font-black uppercase tracking-widest flex items-center gap-1.5">
-                        <i class="fa-solid fa-layer-group ${iconFaseStyle}"></i> Fase ${indexFase + 1}
+                        <i class="fa-solid fa-layer-group ${iconkulakanStyle}"></i> kulakan ${indexkulakan + 1}
                     </span>
                     <span class="text-[9px] font-bold text-slate-500 bg-white/80 px-2 py-0.5 rounded border border-slate-200/70 shadow-sm">${f.tanggalNota || '-'}</span>
                 </div>
 
+                <!-- BLOK KULAKAN & HPP (PENGGABUNGAN BARU) -->
+                ${htmlKulakankulakan}
 
-                <!-- BLOK KULAKAN (INJEKSI) -->
-                ${htmlKulakanFase}
-
-                <!-- BLOK HPP & STOK -->
-                <div class="p-3">
-                    <div class="flex justify-between items-start mb-3">
-                        <div>
-                            <p class="text-[9px] font-bold text-slate-400 uppercase mb-0.5 tracking-wider">Harga Modal (HPP)</p>
-                            <p class="text-[13px] font-black text-slate-700">${rupiah(Math.round(hppFase))}</p>
+                <!-- BLOK UTAMA (STOK AWAL - SISA STOK - TERJUAL) -->
+                <div class="p-2.5">
+                    <div class="flex items-stretch justify-between bg-slate-50/70 p-2 rounded-xl border border-slate-200/60 shadow-inner mb-3">
+                        <!-- KIRI: STOK AWAL -->
+                        <div class="flex flex-col items-center justify-center w-1/4">
+                            <p class="text-[8.5px] font-bold text-slate-400 uppercase tracking-wider mb-1">Awal</p>
+                            <p class="text-sm font-black text-slate-600 leading-none">${stokAwalkulakan}</p>
                         </div>
-                        <div class="text-right">
-                            <p class="text-[9px] font-bold text-slate-400 uppercase mb-0.5 tracking-wider">Sisa Stok</p>
-                            <p class="text-lg font-black ${teksStokFase} leading-none drop-shadow-sm">${sisaFaseIni}</p>
-                            <!-- PEMECAHAN LOKASI GUDANG & ETALASE -->
-                            <div class="flex items-center justify-end gap-1 mt-1.5">
-                                <span class="text-[8px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded flex items-center gap-1 border border-slate-200"><i class="fa-solid fa-box text-slate-400"></i> G: <span class="text-slate-700 font-black">${sisaGudang}</span></span>
-                                <span class="text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded flex items-center gap-1 border border-emerald-100"><i class="fa-solid fa-store text-emerald-400"></i> E: <span class="text-emerald-700 font-black">${sisaEtalase}</span></span>
+                        
+                        <!-- TENGAH: SISA STOK & RINCIAN -->
+                        <div class="flex flex-col items-center justify-center flex-1 border-x border-slate-200/70 px-2">
+                            <p class="text-[9px] font-black text-slate-500 uppercase tracking-wider mb-1">Sisa Stok</p>
+                            <p class="text-xl font-black ${teksStokkulakan} leading-none drop-shadow-sm mb-1.5">${sisakulakanIni}</p>
+                            <div class="flex flex-col w-full gap-1">
+                                <div class="flex items-center justify-between text-[8px] font-bold text-slate-600 bg-white px-1.5 py-0.5 rounded border border-slate-200 shadow-sm">
+                                    <span class="flex items-center gap-1"><i class="fa-solid fa-box text-slate-400"></i> Gudang</span>
+                                    <span class="font-black text-slate-700">${sisaGudang}</span>
+                                </div>
+                                <div class="flex items-center justify-between text-[8px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100 shadow-sm">
+                                    <span class="flex items-center gap-1"><i class="fa-solid fa-store text-emerald-400"></i> Etalase</span>
+                                    <span class="font-black">${sisaEtalase}</span>
+                                </div>
                             </div>
                         </div>
+
+                        <!-- KANAN: TERJUAL -->
+                        <div class="flex flex-col items-center justify-center w-1/4">
+                            <p class="text-[8.5px] font-bold text-slate-400 uppercase tracking-wider mb-1">Terjual</p>
+                            <p class="text-sm font-black text-amber-500 leading-none drop-shadow-sm">${terjualkulakan}</p>
+                        </div>
                     </div>
 
-                    <!-- PROGRESS TERJUAL -->
-                    <div class="flex justify-between items-center pt-2 border-t border-slate-100/80 mb-3">
-                        <p class="text-[10px] font-bold text-slate-500"><span class="text-amber-500 font-black">${terjualFase}</span> Terjual</p>
-                        <p class="text-[10px] font-bold text-slate-400">Awal: ${stokAwalFase}</p>
-                    </div>
-
-                    <!-- MINI DASHBOARD FINANSIAL FASE -->
-                    <div class="grid grid-cols-3 gap-1.5 mt-2 bg-slate-50/50 p-1.5 rounded-lg border border-slate-100/50">
+                    <!-- MINI DASHBOARD FINANSIAL kulakan -->
+                    <div class="grid grid-cols-3 gap-1.5 bg-slate-50/50 p-1.5 rounded-lg border border-slate-100/50">
                         <div class="bg-white rounded p-1.5 border border-blue-100 shadow-sm text-center">
                             <p class="text-[7.5px] font-black text-blue-500 uppercase tracking-widest mb-0.5">Omset</p>
-                            <p class="text-[9px] font-black text-blue-700">${rupiah(Math.round(omsetFase))}</p>
+                            <p class="text-[9px] font-black text-blue-700">${rupiah(Math.round(omsetkulakan))}</p>
                         </div>
                         <div class="bg-white rounded p-1.5 border border-rose-100 shadow-sm text-center">
                             <p class="text-[7.5px] font-black text-rose-500 uppercase tracking-widest mb-0.5">HPP Keluar</p>
-                            <p class="text-[9px] font-black text-rose-700">${rupiah(Math.round(hppKeluarFase))}</p>
+                            <p class="text-[9px] font-black text-rose-700">${rupiah(Math.round(hppKeluarkulakan))}</p>
                         </div>
-                        <div class="bg-emerald-50 rounded p-1.5 border border-emerald-200 shadow-sm text-center">
-                            <p class="text-[7.5px] font-black text-emerald-600 uppercase tracking-widest mb-0.5">Laba Fase</p>
-                            <p class="text-[9px] font-black text-emerald-700">${rupiah(Math.round(labaFase))}</p>
+                            <div class="bg-emerald-50 rounded p-1.5 border border-emerald-200 shadow-sm text-center">
+                            <p class="text-[7.5px] font-black text-emerald-600 uppercase tracking-widest mb-0.5">Laba kulakan</p>
+                            <p class="text-[9px] font-black text-emerald-700">${rupiah(Math.round(labakulakan))}</p>
                         </div>
                     </div>
                 </div>
             </div>`;
         });
+
 
         // AKUMULASI KE NERACA KESELURUHAN (GLOBAL)
         totalStokKeseluruhan += sisaStokBatchIni;
@@ -4014,7 +4134,7 @@ function bukaDetailObatMobile(dnaInduk) {
                     <span class="text-[10px] font-bold text-slate-600">Exp: ${expTeks}</span>
                 </div>
                 <div class="pl-0.5 pr-1.5 pb-1">
-                    ${htmlFase}
+                    ${htmlkulakan}
                     ${htmlFinansialBatch}
                 </div>
             </div>
@@ -4055,7 +4175,7 @@ function bukaDetailObatMobile(dnaInduk) {
 
         <div class="mt-5 mb-2 flex items-center gap-2 pl-1 border-l-2 border-corporate-500">
             <i class="fa-solid fa-book-open-reader text-corporate-500 ml-2"></i>
-            <h4 class="text-[11px] font-black text-slate-700 uppercase tracking-wider">Buku Rekening Obat (Batch & Fase)</h4>
+            <h4 class="text-[11px] font-black text-slate-700 uppercase tracking-wider">Buku Rekening Obat (Batch & kulakan)</h4>
         </div>
         
         ${htmlBatches}
@@ -4069,7 +4189,7 @@ function bukaDetailObatMobile(dnaInduk) {
             </p>
             
             <div class="flex justify-between items-center mb-3 relative z-10">
-                <span class="text-xs font-medium text-corporate-100">Total Fisik Obat:</span>
+                <span class="text-xs font-medium text-corporate-100">Total Sisa Stok:</span>
                 <span class="text-base font-black text-white drop-shadow-sm">${totalStokKeseluruhan} Biji</span>
             </div>
             
