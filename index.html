@@ -368,29 +368,35 @@ tailwind.config = {
             <div class="px-6 space-y-3" id="daftarEtalaseMobile"></div>
         </div>
 
-        <div id="layar-laporan" class="layar-app hidden pb-6">
+                <div id="layar-laporan" class="layar-app hidden pb-6">
             <div class="sticky top-0 bg-[#f1f5f9]/90 backdrop-blur-md z-20 px-6 pt-10 pb-4 border-b border-slate-200/60 flex items-center gap-3">
                 <button onclick="bukaLayar('beranda')" class="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm active:scale-95 transition-transform"><i class="fa-solid fa-arrow-left"></i></button>
                 <div class="flex-1">
-                    <h2 class="font-black text-corporate-900 text-2xl tracking-tight">Laporan</h2>
-                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Keuangan & Performa</p>
+                    <h2 class="font-black text-corporate-900 text-2xl tracking-tight">Buku Besar</h2>
+                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Laporan Keuangan</p>
                 </div>
-                <!-- Dua Tombol Cetak Berdampingan -->
+                <!-- Tombol Cetak -->
                 <div class="flex gap-2">
-                    <button onclick="exportLaporanKePDF()" title="Cetak PDF / Print" class="w-10 h-10 rounded-2xl bg-red-50 text-red-600 flex items-center justify-center shadow-sm active:scale-95 transition-transform border border-red-200">
-                        <i class="fa-solid fa-file-pdf text-xl"></i>
+                    <button onclick="exportLaporanKePDF()" title="Cetak PDF / Print" class="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center shadow-sm active:scale-95 transition-transform border border-slate-200">
+                        <i class="fa-solid fa-file-pdf text-lg"></i>
                     </button>
-                    <button onclick="exportLaporanKeWord()" title="Download Word" class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center shadow-sm active:scale-95 transition-transform border border-blue-200">
-                        <i class="fa-solid fa-file-word text-xl"></i>
+                    <button onclick="exportLaporanKeWord()" title="Download Word" class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm active:scale-95 transition-transform border border-blue-200">
+                        <i class="fa-solid fa-file-word text-lg"></i>
                     </button>
                 </div>
             </div>
-            <div class="px-6 py-4">
-                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1 block">Filter Tanggal</label>
-                <input type="date" id="filterTglLaporanMobile" onchange="renderLaporanMobile()" class="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 shadow-sm text-slate-500">
+            <div class="px-6 py-4 flex gap-2">
+                <div class="flex-1 relative">
+                    <input type="date" id="filterTglLaporanMobile" onchange="renderLaporanMobile()" class="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-3 py-3 text-sm font-bold text-slate-700 shadow-sm focus:outline-none">
+                    <i class="fa-regular fa-calendar-days absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                </div>
+                <button onclick="bukaModalMobile('modalPengeluaranMobile', 'panelPengeluaranMobile')" class="bg-gradient-to-br from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white rounded-2xl px-4 shadow-[0_4px_10px_rgba(225,29,72,0.3)] font-black text-[11px] uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-transform">
+                    <i class="fa-solid fa-minus-circle"></i> Kas Keluar
+                </button>
             </div>
             <div class="px-6 space-y-4" id="kontenLaporanMobile"></div>
         </div>
+
 
         <div id="layar-karyawan" class="layar-app hidden pb-6">
             <div class="sticky top-0 bg-[#f1f5f9]/90 backdrop-blur-md z-20 px-6 pt-10 pb-4 border-b border-slate-200/60 flex items-center gap-3">
@@ -728,6 +734,48 @@ tailwind.config = {
             <div class="p-4 bg-slate-50 text-center flex justify-center">
                 <button type="button" id="btnSenterMobile" onclick="toggleSenterMobile()" class="bg-slate-800 text-white text-xs font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 shadow-md">
                     <i class="fa-solid fa-lightbulb text-amber-400"></i> Nyalakan Senter
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- MODAL KAS KELUAR (BIAYA & PRIVE) -->
+    <div id="modalPengeluaranMobile" class="absolute inset-0 z-[135] hidden flex items-end sm:items-center justify-center pointer-events-none">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity pointer-events-auto" onclick="tutupModalMobile('modalPengeluaranMobile')"></div>
+        <div class="bg-[#f8fafc] w-full max-h-[85vh] rounded-t-3xl sm:rounded-3xl sm:w-[90%] sm:mb-10 shadow-2xl relative z-10 pointer-events-auto transform transition-transform translate-y-full flex flex-col overflow-hidden" id="panelPengeluaranMobile">
+            
+            <div class="bg-gradient-to-r from-rose-600 to-rose-800 px-6 py-5 flex items-center justify-between shadow-md relative z-20">
+                <div>
+                    <h3 class="font-black text-white text-lg tracking-tight flex items-center gap-2"><i class="fa-solid fa-money-bill-transfer text-rose-300"></i> Catat Kas Keluar</h3>
+                    <p class="text-[9px] text-rose-200 font-bold uppercase tracking-widest mt-0.5">Potong Uang Laci Fisik</p>
+                </div>
+                <button onclick="tutupModalMobile('modalPengeluaranMobile')" class="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors border border-white/20"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto hide-scrollbar p-6 space-y-4">
+                <div>
+                    <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider pl-1">Pilih Kategori <span class="text-red-500">*</span></label>
+                    <select id="inputKategoriPengeluaran" class="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-700 shadow-sm focus:outline-none focus:border-rose-500 appearance-none">
+                        <option value="Biaya Toko">Biaya Toko (Kresek, Listrik, Air, Gaji)</option>
+                        <option value="Prive">Prive / Pribadi (Diambil Owner)</option>
+                        <option value="Kulakan">Beli Kulakan (Potong Uang Laci)</option>
+                    </select>
+                    <p class="text-[9px] text-slate-500 font-medium mt-1.5 pl-1 leading-tight"><b class="text-slate-700">Info:</b> Biaya Toko memotong Laba Bersih. Prive memotong Modal Pemilik.</p>
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider pl-1">Nominal Uang (Rp) <span class="text-red-500">*</span></label>
+                    <input type="text" inputmode="numeric" id="inputNominalPengeluaran" oninput="formatAngkaRibuan(this)" placeholder="Rp 0" class="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3.5 text-lg font-black text-rose-600 shadow-inner focus:outline-none focus:border-rose-500">
+                </div>
+
+                <div>
+                    <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider pl-1">Keterangan / Tujuan</label>
+                    <input type="text" id="inputKetPengeluaran" placeholder="Cth: Beli kresek hitam besar" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none transition-all">
+                </div>
+            </div>
+
+            <div class="p-5 border-t border-slate-200 bg-white relative z-20">
+                <button onclick="prosesSimpanPengeluaranMobile()" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-black py-4 rounded-2xl shadow-[0_5px_15px_rgba(225,29,72,0.3)] transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm uppercase tracking-wider border border-rose-500">
+                    <i class="fa-solid fa-save text-lg"></i> Simpan Pengeluaran
                 </button>
             </div>
         </div>
