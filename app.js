@@ -21,7 +21,7 @@ let seleksiPiutangEceran = [];
 let siklusAktif = { modalAwal: 0, qtyAwal: 0, modalTambahan: 0, qtyTambahan: 0, uangMasuk: 0, tanggalStart: getTanggalLokal() };
 let notifikasiHistori = []; // DATABASE NOTIFIKASI TAMBAHAN
 let pengeluaranHistory = []; // MESIN BARU: DATABASE KAS KELUAR & BIAYA
-
+let antreanKulakan = []; // PENAMPUNGAN FAKTUR KULAKAN SEMENTARA
 // TUGAS QW-1: SENTRALISASI PENYIMPANAN LOCAL STORAGE (ANTI-CRASH & DRY)
 function saveApotekDB(key, data) {
     try {
@@ -71,7 +71,8 @@ try {
     
     let parsedPengeluaran = JSON.parse(localStorage.getItem('apotek_pengeluaranHistory'));
     if (Array.isArray(parsedPengeluaran)) pengeluaranHistory = parsedPengeluaran;
-
+let parsedAntrean = JSON.parse(localStorage.getItem('apotek_antreanKulakan'));
+    if (Array.isArray(parsedAntrean)) antreanKulakan = parsedAntrean;
     if (!siklusAktif.tanggalStart) siklusAktif.tanggalStart = getTanggalLokal();
 } catch(e) { console.error("Gagal memuat memori", e); }
 
@@ -1206,14 +1207,12 @@ function togglePilihPiutangAman(id, namaObat, totalHarga, qtyMax, namaPelanggan,
 function eksekusiPelunasanCerdas(metode) {
     let namaPelanggan = document.getElementById('pelunasanNamaMobile').textContent;
     let keranjangTarget = seleksiPiutangEceran.filter(x => x.namaPelanggan === namaPelanggan);
-    
     if (keranjangTarget.length === 0) return alert("⚠️ Anda belum memilih item utang yang akan dilunasi.");
 
     let totalBayar = 0; let waPelanggan = '';
     const idPelunasanBaru = Date.now(); const tglWaktu = new Date();
     const strTanggal = getTanggalLokal(); const strWaktu = tglWaktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
-    // MODE CERDAS: ASISTEN PENCATAT SALDO
     keranjangTarget.forEach((sel, idx) => {
         let t = cashierHistory.find(x => x.id.toString() === sel.id.toString());
         if(!t) return;
@@ -1222,11 +1221,8 @@ function eksekusiPelunasanCerdas(metode) {
         let historiCicilan = cashierHistory.filter(p => p.isPelunasan && p.idTerkait == t.id && !p.isIndukBorongan);
         let totalQtyTertebus = historiCicilan.reduce((sum, p) => sum + (p.item || 0), 0);
         
-        if((totalQtyTertebus + sel.qtyTebus) >= (t.item || 1)) { 
-            t.statusLunas = true; // Kunci status lunas jika genap
-        } 
+        if((totalQtyTertebus + sel.qtyTebus) >= (t.item || 1)) { t.statusLunas = true; } 
         
-        // CATAT KUITANSI SEBAGAI BUKTI
         cashierHistory.unshift({
             id: idPelunasanBaru + idx, tanggal: strTanggal, waktu: strWaktu,
             obat: `Pelunasan Eceran: ${sel.namaObat.replace(/ \([^)]*\)/, '')}`, 
@@ -1234,7 +1230,6 @@ function eksekusiPelunasanCerdas(metode) {
         });
     });
     
-    // Bersihkan keranjang
     seleksiPiutangEceran = seleksiPiutangEceran.filter(x => x.namaPelanggan !== namaPelanggan);
 
     if (totalBayar > 0) {
@@ -1246,15 +1241,75 @@ function eksekusiPelunasanCerdas(metode) {
     }
 }
 
+// ==========================================
+// MESIN FILTER MULTI-TANGGAL (LAPORAN BUKU BESAR)
+// ==========================================
+let laporanTglAwal = getTanggalLokal();
+let laporanTglAkhir = getTanggalLokal();
+let laporanLabelVisual = "Hari Ini";
+
+function toggleDropdownFilterLaporan() {
+    const panel = document.getElementById('panelFilterLaporan');
+    const icon = document.getElementById('iconDropdownFilterLaporan');
+    if(panel.classList.contains('hidden')) {
+        panel.classList.remove('hidden');
+        icon.style.transform = 'rotate(180deg)';
+    } else {
+        panel.classList.add('hidden');
+        icon.style.transform = 'rotate(0deg)';
+    }
+}
+
+function formatTanggalPendek(tglStr) { 
+    if(!tglStr) return '';
+    let pecah = tglStr.split('-'); // [YYYY, MM, DD]
+    if(pecah.length !== 3) return tglStr;
+    let bln = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Ags", "Sep", "Okt", "Nov", "Des"];
+    return `${parseInt(pecah[2])} ${bln[parseInt(pecah[1])-1]} ${pecah[0]}`;
+}
+
+function setFilterLaporan(tipe) {
+    let tglSkrg = new Date();
+    if (tipe === 'hari_ini') {
+        laporanTglAwal = getTanggalLokal(tglSkrg);
+        laporanTglAkhir = getTanggalLokal(tglSkrg);
+        laporanLabelVisual = "Hari Ini";
+    } else if (tipe === '7_hari') {
+        let tglLalu = new Date();
+        tglLalu.setDate(tglLalu.getDate() - 6); // Mundur 7 hari
+        laporanTglAwal = getTanggalLokal(tglLalu);
+        laporanTglAkhir = getTanggalLokal(tglSkrg);
+        laporanLabelVisual = "7 Hari Terakhir";
+    } else if (tipe === 'semua') {
+        laporanTglAwal = "2000-01-01"; 
+        laporanTglAkhir = "2099-12-31"; 
+        laporanLabelVisual = "Semua Waktu";
+    } else if (tipe === 'manual') {
+        let awal = document.getElementById('filterTglAwal').value;
+        let akhir = document.getElementById('filterTglAkhir').value;
+        if(!awal || !akhir) return alert("⚠️ Pilih tanggal Dari dan Sampai terlebih dahulu!");
+        if(awal > akhir) return alert("⚠️ Tanggal 'Dari' tidak boleh lebih besar dari 'Sampai'!");
+        laporanTglAwal = awal;
+        laporanTglAkhir = akhir;
+        if(awal === akhir) {
+            laporanLabelVisual = formatTanggalPendek(awal);
+        } else {
+            laporanLabelVisual = `${formatTanggalPendek(awal)} - ${formatTanggalPendek(akhir)}`;
+        }
+    }
+    
+    document.getElementById('teksFilterLaporanUi').textContent = laporanLabelVisual;
+    toggleDropdownFilterLaporan();
+    renderLaporanMobile();
+}
+
 function renderLaporanMobile() {
     const wadah = document.getElementById('kontenLaporanMobile');
-    let tglFilter = document.getElementById('filterTglLaporanMobile').value;
-    if(!tglFilter) { tglFilter = getTanggalLokal(); document.getElementById('filterTglLaporanMobile').value = tglFilter; }
     
-    let dataPeriode = cashierHistory.filter(t => t.tanggal === tglFilter);
-    let dataKeluar = pengeluaranHistory.filter(p => p.tanggal === tglFilter);
+    // MESIN MENCARI BERDASARKAN RENTANG WAKTU (RANGE)
+    let dataPeriode = cashierHistory.filter(t => t.tanggal >= laporanTglAwal && t.tanggal <= laporanTglAkhir);
+    let dataKeluar = pengeluaranHistory.filter(p => p.tanggal >= laporanTglAwal && p.tanggal <= laporanTglAkhir);
     
-    // Variabel Kas Masuk
     let lOmset = 0, lHPP = 0, lTunai = 0, lQris = 0, lDebt = 0, lPelunasan = 0, cPembeli = 0, cItem = 0;
     
     dataPeriode.forEach(t => {
@@ -1268,106 +1323,126 @@ function renderLaporanMobile() {
         }
     });
 
-    // Variabel Kas Keluar (Mesin Baru)
     let bBiayaToko = 0, bPrive = 0, bKulakan = 0;
     let listKeluarHTML = '';
+    let dataKulakan = []; 
     
-        dataKeluar.forEach(p => {
-        if (p.kategori === 'Biaya Toko') bBiayaToko += p.nominal;
-        else if (p.kategori === 'Prive') bPrive += p.nominal;
-        else if (p.kategori === 'Kulakan') bKulakan += p.nominal;
-        
-        let warnaBadge = p.kategori === 'Biaya Toko' ? 'bg-orange-100 text-orange-700' : (p.kategori === 'Prive' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700');
-        // DESAIN TEMA GOLD: Deskripsi Miring (italic), Warna gelap pekat agar jelas di atas emas
-        listKeluarHTML += `<div class="flex justify-between items-center border-b border-amber-600/20 py-2 last:border-0"><div class="flex-1 pr-2"><p class="text-[10.5px] font-bold text-amber-950 italic leading-tight mb-1.5">${p.keterangan}</p><span class="text-[8px] font-black uppercase tracking-wider ${warnaBadge} px-1.5 py-0.5 rounded border border-white/50 shadow-sm">${p.kategori}</span></div><span class="text-[11px] font-black text-red-700 font-mono shrink-0">- ${rupiah(p.nominal)}</span></div>`;
+    dataKeluar.forEach(p => {
+        if (p.kategori === 'Biaya Toko') {
+            bBiayaToko += p.nominal;
+            listKeluarHTML += `<div class="flex justify-between items-center border-b border-[#cca752] py-3.5 last:border-0"><div class="flex-1 pr-2"><p class="text-[11px] font-bold text-[#45320e] leading-tight mb-1.5">${p.keterangan}</p><span class="text-[8px] font-black uppercase tracking-wider text-[#a45309] bg-transparent border border-[#cca752] px-1.5 py-0.5 rounded">BIAYA TOKO</span></div><span class="text-[13px] font-black text-[#881b28] shrink-0 mt-1">- ${rupiah(p.nominal)}</span></div>`;
+        }
+        else if (p.kategori === 'Prive') {
+            bPrive += p.nominal;
+            listKeluarHTML += `<div class="flex justify-between items-center border-b border-[#cca752] py-3.5 last:border-0"><div class="flex-1 pr-2"><p class="text-[11px] font-bold text-[#45320e] leading-tight mb-1.5">${p.keterangan}</p><span class="text-[8px] font-black uppercase tracking-wider text-[#701a75] bg-transparent border border-[#cca752] px-1.5 py-0.5 rounded">PRIVE</span></div><span class="text-[13px] font-black text-[#881b28] shrink-0 mt-1">- ${rupiah(p.nominal)}</span></div>`;
+        }
+        else if (p.kategori === 'Kulakan') {
+            bKulakan += p.nominal;
+            dataKulakan.push(p); 
+        }
     });
 
-        // Rumus Akuntansi Sejati
-    let labaKotor = lOmset - lHPP;
-    let labaBersihSejati = labaKotor - bBiayaToko; // Laba murni setelah potong biaya operasional
-    
-    let totalUangMasukLaci = lTunai + lPelunasan;
-    let totalUangKeluarLaci = bBiayaToko + bPrive + bKulakan;
-    // Menggunakan Sistem Saldo Berjalan (Rolling Balance)
-    let estimasiIsiLaci = hitungSaldoLaciFisik();
+    if (dataKulakan.length > 0) {
+        let detailGabungan = dataKulakan.map(k => `&bull; ${k.keterangan} <span class="font-black text-[#881b28]">(- ${rupiah(k.nominal)})</span>`).join('<br>');
+        
+        listKeluarHTML += `
+        <div class="flex flex-col border-b border-[#cca752] py-4 last:border-0">
+            <div class="flex justify-between items-start mb-2.5">
+                <div class="flex-1 pr-2">
+                    <p class="text-[12px] font-black text-[#45320e] leading-tight mb-1.5">Rekapitulasi Kulakan</p>
+                    <p class="text-[10px] font-bold text-[#71541c] mb-2.5"><i class="fa-regular fa-calendar-days opacity-80"></i> ${laporanLabelVisual} &nbsp;|&nbsp; <i class="fa-solid fa-file-invoice opacity-80"></i> ${dataKulakan.length} Transaksi</p>
+                    <span class="text-[8px] font-black uppercase tracking-widest text-[#1e40af] bg-transparent border border-[#8fa8d1] px-2.5 py-1 rounded-full inline-block">KULAKAN (DIGABUNG)</span>
+                </div>
+                <span class="text-[14px] font-black text-[#881b28] shrink-0 mt-1">- ${rupiah(bKulakan)}</span>
+            </div>
+            
+            <details class="mt-1.5 group cursor-pointer outline-none">
+                <summary class="text-[9px] font-bold text-[#71541c] list-none flex items-center gap-1.5 border border-[#cca752] px-3 py-2 rounded-full w-max active:scale-95 transition-transform outline-none select-none">
+                    <i class="fa-solid fa-chevron-right text-[8px] group-open:rotate-90 transition-transform"></i> Lihat rincian item obat
+                </summary>
+                <div class="mt-4 pl-2.5 border-l-[3px] border-[#cca752] text-[9.5px] font-medium text-[#5c430a] italic leading-relaxed">
+                    ${detailGabungan}
+                </div>
+            </details>
+        </div>`;
+    }
 
-    // Rendering UI (Card & Accordion Style)
+    let labaKotor = lOmset - lHPP;
+    let labaBersihSejati = labaKotor - bBiayaToko; 
+    let estimasiIsiLaci = hitungSaldoLaciFisik(); // Ini tetap Mutlak (Bukan Rentang), sesuai SOP.
+
     wadah.innerHTML = `
-        <!-- KARTU 1: KESEHATAN BISNIS (LABA RUGI) -->
-        <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-200 relative overflow-hidden group mb-4">
-            <div class="absolute right-0 top-0 w-16 h-16 bg-emerald-50 rounded-bl-full -z-0 opacity-50"></div>
+        <!-- KARTU 1: KINERJA LABA RUGI (CLEAN WHITE) -->
+        <div class="bg-white rounded-[2rem] p-6 shadow-md relative overflow-hidden mb-5">
             <div class="flex justify-between items-start relative z-10 cursor-pointer" onclick="toggleAkordeonLaporan('rincian-laba')">
                 <div>
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-1"><i class="fa-solid fa-scale-balanced text-slate-300"></i> Kinerja Laba / Rugi</p>
-                    <p class="text-xs font-bold text-slate-600 mb-0.5">Laba Bersih Hari Ini</p>
-                    <p class="text-3xl font-black ${labaBersihSejati >= 0 ? 'text-emerald-600' : 'text-rose-600'} tracking-tight font-mono">${rupiah(labaBersihSejati)}</p>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
+                        <i class="fa-solid fa-scale-balanced text-slate-300 text-sm"></i> Kinerja Laba / Rugi
+                    </p>
+                    <p class="text-xs font-bold text-slate-700 mb-1.5">Laba Bersih (${laporanLabelVisual})</p>
+                    <p class="text-[34px] font-black ${labaBersihSejati >= 0 ? 'text-[#166534]' : 'text-[#881b28]'} tracking-tighter leading-none">${rupiah(labaBersihSejati)}</p>
                 </div>
-                <div class="w-8 h-8 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 transition-transform duration-300" id="icon-rincian-laba">
-                    <i class="fa-solid fa-chevron-down text-sm"></i>
+                <div class="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 transition-transform duration-300 bg-slate-50" id="icon-rincian-laba">
+                    <i class="fa-solid fa-chevron-down text-[10px]"></i>
                 </div>
             </div>
             
-            <!-- Rincian Akordeon (Buka/Tutup) -->
-            <div id="rincian-laba" class="hidden mt-4 pt-3 border-t border-dashed border-slate-200 relative z-10">
-                <div class="flex justify-between items-center mb-2"><span class="text-[11px] font-semibold text-slate-600">Total Omzet (Kotor)</span><span class="text-xs font-black text-slate-800 font-mono">${rupiah(lOmset)}</span></div>
-                <div class="flex justify-between items-center mb-2"><span class="text-[11px] font-semibold text-slate-600">Modal Terjual (HPP)</span><span class="text-xs font-black text-slate-500 font-mono">- ${rupiah(lHPP)}</span></div>
-                <div class="flex justify-between items-center mb-2"><span class="text-[11px] font-semibold text-slate-600">Biaya Toko (Operasional)</span><span class="text-xs font-black text-rose-500 font-mono">- ${rupiah(bBiayaToko)}</span></div>
+            <div id="rincian-laba" class="hidden mt-6 pt-4 border-t border-slate-100 relative z-10">
+                <div class="flex justify-between items-center mb-3"><span class="text-[11px] font-semibold text-slate-500">Total Omzet (Kotor)</span><span class="text-sm font-black text-slate-700">${rupiah(lOmset)}</span></div>
+                <div class="flex justify-between items-center mb-3"><span class="text-[11px] font-semibold text-slate-500">Modal Terjual (HPP)</span><span class="text-sm font-black text-slate-500">- ${rupiah(lHPP)}</span></div>
+                <div class="flex justify-between items-center mb-1"><span class="text-[11px] font-semibold text-slate-500">Biaya Toko (Operasional)</span><span class="text-sm font-black text-[#881b28]">- ${rupiah(bBiayaToko)}</span></div>
             </div>
         </div>
 
-        <!-- KARTU 2: REALITA FISIK (UANG LACI) - TEMA GOLD VIP -->
-        <div class="bg-gradient-to-br from-amber-400 to-amber-500 rounded-3xl p-5 shadow-[0_10px_20px_rgba(245,158,11,0.25)] text-amber-950 relative overflow-hidden border border-amber-300 mb-4">
+        <!-- KARTU 2: ARUS KAS FISIK (PREMIUM MATTE GOLD) -->
+        <div class="bg-gradient-to-br from-[#f2d890] to-[#dfbb5e] rounded-[2rem] p-6 shadow-[0_8px_20px_rgba(0,0,0,0.3),inset_0_2px_5px_rgba(255,255,255,0.6)] text-[#45320e] relative overflow-hidden border border-[#e8c678] mb-5">
             <div class="flex justify-between items-start relative z-10 cursor-pointer" onclick="toggleAkordeonLaporan('rincian-laci')">
                 <div>
-                    <p class="text-[10px] font-black text-amber-800 uppercase tracking-widest flex items-center gap-1.5 mb-1">Arus Kas Fisik</p>
-                    <p class="text-xs font-semibold text-amber-900 mb-0.5">Estimasi Uang di Laci</p>
-                    <p class="text-3xl font-black text-black tracking-tight font-mono drop-shadow-sm">${rupiah(estimasiIsiLaci)}</p>
+                    <p class="text-[10px] font-black text-[#71541c] uppercase tracking-widest flex items-center gap-2 mb-2">
+                        <i class="fa-solid fa-wallet text-[#8f6d28] text-sm"></i> Arus Kas Fisik
+                    </p>
+                    <p class="text-xs font-bold text-[#5c430a] mb-1.5">Estimasi Uang di Laci</p>
+                    <p class="text-[34px] font-black text-[#3b2a07] tracking-tighter leading-none drop-shadow-sm">${rupiah(estimasiIsiLaci)}</p>
                 </div>
-                <div class="w-8 h-8 rounded-full bg-white/50 border border-white/60 flex items-center justify-center text-amber-900 transition-transform duration-300 shadow-sm" id="icon-rincian-laci">
-                    <i class="fa-solid fa-chevron-down text-sm"></i>
+                <div class="w-8 h-8 rounded-full border border-[#cca752] flex items-center justify-center text-[#71541c] transition-transform duration-300 bg-[#e8cd83]/50" id="icon-rincian-laci" style="transform: rotate(180deg);">
+                    <i class="fa-solid fa-chevron-down text-[10px]"></i>
                 </div>
             </div>
 
-            <!-- Rincian Akordeon -->
-            <div id="rincian-laci" class="hidden mt-4 pt-3 border-t border-amber-600/30 relative z-10">
-                <p class="text-[9px] font-black text-emerald-800 uppercase tracking-widest mb-1.5">UANG MASUK</p>
-                <div class="flex justify-between items-center mb-1"><span class="text-[10px] font-bold text-amber-950">Penjualan Tunai</span><span class="text-[11px] font-black text-emerald-800 font-mono">+ ${rupiah(lTunai)}</span></div>
-                <div class="flex justify-between items-center mb-3"><span class="text-[10px] font-bold text-amber-950">Terima Pelunasan Utang</span><span class="text-[11px] font-black text-emerald-800 font-mono">+ ${rupiah(lPelunasan)}</span></div>
+            <!-- Rincian Akordeon Default Terbuka -->
+            <div id="rincian-laci" class="mt-6 pt-5 border-t border-[#cca752] relative z-10">
+                <p class="text-[10px] font-black text-[#166534] uppercase tracking-widest mb-3">UANG MASUK (${laporanLabelVisual})</p>
+                <div class="flex justify-between items-center mb-2.5"><span class="text-xs font-semibold text-[#45320e]">Penjualan Tunai</span><span class="text-xs font-black text-[#166534]">+ ${rupiah(lTunai)}</span></div>
+                <div class="flex justify-between items-center mb-5"><span class="text-xs font-semibold text-[#45320e]">Terima Pelunasan Utang</span><span class="text-xs font-black text-[#166534]">+ ${rupiah(lPelunasan)}</span></div>
                 
-                <p class="text-[9px] font-black text-red-800 uppercase tracking-widest mb-1.5 pt-2 border-t border-amber-600/30">UANG KELUAR</p>
-                ${listKeluarHTML || '<p class="text-[10px] text-amber-800 font-bold italic">Belum ada catatan kas keluar hari ini.</p>'}
+                <p class="text-[10px] font-black text-[#881b28] uppercase tracking-widest mb-3 pt-5 border-t border-[#cca752]">UANG KELUAR (${laporanLabelVisual})</p>
+                ${listKeluarHTML || '<p class="text-[11px] text-[#71541c] font-bold italic mt-2">Tidak ada catatan kas keluar pada rentang ini.</p>'}
             </div>
         </div>
 
-
-        <!-- KARTU 3: DIGITAL & PIUTANG -->
-        <div class="grid grid-cols-2 gap-3">
-            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm relative overflow-hidden">
-                <div class="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center mb-2"><i class="fa-solid fa-qrcode"></i></div>
-                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Masuk Rekening</p>
-                <p class="text-sm font-black text-blue-600 font-mono">${rupiah(lQris)}</p>
+        <!-- KARTU 3 & 4 (Tema Gelap Penyelaras Header) -->
+        <div class="grid grid-cols-2 gap-3 mb-3">
+            <div class="bg-[#3b3e45] border border-[#4b4e55] rounded-[1.5rem] p-5 shadow-sm relative overflow-hidden">
+                <div class="w-9 h-9 rounded-full bg-[#1e3a8a]/40 text-[#93c5fd] flex items-center justify-center mb-3"><i class="fa-solid fa-qrcode"></i></div>
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Masuk Rekening</p>
+                <p class="text-base font-black text-[#bfdbfe] font-mono tracking-tight">${rupiah(lQris)}</p>
             </div>
-            <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm relative overflow-hidden">
-                <div class="w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center mb-2"><i class="fa-solid fa-book-open"></i></div>
-                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Kasbon Keluar</p>
-                <p class="text-sm font-black text-rose-600 font-mono">${rupiah(lDebt)}</p>
+            <div class="bg-[#3b3e45] border border-[#4b4e55] rounded-[1.5rem] p-5 shadow-sm relative overflow-hidden">
+                <div class="w-9 h-9 rounded-full bg-[#7f1d1d]/40 text-[#fca5a5] flex items-center justify-center mb-3"><i class="fa-solid fa-book-open"></i></div>
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Kasbon Keluar</p>
+                <p class="text-base font-black text-[#fecaca] font-mono tracking-tight">${rupiah(lDebt)}</p>
             </div>
         </div>
 
-        <!-- KARTU 4: STATISTIK & TRAFIK -->
-        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex justify-around items-center shadow-inner mb-6">
+        <div class="bg-[#3b3e45] border border-[#4b4e55] rounded-[1.5rem] p-5 flex justify-around items-center shadow-inner mb-6">
             <div class="text-center">
-                <span class="block text-xl font-black text-slate-700">${cPembeli}</span>
+                <span class="block text-2xl font-black text-white mb-0.5">${cPembeli}</span>
                 <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Pembeli</span>
             </div>
-            <div class="w-px h-8 bg-slate-200"></div>
+            <div class="w-px h-10 bg-[#4b4e55]"></div>
             <div class="text-center">
-                <span class="block text-xl font-black text-slate-700">${cItem}</span>
+                <span class="block text-2xl font-black text-white mb-0.5">${cItem}</span>
                 <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Obat Terjual</span>
-            </div>
-            <div class="w-px h-8 bg-slate-200"></div>
-            <div class="text-center">
-                <button onclick="bukaLayar('beranda')" class="text-[10px] font-black text-corporate-600 bg-corporate-50 px-3 py-1.5 rounded-lg border border-corporate-200 active:scale-95 transition-transform"><i class="fa-solid fa-fire text-orange-500"></i> Obat Terlaris</button>
             </div>
         </div>
     `;
@@ -2059,43 +2134,37 @@ function prosesHapusObatMobile(dnaInduk, namaObat) {
 // ==========================================
 // --- ASISTEN TAK KASAT MATA: PEMBELAH UANG OTOMATIS (AUTO-SPLIT) ---
 function prosesPotongLaciOtomatis(tagihanMutlak, deskripsiObat) {
-    
-    // 1. Cek Isi Laci Saat Ini (Menggunakan Sistem Saldo Berjalan / Rolling Balance)
     let estimasiIsiLaci = hitungSaldoLaciFisik();
-    
-    // 2. Eksekusi Pembelahan
     let potonganLaci = 0;    
-    let sisaModalOwner = tagihanMutlak; // Default: Semua dianggap uang bos
+    let sisaModalOwner = tagihanMutlak; 
+
+    const waktu = new Date(); 
+    const strWaktu = waktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    let keteranganLaporan = "";
 
     if (estimasiIsiLaci > 0) {
-        // Ambil dari laci sesuai ketersediaan
         potonganLaci = Math.min(estimasiIsiLaci, tagihanMutlak);
-        sisaModalOwner = tagihanMutlak - potonganLaci; // Sisanya ditalangi bos
+        sisaModalOwner = tagihanMutlak - potonganLaci; 
 
-        const waktu = new Date(); 
-        const strWaktu = waktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-        
-        // Cetak Laporan Transparansi ke Buku Besar
-        let keterangan = `Beli Kulakan (${deskripsiObat})`;
         if (sisaModalOwner > 0) {
-            keterangan += ` - (Tagihan: ${rupiah(tagihanMutlak)}. Potong Laci: ${rupiah(potonganLaci)} | Dana Bos: ${rupiah(sisaModalOwner)})`;
+            keteranganLaporan = `${deskripsiObat} - (Tagihan: ${rupiah(tagihanMutlak)}. Potong Laci: ${rupiah(potonganLaci)} | Dana Bos: ${rupiah(sisaModalOwner)})`;
         } else {
-            keterangan += ` - (Lunas via Laci Kasir Otomatis)`;
+            keteranganLaporan = `${deskripsiObat} - (Lunas via Laci Kasir Otomatis)`;
         }
-
-        pengeluaranHistory.unshift({
-            id: 'OUT-AUTO-' + Date.now(),
-            tanggal: getTanggalLokal(),
-            waktu: strWaktu,
-            kategori: 'Kulakan',
-            nominal: potonganLaci,
-            keterangan: keterangan,
-            kasir: 'Sistem Auto-Split'
-        });
-        saveApotekDB('apotek_pengeluaranHistory', pengeluaranHistory);
+    } else {
+        keteranganLaporan = `${deskripsiObat} - MURNI PAKAI DANA PRIBADI BOS (Laci Kosong)`;
     }
-    
-    // Kembalikan sisa tagihan agar dicatat ke Modal Murni di Beranda
+
+    pengeluaranHistory.unshift({
+        id: 'OUT-AUTO-' + Date.now(),
+        tanggal: getTanggalLokal(),
+        waktu: strWaktu,
+        kategori: 'Kulakan',
+        nominal: potonganLaci, 
+        keterangan: keteranganLaporan,
+        kasir: 'Sistem Auto-Split'
+    });
+    saveApotekDB('apotek_pengeluaranHistory', pengeluaranHistory);
     return sisaModalOwner; 
 }
 
@@ -2249,17 +2318,11 @@ function prosesSimpanObatBaruMobile() {
     const idBatch = 'B-' + Date.now(); 
     let dnaInduk = '';
 
-        if (qrcode) { dnaInduk = qrcode; } else if (barcode) { dnaInduk = barcode; } 
+    if (qrcode) { dnaInduk = qrcode; } else if (barcode) { dnaInduk = barcode; } 
     else {
-        // [SENSOR 3 MATA AKTIF] - Mencocokkan Nama, Varian, dan Kategori sekaligus
-        let cekGudang = masterItems.find(m => 
-            m.nama.toLowerCase() === nama.toLowerCase() && 
-            (m.varian || '').toLowerCase() === varian.toLowerCase() && 
-            (m.kategori || '').toLowerCase() === kategori.toLowerCase()
-        );
+        let cekGudang = masterItems.find(m => m.nama.toLowerCase() === nama.toLowerCase() && (m.varian || '').toLowerCase() === varian.toLowerCase() && (m.kategori || '').toLowerCase() === kategori.toLowerCase());
         if (cekGudang && cekGudang.dnaInduk) { dnaInduk = cekGudang.dnaInduk; } else { dnaInduk = 'DNA-' + Date.now(); }
     }
-
 
     const isBulk = document.getElementById('tambahToggleBulk').checked;
     const satBesar = document.getElementById('tambahSatuanBesar').value || 'Box';
@@ -2267,114 +2330,182 @@ function prosesSimpanObatBaruMobile() {
     const isiPerSatuan = parseFloat(document.getElementById('tambahIsiPerSatuan').value) || 1;
     let riwayatAsal = { isGrosir: isBulk, satuanEcer: satEcer, satuanBesar: satBesar, qtyBeli: qtyBeliAwal, isiPerBox: isiPerSatuan };
 
-    // [MODIFIKASI TAHAP 1] - MESIN PEMILAH BATCH & kulakan
-    let batchAda = masterItems.find(m => m.dnaInduk === dnaInduk && m.expired === expired);
+    let isPotongLaci = document.getElementById('tambahPotongLaciToggle') ? document.getElementById('tambahPotongLaciToggle').checked : false;
 
-        if (batchAda) {
-        // SKENARIO A: BATCH (TGL EXP) SUDAH ADA
-        if (!batchAda.kulakan_keuangan) batchAda.kulakan_keuangan = [];
-        let kulakanAda = batchAda.kulakan_keuangan.find(f => f.hpp === modal);
+    // --- DI PARKIR KE KERANJANG KULAKAN ---
+    let itemAntrean = {
+        idTunggu: 'T-' + Date.now(), sumber: 'TAMBAH_BARU',
+        namaLengkap: nama + (varian ? ' ' + varian : ''),
+        tagihan: tagihanMutlak, isPotongLaci: isPotongLaci, qty: stok, satEcer: satEcer,
+        payload: { idBatch, dnaInduk, barcode, qrcode, nama, varian, kategori, jual, expired, modal, stok, tagihanMutlak, satEcer, riwayatAsal }
+    };
 
-        if (kulakanAda) {
-            // HPP Sama: Lebur ke kulakan yang ada
-            kulakanAda.stokAwal += stok;
-            kulakanAda.sisaGudang += stok;
-            kulakanAda.modalKeluar += tagihanMutlak;
-            
-            // --- INJEKSI KABEL BARU: AKUMULASI RIWAYAT KULAKAN ---
-            if (kulakanAda.riwayatAsal && riwayatAsal) {
-                if (kulakanAda.riwayatAsal.satuanBesar === riwayatAsal.satuanBesar && kulakanAda.riwayatAsal.isGrosir === riwayatAsal.isGrosir) {
-                    kulakanAda.riwayatAsal.qtyBeli += (parseFloat(riwayatAsal.qtyBeli) || 0);
+    antreanKulakan.push(itemAntrean);
+    saveApotekDB('apotek_antreanKulakan', antreanKulakan);
+
+    tutupModalMobile('modalTambahObatMobile'); 
+    renderBadgeAntreanKulakan();
+    triggerHaptic(100);
+    alert('🛒 Obat diparkir di Keranjang Kulakan!\\n(Belum masuk gudang & belum memotong uang).');
+}
+
+// ==========================================
+// MESIN PEMROSES MASAL (KERANJANG KE GUDANG)
+// ==========================================
+function eksekusiAntreanKulakan() {
+    if(antreanKulakan.length === 0) return alert('Keranjang kosong!');
+
+    let totalTagihanPotongLaci = 0;
+    let totalTagihanModalBos = 0;
+    let qtyTotalSuntik = 0;
+    
+    antreanKulakan.forEach(item => {
+        qtyTotalSuntik += item.qty;
+        if(item.isPotongLaci) totalTagihanPotongLaci += item.tagihan;
+        else totalTagihanModalBos += item.tagihan;
+
+        if(item.sumber === 'TAMBAH_BARU') {
+            let p = item.payload;
+            let batchAda = masterItems.find(m => m.dnaInduk === p.dnaInduk && m.expired === p.expired);
+
+            if (batchAda) {
+                if (!batchAda.kulakan_keuangan) batchAda.kulakan_keuangan = [];
+                let kulakanAda = batchAda.kulakan_keuangan.find(f => f.hpp === p.modal);
+
+                if (kulakanAda) {
+                    kulakanAda.stokAwal += p.stok;
+                    kulakanAda.sisaGudang += p.stok;
+                    kulakanAda.modalKeluar += p.tagihanMutlak;
+                    if (kulakanAda.riwayatAsal && p.riwayatAsal) {
+                        if (kulakanAda.riwayatAsal.satuanBesar === p.riwayatAsal.satuanBesar && kulakanAda.riwayatAsal.isGrosir === p.riwayatAsal.isGrosir) {
+                            kulakanAda.riwayatAsal.qtyBeli += (parseFloat(p.riwayatAsal.qtyBeli) || 0);
+                        } else { kulakanAda.riwayatAsal = JSON.parse(JSON.stringify(p.riwayatAsal)); }
+                    } else { kulakanAda.riwayatAsal = JSON.parse(JSON.stringify(p.riwayatAsal)); }
                 } else {
-                    kulakanAda.riwayatAsal = JSON.parse(JSON.stringify(riwayatAsal));
+                    batchAda.kulakan_keuangan.push({ idkulakan: "F-" + Date.now() + Math.floor(Math.random()*100), tanggalNota: getTanggalLokal(), hpp: p.modal, stokAwal: p.stok, sisaGudang: p.stok, sisaEtalase: 0, modalKeluar: p.tagihanMutlak, riwayatAsal: JSON.parse(JSON.stringify(p.riwayatAsal)) });
                 }
+                batchAda.stok += p.stok; batchAda.totalModal += p.tagihanMutlak; batchAda.modal = p.modal; batchAda.riwayatAsal = p.riwayatAsal;
             } else {
-                kulakanAda.riwayatAsal = JSON.parse(JSON.stringify(riwayatAsal));
+                masterItems.unshift({ 
+                    idBatch: p.idBatch, dnaInduk: p.dnaInduk, barcode: p.barcode, qrcode: p.qrcode, nama: p.nama, varian: p.varian, keterangan: '', 
+                    kategori: p.kategori, modal: p.modal, jual: p.jual, stok: p.stok, expired: p.expired, totalModal: p.tagihanMutlak, riwayatAsal: p.riwayatAsal,
+                    kulakan_keuangan: [{ idkulakan: "F-" + Date.now(), tanggalNota: getTanggalLokal(), hpp: p.modal, stokAwal: p.stok, sisaGudang: p.stok, sisaEtalase: 0, modalKeluar: p.tagihanMutlak, riwayatAsal: JSON.parse(JSON.stringify(p.riwayatAsal)) }]
+                });
             }
-            // -----------------------------------------------------
 
-        } else {
-            // HPP Beda: Buka kamar kulakan Baru
-            batchAda.kulakan_keuangan.push({
-                idkulakan: "F-" + Date.now(),
-                tanggalNota: getTanggalLokal(),
-                hpp: modal,
-                stokAwal: stok,
-                sisaGudang: stok,
-                sisaEtalase: 0,
-                modalKeluar: tagihanMutlak,
-                riwayatAsal: JSON.parse(JSON.stringify(riwayatAsal)) // SUNTIK KE kulakan BARU
-            });
+            masterItems.forEach(m => { if (m.dnaInduk === p.dnaInduk) { m.jual = p.jual; m.kategori = p.kategori; } });
+            let bEtalase = etalaseItems.find(e => e.dnaInduk === p.dnaInduk);
+            if (bEtalase) { bEtalase.jual = p.jual; bEtalase.kategori = p.kategori; }
         }
-        
-        // Update total fisik di permukaan agar Beranda tidak crash
-        batchAda.stok += stok;
-        batchAda.totalModal += tagihanMutlak;
-        batchAda.modal = modal; // Tampilkan HPP terbaru sebagai perwakilan
-        batchAda.riwayatAsal = riwayatAsal; // Backup di Induk
-
-    } else {
-        // SKENARIO B: BATCH BARU (BARANG BARU ATAU TGL EXP BEDA)
-        masterItems.unshift({ 
-            idBatch, dnaInduk, barcode, qrcode, nama, varian: varian, keterangan: '', 
-            kategori, modal, jual, stok, expired, totalModal: tagihanMutlak, riwayatAsal: riwayatAsal,
-            kulakan_keuangan: [
-                {
-                    idkulakan: "F-" + Date.now(),
-                    tanggalNota: getTanggalLokal(),
-                    hpp: modal,
-                    stokAwal: stok,
-                    sisaGudang: stok,
-                    sisaEtalase: 0,
-                    modalKeluar: tagihanMutlak,
-                    riwayatAsal: JSON.parse(JSON.stringify(riwayatAsal)) // SUNTIK KE kulakan BARU
-                }
-            ]
-        });
-    }
-
-    // HUKUM SATU NYAWA: Update Harga Jual dan Kategori untuk semua batch turunan
-    masterItems.forEach(m => {
-        if (m.dnaInduk === dnaInduk) { m.jual = jual; m.kategori = kategori; }
     });
-    let bEtalase = etalaseItems.find(e => e.dnaInduk === dnaInduk);
-    if (bEtalase) { bEtalase.jual = jual; bEtalase.kategori = kategori; }
-  
-    // SIKLUS AKTIF LOGIC
-    if (stok > 0) {
+
+    if (qtyTotalSuntik > 0) {
         if (siklusAktif.isLikuidasi) {
             siklusAktif.isLikuidasi = false; siklusAktif.isLanjutanDefisit = false;
             siklusAktif.hutangAwal = 0; siklusAktif.modalAwal = 0; siklusAktif.qtyAwal = 0; 
             siklusAktif.uangMasuk = 0; siklusAktif.modalTambahan = 0; siklusAktif.qtyTambahan = 0;
-        } else if (siklusAktif.isLanjutanDefisit) {
-            siklusAktif.isLanjutanDefisit = false; 
-        }
-    }
-    
-    // --- SAKLAR HIBRIDA BEKERJA ---
-    let nilaiSuntikanOwner = tagihanMutlak; 
-    let isPotongLaci = document.getElementById('tambahPotongLaciToggle') ? document.getElementById('tambahPotongLaciToggle').checked : false;
-    
-    if (isPotongLaci && tagihanMutlak > 0) {
-        // Panggil asisten untuk belah uang, dan kembalikan sisa modal yang harus dicatat
-        nilaiSuntikanOwner = prosesPotongLaciOtomatis(tagihanMutlak, `${stok} ${satEcer} ${nama}`);
+        } else if (siklusAktif.isLanjutanDefisit) { siklusAktif.isLanjutanDefisit = false; }
     }
 
-    // Modal di beranda HANYA naik sebesar uang pribadi bos (nilaiSuntikanOwner)
+        let nilaiSuntikanOwner = 0; 
+    
+    // 1. Eksekusi Item yang Meminta Potong Laci (Saklar Menyala)
+    if (totalTagihanPotongLaci > 0) {
+        nilaiSuntikanOwner = prosesPotongLaciOtomatis(totalTagihanPotongLaci, `Faktur Kulakan (Potong Laci)`);
+    } 
+
+    // 2. Eksekusi Item yang Murni Uang Bos (Saklar Mati / Tidak Dicentang)
+    if (totalTagihanModalBos > 0) {
+        const waktu = new Date(); 
+        const strWaktu = waktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        pengeluaranHistory.unshift({
+            id: 'OUT-BOS-' + Date.now(),
+            tanggal: getTanggalLokal(),
+            waktu: strWaktu,
+            kategori: 'Kulakan',
+            nominal: 0, // Kunci Keamanan: Tidak sentuh uang laci sama sekali
+            keterangan: `Faktur Kulakan (Dana Pribadi) - MURNI PAKAI DANA BOS (Saklar Dimatikan)`,
+            kasir: 'Sistem'
+        });
+        saveApotekDB('apotek_pengeluaranHistory', pengeluaranHistory);
+    }
+
+    // 3. Gabungkan seluruh sisa uang pribadi untuk disuntik ke Modal Beranda
+    let totalModalSuntikan = nilaiSuntikanOwner + totalTagihanModalBos;
+
     if (!siklusAktif.waktuStart && siklusAktif.qtyAwal === 0 && siklusAktif.qtyTambahan === 0) { 
-         siklusAktif.modalAwal += nilaiSuntikanOwner; siklusAktif.qtyAwal += stok; 
+         siklusAktif.modalAwal += totalModalSuntikan; siklusAktif.qtyAwal += qtyTotalSuntik; 
     } else { 
-         siklusAktif.modalTambahan += nilaiSuntikanOwner; siklusAktif.qtyTambahan += stok; 
+         siklusAktif.modalTambahan += totalModalSuntikan; siklusAktif.qtyTambahan += qtyTotalSuntik; 
     }
 
+    antreanKulakan = [];
+    saveApotekDB('apotek_antreanKulakan', antreanKulakan);
     saveApotekDB('apotek_masterItems', masterItems); 
     saveApotekDB('apotek_siklusAktif', siklusAktif);
 
-    tutupModalMobile('modalTambahObatMobile'); 
+    tutupModalMobile('modalAntreanKulakanMobile');
+    renderBadgeAntreanKulakan();
     renderGudangMobile(document.getElementById('cariGudangMobile').value); 
     renderBerandaMobile();
-    alert('✅ Sukses! ' + stok + ' ' + satEcer + ' ' + nama + ' berhasil ditambahkan ke Gudang.');
+    triggerHaptic([100, 50, 100]);
+    alert('✅ EKSKUSI FAKTUR KULAKAN SELESAI!\\nSemua obat telah diturunkan ke Gudang secara bersamaan.');
 }
+
+function bukaModalAntreanKulakan() {
+    renderListAntreanKulakan();
+    bukaModalMobile('modalAntreanKulakanMobile', 'panelAntreanKulakanMobile');
+}
+
+function renderListAntreanKulakan() {
+    let wadah = document.getElementById('wadahListAntreanKulakan');
+    let totalSemua = 0;
+    if(antreanKulakan.length === 0) {
+        wadah.innerHTML = `<div class="p-6 text-center text-slate-400 font-bold text-xs"><i class="fa-solid fa-box-open text-3xl mb-2 opacity-50 block"></i>Keranjang Kosong</div>`;
+        document.getElementById('totalAntreanKulakan').textContent = "Rp 0";
+        return;
+    }
+    
+    wadah.innerHTML = antreanKulakan.map((item, idx) => {
+        totalSemua += item.tagihan;
+        let badgeLaci = item.isPotongLaci ? `<span class="text-[9px] bg-orange-100 text-orange-600 px-2 py-0.5 rounded border border-orange-200">Potong Laci</span>` : `<span class="text-[9px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded border border-slate-200">Uang Pribadi</span>`;
+        return `
+        <div class="bg-white border border-slate-200 rounded-xl p-3 shadow-sm mb-2 flex justify-between items-center">
+            <div>
+                <h4 class="font-bold text-slate-800 text-sm leading-tight mb-1">${item.namaLengkap}</h4>
+                <div class="flex items-center gap-2">
+                    <span class="text-[10px] font-black text-emerald-600">+${item.qty} ${item.satEcer}</span>
+                    ${badgeLaci}
+                </div>
+            </div>
+            <div class="flex flex-col items-end gap-2">
+                <span class="font-black text-corporate-700 text-sm">${rupiah(item.tagihan)}</span>
+                <button onclick="hapusItemAntrean(${idx})" class="text-[9px] font-bold text-red-500 bg-red-50 hover:bg-red-100 px-2 py-1 rounded-md transition-colors"><i class="fa-solid fa-trash"></i> Hapus</button>
+            </div>
+        </div>`;
+    }).join('');
+    document.getElementById('totalAntreanKulakan').textContent = rupiah(totalSemua);
+}
+
+function hapusItemAntrean(idx) {
+    antreanKulakan.splice(idx, 1);
+    saveApotekDB('apotek_antreanKulakan', antreanKulakan);
+    renderListAntreanKulakan();
+    renderBadgeAntreanKulakan();
+}
+
+function renderBadgeAntreanKulakan() {
+    let badge = document.getElementById('badgeKeranjangKulakan');
+    if(badge) {
+        if(antreanKulakan.length > 0) {
+            badge.classList.remove('hidden');
+            badge.textContent = antreanKulakan.length;
+        } else {
+            badge.classList.add('hidden');
+        }
+    }
+}
+setTimeout(renderBadgeAntreanKulakan, 1000);
 
 
 // ==========================================
@@ -3912,9 +4043,9 @@ function prosesRenderDetailTigaSerangkai(jenis) {
 }
 
 // ==========================================
-// MESIN EXPORT LAPORAN KE MICROSOFT WORD (A4 LANDSCAPE)
+// MESIN CETAK LAPORAN KE PDF (MENGGUNAKAN TEMPLATE BAWAAN HTML)
 // ==========================================
-function exportLaporanKeWord() {
+function exportLaporanKePDF() {
     let tglFilter = document.getElementById('filterTglLaporanMobile')?.value || getTanggalLokal();
     let dataPeriode = cashierHistory.filter(t => t.tanggal === tglFilter);
     
@@ -4062,10 +4193,9 @@ function exportLaporanKeWord() {
 // MESIN CETAK LAPORAN KE PDF (MENGGUNAKAN TEMPLATE BAWAAN HTML)
 // ==========================================
 function exportLaporanKePDF() {
-    let tglFilter = document.getElementById('filterTglLaporanMobile')?.value || getTanggalLokal();
-    let dataPeriode = cashierHistory.filter(t => t.tanggal === tglFilter);
-    
-    if(dataPeriode.length === 0) return alert("Data kosong! Belum ada transaksi pada tanggal ini.");
+    let dataPeriode = cashierHistory.filter(t => t.tanggal >= laporanTglAwal && t.tanggal <= laporanTglAkhir);
+    if(dataPeriode.length === 0) return alert("Data kosong! Belum ada transaksi pada rentang tanggal ini.");
+    let tglFilter = laporanLabelVisual; // Ambil label visual yang aktif
 
     // Variabel Rekapitulasi
     let lOmzet = 0, lLaba = 0, lHPP = 0;

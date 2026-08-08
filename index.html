@@ -278,9 +278,15 @@ tailwind.config = {
                     <h2 class="font-black text-corporate-900 text-2xl tracking-tight">Master Gudang</h2>
                     <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Kelola Inventori</p>
                 </div>
-                <button onclick="bukaModalTambahObatMobile()" class="bg-gradient-to-br from-corporate-500 to-corporate-700 hover:from-corporate-600 hover:to-corporate-800 text-white w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg shadow-corporate-500/30 transition-transform active:scale-95 border border-corporate-600">
-                    <i class="fa-solid fa-plus text-lg"></i>
-                </button>
+                <div class="flex gap-2">
+                    <button onclick="bukaModalAntreanKulakan()" class="relative bg-white text-corporate-700 w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm transition-transform active:scale-95 border border-slate-200">
+                        <i class="fa-solid fa-cart-flatbed text-lg"></i>
+                        <span id="badgeKeranjangKulakan" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white shadow-sm">0</span>
+                    </button>
+                    <button onclick="bukaModalTambahObatMobile()" class="bg-gradient-to-br from-corporate-500 to-corporate-700 hover:from-corporate-600 hover:to-corporate-800 text-white w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg shadow-corporate-500/30 transition-transform active:scale-95 border border-corporate-600">
+                        <i class="fa-solid fa-plus text-lg"></i>
+                    </button>
+                </div>
             </div>
             <div class="px-6 py-5 space-y-3">
                 <div class="relative group">
@@ -368,34 +374,67 @@ tailwind.config = {
             <div class="px-6 space-y-3" id="daftarEtalaseMobile"></div>
         </div>
 
-                <div id="layar-laporan" class="layar-app hidden pb-6">
-            <div class="sticky top-0 bg-[#f1f5f9]/90 backdrop-blur-md z-20 px-6 pt-10 pb-4 border-b border-slate-200/60 flex items-center gap-3">
-                <button onclick="bukaLayar('beranda')" class="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-600 shadow-sm active:scale-95 transition-transform"><i class="fa-solid fa-arrow-left"></i></button>
+                        <div id="layar-laporan" class="layar-app hidden pb-6 min-h-screen bg-[#2e3136]">
+            <div class="sticky top-0 bg-[#2e3136]/95 backdrop-blur-md z-20 px-6 pt-10 pb-4 flex items-center gap-3">
+                <button onclick="bukaLayar('beranda')" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white shadow-sm active:scale-95 transition-transform"><i class="fa-solid fa-arrow-left"></i></button>
                 <div class="flex-1">
-                    <h2 class="font-black text-corporate-900 text-2xl tracking-tight">Buku Besar</h2>
-                    <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Laporan Keuangan</p>
+                    <h2 class="font-black text-white text-2xl tracking-tight">Buku Besar</h2>
+                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Laporan Keuangan</p>
                 </div>
                 <!-- Tombol Cetak -->
                 <div class="flex gap-2">
-                    <button onclick="exportLaporanKePDF()" title="Cetak PDF / Print" class="w-10 h-10 rounded-2xl bg-slate-50 text-slate-600 flex items-center justify-center shadow-sm active:scale-95 transition-transform border border-slate-200">
+                    <button onclick="exportLaporanKePDF()" title="Cetak PDF / Print" class="w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center shadow-sm active:scale-95 transition-transform">
                         <i class="fa-solid fa-file-pdf text-lg"></i>
                     </button>
-                    <button onclick="exportLaporanKeWord()" title="Download Word" class="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center shadow-sm active:scale-95 transition-transform border border-blue-200">
+                    <button onclick="exportLaporanKeWord()" title="Download Word" class="w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center shadow-sm active:scale-95 transition-transform">
                         <i class="fa-solid fa-file-word text-lg"></i>
                     </button>
                 </div>
             </div>
-            <div class="px-6 py-4 flex gap-2">
+                        <div class="px-6 py-4 flex gap-3 relative z-30">
                 <div class="flex-1 relative">
-                    <input type="date" id="filterTglLaporanMobile" onchange="renderLaporanMobile()" class="w-full bg-white border border-slate-200 rounded-2xl pl-10 pr-3 py-3 text-sm font-bold text-slate-700 shadow-sm focus:outline-none">
-                    <i class="fa-regular fa-calendar-days absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <!-- Tombol Pemicu Panel Pintar -->
+                    <button onclick="toggleDropdownFilterLaporan()" class="w-full bg-white rounded-full pl-11 pr-4 py-3.5 text-[12px] sm:text-[13px] font-black text-slate-800 shadow-sm focus:outline-none tracking-wide text-left flex justify-between items-center transition-all">
+                        <span id="teksFilterLaporanUi" class="truncate">Hari Ini</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-300 shrink-0 ml-2" id="iconDropdownFilterLaporan"></i>
+                    </button>
+                    <i class="fa-regular fa-calendar-days absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none"></i>
+                    
+                    <!-- Panel Melayang Neumorphism (Filter Dropdown) -->
+                    <div id="panelFilterLaporan" class="hidden absolute left-0 right-0 sm:w-[320px] top-[calc(100%+12px)] bg-[#f8fafc] rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.4)] border border-slate-200 overflow-hidden transform origin-top transition-all z-50">
+                        <div class="p-4 bg-white border-b border-slate-100">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 pl-1"><i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Filter Pintas</p>
+                            <div class="flex flex-col gap-2">
+                                <button onclick="setFilterLaporan('hari_ini')" class="text-left px-4 py-3 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl hover:bg-[#2e3136] hover:text-white hover:border-[#2e3136] transition-colors shadow-sm">📅 Hari Ini (Standar)</button>
+                                <button onclick="setFilterLaporan('7_hari')" class="text-left px-4 py-3 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl hover:bg-[#2e3136] hover:text-white hover:border-[#2e3136] transition-colors shadow-sm">📊 7 Hari Terakhir</button>
+                                <button onclick="setFilterLaporan('semua')" class="text-left px-4 py-3 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl hover:bg-[#2e3136] hover:text-white hover:border-[#2e3136] transition-colors shadow-sm">🕰️ Semua Waktu (Riwayat Total)</button>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 pl-1"><i class="fa-solid fa-sliders text-blue-500 mr-1"></i> Pilih Rentang Manual</p>
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="flex-1">
+                                    <label class="block text-[9px] font-bold text-slate-500 mb-1">Dari Tanggal</label>
+                                    <input type="date" id="filterTglAwal" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-700 focus:outline-none shadow-inner">
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-[9px] font-bold text-slate-500 mb-1">Sampai Tanggal</label>
+                                    <input type="date" id="filterTglAkhir" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-700 focus:outline-none shadow-inner">
+                                </div>
+                            </div>
+                            <button onclick="setFilterLaporan('manual')" class="w-full bg-[#1e40af] hover:bg-[#1e3a8a] text-white font-black py-3.5 rounded-xl text-xs transition-colors active:scale-95 shadow-md flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-check"></i> Terapkan Filter
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <button onclick="bukaModalMobile('modalPengeluaranMobile', 'panelPengeluaranMobile')" class="bg-gradient-to-br from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 text-white rounded-2xl px-4 shadow-[0_4px_10px_rgba(225,29,72,0.3)] font-black text-[11px] uppercase tracking-wider flex items-center gap-1.5 active:scale-95 transition-transform">
-                    <i class="fa-solid fa-minus-circle"></i> Kas Keluar
+                <button onclick="bukaModalMobile('modalPengeluaranMobile', 'panelPengeluaranMobile')" class="bg-[#781c2b] hover:bg-[#631623] text-white rounded-full px-5 shadow-lg font-black text-[10px] uppercase tracking-wider flex items-center gap-2 active:scale-95 transition-transform shrink-0">
+                    <i class="fa-solid fa-circle-minus text-base opacity-80"></i> Kas Keluar
                 </button>
             </div>
-            <div class="px-6 space-y-4" id="kontenLaporanMobile"></div>
+            <div class="px-6 space-y-5" id="kontenLaporanMobile"></div>
         </div>
+
 
 
         <div id="layar-karyawan" class="layar-app hidden pb-6">
@@ -1035,10 +1074,8 @@ tailwind.config = {
                         </div>
                     </div>
 
-                    <button onclick="prosesSimpanObatBaruMobile()" class="w-full bg-gradient-to-r from-[#1e40af] to-[#172e7c] hover:from-[#1c3aa0] hover:to-[#0f2057] text-white font-black py-4 rounded-2xl shadow-[0_5px_15px_rgba(30,64,175,0.4)] transition-transform active:scale-95 flex items-center justify-center gap-2 text-[13px] tracking-wide border border-[#3b82f6]/30 relative overflow-hidden">
-                        <i class="fa-solid fa-sparkles text-[#fde68a] absolute left-6 text-xl opacity-80"></i>
-                        <i class="fa-solid fa-floppy-disk text-lg"></i> Simpan Obat & Stok
-                        <i class="fa-solid fa-sparkles text-[#fde68a] absolute right-6 text-xl opacity-80"></i>
+                    <button onclick="prosesSimpanObatBaruMobile()" class="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-black py-4 rounded-2xl shadow-[0_5px_15px_rgba(245,158,11,0.4)] transition-transform active:scale-95 flex items-center justify-center gap-2 text-[13px] tracking-wide border border-amber-300 relative overflow-hidden">
+                        <i class="fa-solid fa-cart-plus text-lg"></i> Parkir ke Keranjang Kulakan
                     </button>
                 </div>
             </div>
@@ -1506,7 +1543,28 @@ tailwind.config = {
             </div>
         </div>
     </div>
-    
+    <div id="modalAntreanKulakanMobile" class="absolute inset-0 z-[145] hidden flex items-end sm:items-center justify-center pointer-events-none">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity pointer-events-auto" onclick="tutupModalMobile('modalAntreanKulakanMobile')"></div>
+        <div class="bg-[#f8fafc] w-full max-h-[85vh] rounded-t-3xl sm:rounded-3xl sm:w-[90%] sm:mb-10 shadow-2xl relative z-10 pointer-events-auto transform transition-transform translate-y-full flex flex-col" id="panelAntreanKulakanMobile">
+            <div class="flex justify-center pt-3 pb-2" onclick="tutupModalMobile('modalAntreanKulakanMobile')"><div class="w-12 h-1.5 bg-slate-200 rounded-full"></div></div>
+            <div class="px-6 pb-4 border-b border-slate-200 flex items-center gap-3">
+                <div class="h-10 w-10 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-200"><i class="fa-solid fa-cart-flatbed"></i></div>
+                <div><h3 class="font-bold text-slate-800 text-lg leading-tight">Keranjang Kulakan</h3><p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Faktur Tunggu (PO)</p></div>
+            </div>
+            <div class="p-6 overflow-y-auto hide-scrollbar flex-1 bg-slate-50/50" id="wadahListAntreanKulakan">
+                <!-- List keranjang disuntik dari JS -->
+            </div>
+            <div class="p-5 border-t border-slate-200 bg-white">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Tagihan Keseluruhan</span>
+                    <span class="text-xl font-black text-corporate-700" id="totalAntreanKulakan">Rp 0</span>
+                </div>
+                <button onclick="eksekusiAntreanKulakan()" class="w-full bg-corporate-600 hover:bg-corporate-700 text-white font-black py-4 rounded-2xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm uppercase tracking-wider">
+                    <i class="fa-solid fa-check-double text-lg"></i> Bayar & Masukkan Gudang
+                </button>
+            </div>
+        </div>
+    </div>
     <!-- MODAL DETAIL OBAT GUDANG -->
     <div id="modalDetailObatMobile" class="fixed inset-0 z-50 hidden">
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onclick="tutupModalMobile('modalDetailObatMobile')"></div>
