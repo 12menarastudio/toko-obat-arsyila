@@ -1307,12 +1307,13 @@ function renderLaporanMobile() {
     const wadah = document.getElementById('kontenLaporanMobile');
     
     // =======================================================
-    // MESIN 1: KALKULASI RENTANG WAKTU (LABA/RUGI & ARUS KAS)
+    // MESIN 1: KALKULASI RENTANG WAKTU (LABA/RUGI, ARUS KAS, TRAFIK)
     // =======================================================
     let dataPeriode = cashierHistory.filter(t => t.tanggal >= laporanTglAwal && t.tanggal <= laporanTglAkhir);
     let dataKeluar = pengeluaranHistory.filter(p => p.tanggal >= laporanTglAwal && p.tanggal <= laporanTglAkhir);
     
     let lOmset = 0, lHPP = 0, omzetTunai = 0, omzetQRIS = 0, omzetDebt = 0;
+    let inLunas = 0, totalPembeli = 0, totalBiji = 0;
     
     dataPeriode.forEach(t => {
         if(!t.isPelunasan) { 
@@ -1320,44 +1321,57 @@ function renderLaporanMobile() {
             if(t.metode === 'Tunai') omzetTunai += t.total;
             else if(t.metode === 'QRIS') omzetQRIS += t.total;
             else if(t.metode === 'Debt') omzetDebt += t.total;
+            
+            totalPembeli++;
+            totalBiji += (t.item || 1);
+        } else {
+            inLunas += (t.total || 0);
         }
     });
 
     let bBiayaToko = 0, bPrive = 0, bKulakan = 0;
-    let dataKulakan = []; 
+    let listKulakanHtml = '', listBiayaHtml = '', listPriveHtml = '';
     
     dataKeluar.forEach(p => {
-        if (p.kategori === 'Biaya Toko') bBiayaToko += p.nominal;
-        else if (p.kategori === 'Prive') bPrive += p.nominal;
-        else if (p.kategori === 'Kulakan') { bKulakan += p.nominal; dataKulakan.push(p); }
+        if (p.kategori === 'Biaya Toko') { 
+            bBiayaToko += p.nominal; 
+            listBiayaHtml += `<div class="flex justify-between gap-2 text-[8.5px] text-slate-400 mb-1"><span class="truncate">&bull; ${p.keterangan}</span><span class="text-rose-400 font-mono shrink-0">-${rupiah(p.nominal)}</span></div>`;
+        }
+        else if (p.kategori === 'Prive') { 
+            bPrive += p.nominal; 
+            listPriveHtml += `<div class="flex justify-between gap-2 text-[8.5px] text-slate-400 mb-1"><span class="truncate">&bull; ${p.keterangan}</span><span class="text-rose-400 font-mono shrink-0">-${rupiah(p.nominal)}</span></div>`;
+        }
+        else if (p.kategori === 'Kulakan') { 
+            bKulakan += p.nominal; 
+            listKulakanHtml += `<div class="flex justify-between gap-2 text-[8.5px] text-slate-400 mb-1"><span class="truncate">&bull; ${p.keterangan}</span><span class="text-rose-400 font-mono shrink-0">-${rupiah(p.nominal)}</span></div>`;
+        }
     });
 
     let labaKotor = lOmset - lHPP;
     let labaBersihSejati = labaKotor - bBiayaToko; 
+    let labaDitahan = labaBersihSejati - bPrive;
+    
+    let aov = totalPembeli > 0 ? (lOmset / totalPembeli) : 0;
+    let margin = lOmset > 0 ? ((labaBersihSejati / lOmset) * 100).toFixed(1) : 0;
 
     // =======================================================
     // MESIN 2: KALKULASI REAL-TIME (NERACA HARTA KEKAYAAN)
     // =======================================================
-    // 1. Harta Tunai
     let estimasiIsiLaci = hitungSaldoLaciFisik(); 
 
-    // 2. Harta Bank (QRIS Mutlak)
     let hartaQRIS = 0;
     cashierHistory.forEach(t => {
         if(t.metode === 'QRIS' && !t.isPelunasan) hartaQRIS += (t.total || 0);
         if(t.isPelunasan && (t.metodeBayar === 'QRIS' || t.metodeBayar === 'qris' || t.metode === 'QRIS')) hartaQRIS += (t.total || 0);
     });
 
-    // 3. Harta Piutang (Di Tangan Orang)
-    let hartaPiutang = 0;
-    let hutangMap = {};
+    let hartaPiutang = 0; let hutangMap = {};
     cashierHistory.filter(t => t.metode === 'Debt' || t.isPelunasan).forEach(t => {
         if(t.metode === 'Debt' && !t.statusLunas) hutangMap[t.id] = t.total;
         if(t.isPelunasan && t.idTerkait && hutangMap[t.idTerkait]) hutangMap[t.idTerkait] -= t.total;
     });
     Object.values(hutangMap).forEach(v => { if(v > 0) hartaPiutang += v; });
 
-    // 4. Harta Barang (Nilai Rak Aktual)
     let sisaQtyReal = 0; let sisaRpReal = 0;
     masterItems.filter(i => i.nama !== '___SYSTEM_AUTH___' && i.kategori !== '⚠️ Barang Retur').forEach(b => { 
         sisaQtyReal += (b.stok || 0); sisaRpReal += (b.totalModal !== undefined ? b.totalModal : (b.modal * b.stok)); 
@@ -1373,7 +1387,7 @@ function renderLaporanMobile() {
     });
 
     // =======================================================
-    // MESIN 3: KALKULASI SIKLUS PERSEDIAAN (PERUBAHAN MODAL)
+    // MESIN 3: KALKULASI SIKLUS PERSEDIAAN
     // =======================================================
     let terjualQtySiklus = 0; let terjualRpSiklus = 0;
     let wMulai = siklusAktif.waktuStart || 0;
@@ -1382,146 +1396,180 @@ function renderLaporanMobile() {
         terjualRpSiklus += ((t.total || 0) - (t.laba || 0));
     });
 
-    // Kalkulasi Sub-Total: Barang Tersedia untuk Dijual (Akuntansi Standar)
     let totalQtyTersedia = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
     let totalModalTersedia = (siklusAktif.modalAwal || 0) + (siklusAktif.modalTambahan || 0);
 
     // =======================================================
-    // RENDERING UI: KAKU, 90 DERAJAT, PADAT & ELEGAN
+    // RENDERING UI: AKORDEON DINAMIS & TERTUTUP AWAL
     // =======================================================
     wadah.innerHTML = `
     <div class="flex flex-col gap-3 pb-4">
         
-        <!-- BLOK I: LAPORAN PERUBAHAN PERSEDIAAN -->
-        <div class="bg-[#24272c] border border-[#3b3f46] rounded-sm p-3.5 shadow-sm">
-            <h3 class="text-[#93c5fd] font-bold text-[10px] uppercase tracking-widest border-b border-[#3b3f46] pb-2 mb-2"><i class="fa-solid fa-boxes-stacked mr-1"></i> I. Alur Modal Persediaan (Siklus Ini)</h3>
-            
-            <div class="flex justify-between items-center mb-1.5 text-[10px]">
-                <span class="text-slate-400">Modal Awal / Titik Nol</span>
-                <span class="font-mono text-slate-200">${siklusAktif.qtyAwal} Pcs | ${rupiah(siklusAktif.modalAwal)}</span>
-            </div>
-            <div class="flex justify-between items-center mb-1.5 text-[10px]">
-                <span class="text-slate-400">(+) Suntikan Kulakan</span>
-                <span class="font-mono text-emerald-400">+ ${siklusAktif.qtyTambahan} Pcs | + ${rupiah(siklusAktif.modalTambahan)}</span>
+        <!-- BLOK I: ALUR MODAL PERSEDIAAN -->
+        <div class="bg-[#24272c] border border-[#3b3f46] rounded-sm shadow-sm select-none">
+            <div class="flex justify-between items-center p-3.5 cursor-pointer" onclick="toggleAkordeonLaporan('blok-persediaan')">
+                <h3 class="text-[#93c5fd] font-bold text-[10px] uppercase tracking-widest"><i class="fa-solid fa-boxes-stacked mr-1"></i> I. Alur Modal Persediaan</h3>
+                <i class="fa-solid fa-chevron-down text-slate-400 text-[10px] transition-transform duration-300" id="icon-blok-persediaan"></i>
             </div>
             
-            <!-- SUB-TOTAL ILMU AKUNTANSI: BARANG TERSEDIA UNTUK DIJUAL -->
-            <div class="border-t border-[#3b3f46] my-1.5 pt-1.5 flex justify-between items-center text-[10px]">
-                <span class="font-bold text-slate-300">(=) Total Persediaan Siap Jual</span>
-                <span class="font-bold font-mono text-blue-300">${totalQtyTersedia} Pcs | ${rupiah(totalModalTersedia)}</span>
-            </div>
-
-            <div class="flex justify-between items-center mb-1.5 text-[10px] mt-1.5">
-                <span class="text-slate-400">(-) Keluar Terjual (HPP)</span>
-                <span class="font-mono text-rose-400">- ${terjualQtySiklus} Pcs | - ${rupiah(terjualRpSiklus)}</span>
-            </div>
-            <div class="border-t border-dashed border-[#3b3f46] my-2"></div>
-            <div class="flex justify-between items-center text-[10.5px]">
-                <span class="font-bold text-white">(=) Aset Mengendap di Rak</span>
-                <span class="font-bold font-mono text-white tracking-tight">${sisaQtyReal} Pcs | ${rupiah(sisaRpReal)}</span>
+            <!-- Rincian Tersembunyi -->
+            <div id="blok-persediaan" class="hidden px-3.5 pb-3.5 border-t border-[#3b3f46] pt-3">
+                <div class="flex justify-between items-center mb-1.5 text-[10px]">
+                    <span class="text-slate-400">Modal Awal / Titik Nol</span>
+                    <span class="font-mono text-slate-200">${siklusAktif.qtyAwal} Pcs | ${rupiah(siklusAktif.modalAwal)}</span>
+                </div>
+                <div class="flex justify-between items-center mb-1.5 text-[10px]">
+                    <span class="text-slate-400">(+) Suntikan Kulakan</span>
+                    <span class="font-mono text-emerald-400">+ ${siklusAktif.qtyTambahan} Pcs | + ${rupiah(siklusAktif.modalTambahan)}</span>
+                </div>
+                <div class="border-t border-[#3b3f46] my-1.5 pt-1.5 flex justify-between items-center text-[10px]">
+                    <span class="font-bold text-slate-300">(=) Total Persediaan Siap Jual</span>
+                    <span class="font-bold font-mono text-blue-300">${totalQtyTersedia} Pcs | ${rupiah(totalModalTersedia)}</span>
+                </div>
+                <div class="flex justify-between items-center mb-1.5 text-[10px] mt-1.5">
+                    <span class="text-slate-400">(-) Keluar Terjual (HPP)</span>
+                    <span class="font-mono text-rose-400">- ${terjualQtySiklus} Pcs | - ${rupiah(terjualRpSiklus)}</span>
+                </div>
+                <div class="border-t border-dashed border-[#3b3f46] my-2"></div>
+                <div class="flex justify-between items-center text-[10.5px]">
+                    <span class="font-bold text-white">(=) Aset Mengendap di Rak</span>
+                    <span class="font-bold font-mono text-white tracking-tight">${sisaQtyReal} Pcs | ${rupiah(sisaRpReal)}</span>
+                </div>
             </div>
         </div>
 
-        <!-- BLOK II: KINERJA PENJUALAN (INCOME STATEMENT) -->
-        <div class="bg-[#f8fafc] border border-slate-300 rounded-sm p-3.5 shadow-sm text-slate-800">
-            <div class="flex justify-between items-end border-b border-slate-300 pb-2 mb-2">
+        <!-- BLOK II: KINERJA PENJUALAN -->
+        <div class="bg-[#f8fafc] border border-slate-300 rounded-sm shadow-sm text-slate-800 select-none">
+            <div class="flex justify-between items-center p-3.5 cursor-pointer" onclick="toggleAkordeonLaporan('blok-penjualan')">
                 <h3 class="text-[#0f766e] font-bold text-[10px] uppercase tracking-widest"><i class="fa-solid fa-scale-balanced mr-1"></i> II. Kinerja Penjualan</h3>
-                <span class="text-[8px] font-bold text-slate-500 uppercase border border-slate-300 px-1 rounded-sm tracking-widest">${laporanLabelVisual}</span>
+                <div class="flex items-center gap-2">
+                    <span class="text-[8px] font-bold text-slate-500 uppercase border border-slate-300 px-1 rounded-sm tracking-widest">${laporanLabelVisual}</span>
+                    <i class="fa-solid fa-chevron-down text-slate-400 text-[10px] transition-transform duration-300" id="icon-blok-penjualan"></i>
+                </div>
             </div>
             
-            <p class="text-[9px] font-black text-slate-500 mb-1.5 uppercase">A. Pendapatan Kotor (Omzet)</p>
-            <div class="flex justify-between text-[10px] mb-1 pl-2"><span class="text-slate-600">Tunai</span><span class="font-mono">${rupiah(omzetTunai)}</span></div>
-            <div class="flex justify-between text-[10px] mb-1 pl-2"><span class="text-slate-600">QRIS / Bank</span><span class="font-mono">${rupiah(omzetQRIS)}</span></div>
-            <div class="flex justify-between text-[10px] mb-1.5 pl-2"><span class="text-slate-600">Kasbon (Barang Keluar)</span><span class="font-mono">${rupiah(omzetDebt)}</span></div>
-            <div class="flex justify-between text-[10px] font-bold border-b border-slate-200 pb-1.5 mb-2 pl-2"><span class="text-slate-800">Total Penciptaan Omzet</span><span class="font-mono text-[#0f766e]">${rupiah(lOmset)}</span></div>
+            <!-- Rincian Tersembunyi -->
+            <div id="blok-penjualan" class="hidden px-3.5 pb-3.5 border-t border-slate-300 pt-3">
+                <p class="text-[9px] font-black text-slate-500 mb-1.5 uppercase">A. Pendapatan Kotor (Omzet)</p>
+                <div class="flex justify-between text-[10px] mb-1 pl-2"><span class="text-slate-600">Tunai</span><span class="font-mono">${rupiah(omzetTunai)}</span></div>
+                <div class="flex justify-between text-[10px] mb-1 pl-2"><span class="text-slate-600">QRIS / Bank</span><span class="font-mono">${rupiah(omzetQRIS)}</span></div>
+                <div class="flex justify-between text-[10px] mb-1.5 pl-2"><span class="text-slate-600">Kasbon (Barang Keluar)</span><span class="font-mono">${rupiah(omzetDebt)}</span></div>
+                <div class="flex justify-between text-[10px] font-bold border-b border-slate-200 pb-1.5 mb-2 pl-2"><span class="text-slate-800">Total Penciptaan Omzet</span><span class="font-mono text-[#0f766e]">${rupiah(lOmset)}</span></div>
 
-            <p class="text-[9px] font-black text-slate-500 mb-1.5 uppercase">B. Beban & Biaya</p>
-            <div class="flex justify-between text-[10px] mb-1 pl-2"><span class="text-slate-600">Modal Terjual (HPP)</span><span class="font-mono text-rose-600">- ${rupiah(lHPP)}</span></div>
-            <div class="flex justify-between text-[10px] mb-1.5 pl-2"><span class="text-slate-600">Biaya Toko (Operasional)</span><span class="font-mono text-rose-600">- ${rupiah(bBiayaToko)}</span></div>
-            
-            <div class="border-t border-slate-400 mt-2 pt-2 flex justify-between items-center">
-                <span class="font-black text-[11px] uppercase">Laba Bersih Operasional</span>
-                <span class="font-black font-mono text-[13px] tracking-tight ${labaBersihSejati >= 0 ? 'text-[#166534]' : 'text-rose-600'}">${rupiah(labaBersihSejati)}</span>
+                <div class="flex justify-between text-[10px] mb-3 pl-2"><span class="text-[#0f766e] font-bold">(+) Terima Pelunasan Piutang</span><span class="font-mono text-[#0f766e]">+ ${rupiah(inLunas)}</span></div>
+
+                <p class="text-[9px] font-black text-slate-500 mb-1.5 uppercase">B. Beban & Biaya</p>
+                <div class="flex justify-between text-[10px] mb-1 pl-2"><span class="text-slate-600">Modal Terjual (HPP)</span><span class="font-mono text-rose-600">- ${rupiah(lHPP)}</span></div>
+                <div class="flex justify-between text-[10px] mb-1.5 pl-2"><span class="text-slate-600">Biaya Toko (Operasional)</span><span class="font-mono text-rose-600">- ${rupiah(bBiayaToko)}</span></div>
+                
+                <div class="border-t border-slate-400 mt-2 pt-2 flex justify-between items-center">
+                    <div class="flex items-center gap-2">
+                        <span class="font-black text-[11px] uppercase">Laba Bersih Opr.</span>
+                        <span class="bg-[#0f766e] text-white text-[8px] px-1 rounded-sm font-black">${margin}% Margin</span>
+                    </div>
+                    <span class="font-black font-mono text-[13px] tracking-tight ${labaBersihSejati >= 0 ? 'text-[#166534]' : 'text-rose-600'}">${rupiah(labaBersihSejati)}</span>
+                </div>
             </div>
         </div>
 
-        <!-- BLOK AKORDEON: ARUS KAS KELUAR -->
-        <div class="bg-[#24272c] border border-[#3b3f46] rounded-sm p-3 shadow-sm text-slate-200 space-y-1.5">
-             <div class="flex justify-between items-center mb-1">
-                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1"><i class="fa-solid fa-file-invoice mr-1"></i> Rincian Kas Keluar</p>
-                <span class="text-[11px] font-black text-rose-400 font-mono tracking-tight">- ${rupiah(bKulakan + bBiayaToko + bPrive)}</span>
+        <!-- BLOK RINCIAN KAS KELUAR -->
+        <div class="bg-[#24272c] border border-[#3b3f46] rounded-sm shadow-sm text-slate-200 select-none">
+            <div class="flex justify-between items-center p-3.5 cursor-pointer" onclick="toggleAkordeonLaporan('blok-kaskeluar')">
+                 <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><i class="fa-solid fa-file-invoice"></i> Rincian Kas Keluar</p>
+                 <div class="flex items-center gap-2">
+                    <span class="text-[11px] font-black text-rose-400 font-mono tracking-tight">- ${rupiah(bKulakan + bBiayaToko + bPrive)}</span>
+                    <i class="fa-solid fa-chevron-down text-slate-400 text-[10px] transition-transform duration-300" id="icon-blok-kaskeluar"></i>
+                 </div>
             </div>
             
-            ${dataKulakan.length > 0 ? `
-            <details class="group cursor-pointer outline-none border border-[#3b3f46] rounded-sm bg-[#1e2329]">
-                <summary class="text-[9px] font-bold text-slate-300 list-none flex justify-between items-center px-2 py-1.5 select-none">
-                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-truck-fast text-blue-400 w-3"></i> Faktur Kulakan (${dataKulakan.length} Trx)</span>
-                    <i class="fa-solid fa-chevron-right text-[8px] group-open:rotate-90 transition-transform"></i>
-                </summary>
-                <div class="px-2 pb-2 pt-1 border-t border-[#3b3f46] text-[8.5px] text-slate-400 space-y-1 bg-[#181a1e]">
-                    ${dataKulakan.map(k => `<div class="flex justify-between gap-2"><span class="truncate">&bull; ${k.keterangan}</span><span class="text-rose-400 font-mono shrink-0">-${rupiah(k.nominal)}</span></div>`).join('')}
-                </div>
-            </details>` : ''}
-            
-            ${bBiayaToko > 0 ? `
-            <details class="group cursor-pointer outline-none border border-[#3b3f46] rounded-sm bg-[#1e2329]">
-                <summary class="text-[9px] font-bold text-slate-300 list-none flex justify-between items-center px-2 py-1.5 select-none">
-                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-shop text-orange-400 w-3"></i> Biaya Toko & Operasional</span>
-                    <i class="fa-solid fa-chevron-right text-[8px] group-open:rotate-90 transition-transform"></i>
-                </summary>
-                <div class="px-2 pb-2 pt-1 border-t border-[#3b3f46] text-[8.5px] text-slate-400 space-y-1 bg-[#181a1e]">
-                     ${dataKeluar.filter(p=>p.kategori==='Biaya Toko').map(k => `<div class="flex justify-between gap-2"><span class="truncate">&bull; ${k.keterangan}</span><span class="text-rose-400 font-mono shrink-0">-${rupiah(k.nominal)}</span></div>`).join('')}
-                </div>
-            </details>` : ''}
-
-            ${bPrive > 0 ? `
-            <details class="group cursor-pointer outline-none border border-[#3b3f46] rounded-sm bg-[#1e2329]">
-                <summary class="text-[9px] font-bold text-slate-300 list-none flex justify-between items-center px-2 py-1.5 select-none">
-                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-wallet text-purple-400 w-3"></i> Prive (Ambilan Pribadi)</span>
-                    <i class="fa-solid fa-chevron-right text-[8px] group-open:rotate-90 transition-transform"></i>
-                </summary>
-                <div class="px-2 pb-2 pt-1 border-t border-[#3b3f46] text-[8.5px] text-slate-400 space-y-1 bg-[#181a1e]">
-                     ${dataKeluar.filter(p=>p.kategori==='Prive').map(k => `<div class="flex justify-between gap-2"><span class="truncate">&bull; ${k.keterangan}</span><span class="text-rose-400 font-mono shrink-0">-${rupiah(k.nominal)}</span></div>`).join('')}
-                </div>
-            </details>` : ''}
+            <!-- Rincian Tersembunyi -->
+            <div id="blok-kaskeluar" class="hidden px-3.5 pb-3.5 border-t border-[#3b3f46] pt-2 space-y-2">
+                ${listKulakanHtml ? `<div class="bg-[#1e2329] border border-[#3b3f46] p-2 rounded-sm"><p class="text-[8px] text-blue-400 font-black uppercase mb-1.5">Faktur Kulakan</p>${listKulakanHtml}</div>` : ''}
+                ${listBiayaHtml ? `<div class="bg-[#1e2329] border border-[#3b3f46] p-2 rounded-sm"><p class="text-[8px] text-orange-400 font-black uppercase mb-1.5">Biaya Toko</p>${listBiayaHtml}</div>` : ''}
+                ${listPriveHtml ? `<div class="bg-[#1e2329] border border-[#3b3f46] p-2 rounded-sm"><p class="text-[8px] text-purple-400 font-black uppercase mb-1.5">Prive (Ambilan Pribadi)</p>${listPriveHtml}</div>` : ''}
+                ${(!listKulakanHtml && !listBiayaHtml && !listPriveHtml) ? `<p class="text-[9px] text-slate-500 italic">Tidak ada catatan kas keluar.</p>` : ''}
+            </div>
         </div>
 
-        <!-- BLOK III: NERACA KEKAYAAN (REAL-TIME BALANCE SHEET) -->
-        <div class="bg-gradient-to-br from-[#cfa950] to-[#997321] border border-[#ebd088] rounded-sm p-4 shadow-md text-[#332508] mt-1">
-            <div class="flex justify-between items-center border-b border-[#a6802e] pb-2 mb-3">
-                <h3 class="font-black text-[10px] uppercase tracking-widest"><i class="fa-solid fa-vault mr-1"></i> III. Neraca Kekayaan (Detik Ini)</h3>
-                <i class="fa-solid fa-certificate opacity-50"></i>
+        <!-- BLOK III: TRAFIK & EKUITAS (BARU) -->
+        <div class="bg-[#24272c] border border-[#3b3f46] rounded-sm shadow-sm text-slate-200 select-none">
+            <div class="flex justify-between items-center p-3.5 cursor-pointer" onclick="toggleAkordeonLaporan('blok-trafik')">
+                <h3 class="text-[#fcd34d] font-bold text-[10px] uppercase tracking-widest"><i class="fa-solid fa-chart-line mr-1"></i> III. Analisis Trafik & Ekuitas</h3>
+                <i class="fa-solid fa-chevron-down text-slate-400 text-[10px] transition-transform duration-300" id="icon-blok-trafik"></i>
             </div>
             
-            <div class="grid grid-cols-[max-content_1fr_max-content] gap-x-2 items-end mb-1.5 text-[10px] font-semibold">
-                <span>1. Harta Tunai (Laci Fisik)</span>
-                <div class="border-b border-dotted border-[#8c6b24] mb-1"></div>
-                <span class="font-mono font-black text-[#1d1504]">${rupiah(estimasiIsiLaci)}</span>
+            <!-- Rincian Tersembunyi -->
+            <div id="blok-trafik" class="hidden px-3.5 pb-3.5 border-t border-[#3b3f46] pt-3">
+                <div class="grid grid-cols-3 gap-2 mb-3">
+                    <div class="border border-[#3b3f46] rounded-sm p-2 text-center bg-[#1e2329]">
+                        <p class="text-[8px] font-bold text-slate-400 uppercase mb-1">Total Nota</p>
+                        <p class="text-[12px] font-black text-white">${totalPembeli}</p>
+                    </div>
+                    <div class="border border-[#3b3f46] rounded-sm p-2 text-center bg-[#1e2329]">
+                        <p class="text-[8px] font-bold text-slate-400 uppercase mb-1">Terjual</p>
+                        <p class="text-[12px] font-black text-white">${totalBiji} Biji</p>
+                    </div>
+                    <div class="border border-[#3b3f46] rounded-sm p-2 text-center bg-[#1e2329]">
+                        <p class="text-[8px] font-bold text-slate-400 uppercase mb-1">Rata-rata Nota</p>
+                        <p class="text-[10px] font-black text-emerald-400 font-mono">${rupiah(Math.round(aov))}</p>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center text-[10px] mb-1">
+                    <span class="text-slate-400">Laba Bersih</span>
+                    <span class="font-mono text-slate-200">${rupiah(labaBersihSejati)}</span>
+                </div>
+                <div class="flex justify-between items-center text-[10px] border-b border-[#3b3f46] pb-1.5 mb-1.5">
+                    <span class="text-slate-400">(-) Prive (Ambilan Pribadi)</span>
+                    <span class="font-mono text-rose-400">- ${rupiah(bPrive)}</span>
+                </div>
+                <div class="flex justify-between items-center text-[10.5px]">
+                    <span class="font-bold text-white">Laba Ditahan (Tumbuh)</span>
+                    <span class="font-bold font-mono ${labaDitahan >= 0 ? 'text-[#fcd34d]' : 'text-rose-500'} tracking-tight">${rupiah(labaDitahan)}</span>
+                </div>
             </div>
-            <div class="grid grid-cols-[max-content_1fr_max-content] gap-x-2 items-end mb-1.5 text-[10px] font-semibold">
-                <span>2. Harta Bank (QRIS)</span>
-                <div class="border-b border-dotted border-[#8c6b24] mb-1"></div>
-                <span class="font-mono font-black text-[#1d1504]">${rupiah(hartaQRIS)}</span>
-            </div>
-            <div class="grid grid-cols-[max-content_1fr_max-content] gap-x-2 items-end mb-1.5 text-[10px] font-semibold">
-                <span>3. Harta Piutang (Di Luar)</span>
-                <div class="border-b border-dotted border-[#8c6b24] mb-1"></div>
-                <span class="font-mono font-black text-[#1d1504]">${rupiah(hartaPiutang)}</span>
-            </div>
-            <div class="grid grid-cols-[max-content_1fr_max-content] gap-x-2 items-end mb-2.5 text-[10px] font-semibold">
-                <span>4. Harta Barang (Nilai Rak)</span>
-                <div class="border-b border-dotted border-[#8c6b24] mb-1"></div>
-                <span class="font-mono font-black text-[#1d1504]">${rupiah(sisaRpReal)}</span>
+        </div>
+
+        <!-- BLOK IV: NERACA KEKAYAAN (GOLD CARD) -->
+        <div class="bg-gradient-to-br from-[#cfa950] to-[#997321] border border-[#ebd088] rounded-sm shadow-md text-[#332508] mt-1 select-none">
+            <div class="flex justify-between items-center p-3.5 cursor-pointer" onclick="toggleAkordeonLaporan('blok-neraca')">
+                <h3 class="font-black text-[10px] uppercase tracking-widest"><i class="fa-solid fa-vault mr-1"></i> IV. Neraca Kekayaan (Detik Ini)</h3>
+                <i class="fa-solid fa-chevron-down text-[#6b4e12] text-[10px] transition-transform duration-300" id="icon-blok-neraca"></i>
             </div>
             
-            <div class="border-t border-[#8c6b24] pt-2 flex justify-between items-center mt-1">
-                <span class="font-black text-[10px] uppercase">TOTAL ASET KESELURUHAN</span>
-                <span class="font-black font-mono text-[14px] tracking-tight">${rupiah(estimasiIsiLaci + hartaQRIS + hartaPiutang + sisaRpReal)}</span>
+            <!-- Rincian Tersembunyi -->
+            <div id="blok-neraca" class="hidden px-3.5 pb-3.5 border-t border-[#a6802e] pt-3">
+                <div class="grid grid-cols-[max-content_1fr_max-content] gap-x-2 items-end mb-1.5 text-[10px] font-semibold">
+                    <span>1. Harta Tunai (Laci Fisik)</span>
+                    <div class="border-b border-dotted border-[#8c6b24] mb-1"></div>
+                    <span class="font-mono font-black text-[#1d1504]">${rupiah(estimasiIsiLaci)}</span>
+                </div>
+                <div class="grid grid-cols-[max-content_1fr_max-content] gap-x-2 items-end mb-1.5 text-[10px] font-semibold">
+                    <span>2. Harta Bank (QRIS)</span>
+                    <div class="border-b border-dotted border-[#8c6b24] mb-1"></div>
+                    <span class="font-mono font-black text-[#1d1504]">${rupiah(hartaQRIS)}</span>
+                </div>
+                <div class="grid grid-cols-[max-content_1fr_max-content] gap-x-2 items-end mb-1.5 text-[10px] font-semibold">
+                    <span>3. Harta Piutang (Di Luar)</span>
+                    <div class="border-b border-dotted border-[#8c6b24] mb-1"></div>
+                    <span class="font-mono font-black text-[#1d1504]">${rupiah(hartaPiutang)}</span>
+                </div>
+                <div class="grid grid-cols-[max-content_1fr_max-content] gap-x-2 items-end mb-2.5 text-[10px] font-semibold">
+                    <span>4. Harta Barang (Nilai Rak)</span>
+                    <div class="border-b border-dotted border-[#8c6b24] mb-1"></div>
+                    <span class="font-mono font-black text-[#1d1504]">${rupiah(sisaRpReal)}</span>
+                </div>
+                
+                <div class="border-t border-[#8c6b24] pt-2 flex justify-between items-center mt-1">
+                    <span class="font-black text-[10px] uppercase">TOTAL ASET KESELURUHAN</span>
+                    <span class="font-black font-mono text-[14px] tracking-tight">${rupiah(estimasiIsiLaci + hartaQRIS + hartaPiutang + sisaRpReal)}</span>
+                </div>
             </div>
         </div>
 
     </div>`;
 }
+
 
 // ==========================================
 // 6.5. MESIN REKAPITULASI (TUNAI & DIGITAL)
