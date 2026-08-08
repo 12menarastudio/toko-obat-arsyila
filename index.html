@@ -1398,6 +1398,49 @@ tailwind.config = {
 
 </div>
 
+    <!-- ==================================== -->
+    <!-- WADAH MODAL YANG HILANG (KEMBALIKAN) -->
+    <!-- ==================================== -->
+
+    <!-- MODAL KERANJANG KULAKAN (TROLI) -->
+    <div id="modalAntreanKulakanMobile" class="absolute inset-0 z-[140] hidden flex items-end sm:items-center justify-center pointer-events-none">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity pointer-events-auto" onclick="tutupModalMobile('modalAntreanKulakanMobile')"></div>
+        <div class="bg-[#f8fafc] w-full max-h-[85vh] rounded-t-3xl sm:rounded-3xl sm:w-[90%] sm:mb-10 shadow-2xl relative z-10 pointer-events-auto transform transition-transform translate-y-full flex flex-col overflow-hidden" id="panelAntreanKulakanMobile">
+            <div class="bg-gradient-to-r from-slate-800 to-slate-900 px-6 py-4 flex items-center justify-between shadow-md relative z-20">
+                <div>
+                    <h3 class="font-black text-white text-lg tracking-tight flex items-center gap-2"><i class="fa-solid fa-cart-flatbed text-emerald-400"></i> Keranjang Kulakan</h3>
+                    <p class="text-[9px] text-slate-300 font-bold uppercase tracking-widest mt-0.5">Troli Penampungan Sementara</p>
+                </div>
+                <button onclick="tutupModalMobile('modalAntreanKulakanMobile')" class="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto hide-scrollbar p-6 space-y-3" id="wadahListAntreanKulakan"></div>
+            <div class="bg-white border-t border-slate-200 p-5 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] relative z-20">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Total Tagihan:</span>
+                    <span class="text-xl font-black text-rose-600" id="totalAntreanKulakan">Rp 0</span>
+                </div>
+                <button onclick="eksekusiAntreanKulakan()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-emerald-600/30 transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm uppercase tracking-wider">
+                    <i class="fa-solid fa-check-double text-lg"></i> Eksekusi & Masukkan Gudang
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DETAIL OBAT (NERACA MIKRO) -->
+    <div id="modalDetailObatMobile" class="absolute inset-0 z-[140] hidden flex items-end sm:items-center justify-center pointer-events-none">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity pointer-events-auto" onclick="tutupModalMobile('modalDetailObatMobile')"></div>
+        <div class="bg-[#f8fafc] w-full max-h-[90vh] rounded-t-3xl sm:rounded-3xl sm:w-[90%] sm:mb-10 shadow-2xl relative z-10 pointer-events-auto transform transition-transform translate-y-full flex flex-col overflow-hidden" id="panelDetailObatMobile">
+            <div class="bg-gradient-to-r from-corporate-700 to-corporate-900 px-6 py-5 flex items-center justify-between shadow-md relative z-20">
+                <div>
+                    <h3 class="font-black text-white text-lg tracking-tight flex items-center gap-2 truncate pr-4" id="detailObatNamaTitle">-</h3>
+                    <p class="text-[9px] text-corporate-200 font-bold uppercase tracking-widest mt-0.5">Rincian & Neraca Mikro</p>
+                </div>
+                <button onclick="tutupModalMobile('modalDetailObatMobile')" class="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors shrink-0"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class="flex-1 overflow-y-auto hide-scrollbar p-5" id="bodyDetailObatMobile"></div>
+        </div>
+    </div>
+
 <script src="app.js"></script>
         <!-- ========================================== -->
     <!-- AREA TERSEMBUNYI KHUSUS UNTUK CETAK (PRINT) -->
