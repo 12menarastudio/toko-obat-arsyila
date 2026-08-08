@@ -374,66 +374,73 @@ tailwind.config = {
             <div class="px-6 space-y-3" id="daftarEtalaseMobile"></div>
         </div>
 
-                        <div id="layar-laporan" class="layar-app hidden pb-6 min-h-screen bg-[#2e3136]">
-            <div class="sticky top-0 bg-[#2e3136]/95 backdrop-blur-md z-20 px-6 pt-10 pb-4 flex items-center gap-3">
-                <button onclick="bukaLayar('beranda')" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white shadow-sm active:scale-95 transition-transform"><i class="fa-solid fa-arrow-left"></i></button>
-                <div class="flex-1">
-                    <h2 class="font-black text-white text-2xl tracking-tight">Buku Besar</h2>
-                    <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Laporan Keuangan</p>
-                </div>
-                <!-- Tombol Cetak -->
-                <div class="flex gap-2">
-                    <button onclick="exportLaporanKePDF()" title="Cetak PDF / Print" class="w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center shadow-sm active:scale-95 transition-transform">
-                        <i class="fa-solid fa-file-pdf text-lg"></i>
-                    </button>
-                    <button onclick="exportLaporanKeWord()" title="Download Word" class="w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center shadow-sm active:scale-95 transition-transform">
-                        <i class="fa-solid fa-file-word text-lg"></i>
-                    </button>
-                </div>
-            </div>
-                        <div class="px-6 py-4 flex gap-3 relative z-30">
-                <div class="flex-1 relative">
-                    <!-- Tombol Pemicu Panel Pintar -->
-                    <button onclick="toggleDropdownFilterLaporan()" class="w-full bg-white rounded-full pl-11 pr-4 py-3.5 text-[12px] sm:text-[13px] font-black text-slate-800 shadow-sm focus:outline-none tracking-wide text-left flex justify-between items-center transition-all">
-                        <span id="teksFilterLaporanUi" class="truncate">Hari Ini</span>
-                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-300 shrink-0 ml-2" id="iconDropdownFilterLaporan"></i>
-                    </button>
-                    <i class="fa-regular fa-calendar-days absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none"></i>
-                    
-                    <!-- Panel Melayang Neumorphism (Filter Dropdown) -->
-                    <div id="panelFilterLaporan" class="hidden absolute left-0 right-0 sm:w-[320px] top-[calc(100%+12px)] bg-[#f8fafc] rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.4)] border border-slate-200 overflow-hidden transform origin-top transition-all z-50">
-                        <div class="p-4 bg-white border-b border-slate-100">
-                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 pl-1"><i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Filter Pintas</p>
-                            <div class="flex flex-col gap-2">
-                                <button onclick="setFilterLaporan('hari_ini')" class="text-left px-4 py-3 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl hover:bg-[#2e3136] hover:text-white hover:border-[#2e3136] transition-colors shadow-sm">📅 Hari Ini (Standar)</button>
-                                <button onclick="setFilterLaporan('7_hari')" class="text-left px-4 py-3 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl hover:bg-[#2e3136] hover:text-white hover:border-[#2e3136] transition-colors shadow-sm">📊 7 Hari Terakhir</button>
-                                <button onclick="setFilterLaporan('semua')" class="text-left px-4 py-3 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl hover:bg-[#2e3136] hover:text-white hover:border-[#2e3136] transition-colors shadow-sm">🕰️ Semua Waktu (Riwayat Total)</button>
-                            </div>
-                        </div>
-                        <div class="p-4">
-                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 pl-1"><i class="fa-solid fa-sliders text-blue-500 mr-1"></i> Pilih Rentang Manual</p>
-                            <div class="flex items-center gap-3 mb-4">
-                                <div class="flex-1">
-                                    <label class="block text-[9px] font-bold text-slate-500 mb-1">Dari Tanggal</label>
-                                    <input type="date" id="filterTglAwal" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-700 focus:outline-none shadow-inner">
-                                </div>
-                                <div class="flex-1">
-                                    <label class="block text-[9px] font-bold text-slate-500 mb-1">Sampai Tanggal</label>
-                                    <input type="date" id="filterTglAkhir" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-700 focus:outline-none shadow-inner">
-                                </div>
-                            </div>
-                            <button onclick="setFilterLaporan('manual')" class="w-full bg-[#1e40af] hover:bg-[#1e3a8a] text-white font-black py-3.5 rounded-xl text-xs transition-colors active:scale-95 shadow-md flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-check"></i> Terapkan Filter
-                            </button>
-                        </div>
+                    <div id="layar-laporan" class="layar-app hidden pb-6 min-h-screen bg-[#2e3136]">
+            <!-- SEMUA DIBUNGKUS KE DALAM SATU HEADER STICKY -->
+            <div class="sticky top-0 bg-[#2e3136]/95 backdrop-blur-md z-40 pb-4 shadow-md">
+                
+                <div class="px-6 pt-10 pb-4 flex items-center gap-3">
+                    <button onclick="bukaLayar('beranda')" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white shadow-sm active:scale-95 transition-transform"><i class="fa-solid fa-arrow-left"></i></button>
+                    <div class="flex-1">
+                        <h2 class="font-black text-white text-2xl tracking-tight">Buku Besar</h2>
+                        <p class="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-0.5">Laporan Keuangan</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="exportLaporanKePDF()" title="Cetak PDF / Print" class="w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center shadow-sm active:scale-95 transition-transform">
+                            <i class="fa-solid fa-file-pdf text-lg"></i>
+                        </button>
+                        <button onclick="exportLaporanKeWord()" title="Download Word" class="w-10 h-10 rounded-full bg-white/10 text-white flex items-center justify-center shadow-sm active:scale-95 transition-transform">
+                            <i class="fa-solid fa-file-word text-lg"></i>
+                        </button>
                     </div>
                 </div>
-                <button onclick="bukaModalMobile('modalPengeluaranMobile', 'panelPengeluaranMobile')" class="bg-[#781c2b] hover:bg-[#631623] text-white rounded-full px-5 shadow-lg font-black text-[10px] uppercase tracking-wider flex items-center gap-2 active:scale-95 transition-transform shrink-0">
-                    <i class="fa-solid fa-circle-minus text-base opacity-80"></i> Kas Keluar
-                </button>
+                
+                <div class="px-6 flex gap-3 relative z-30">
+                    <div class="flex-1 relative">
+                        <!-- Tombol Pemicu Panel Pintar -->
+                        <button onclick="toggleDropdownFilterLaporan()" class="w-full bg-white rounded-full pl-11 pr-4 py-3.5 text-[12px] sm:text-[13px] font-black text-slate-800 shadow-sm focus:outline-none tracking-wide text-left flex justify-between items-center transition-all">
+                            <span id="teksFilterLaporanUi" class="truncate">Hari Ini</span>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-300 shrink-0 ml-2" id="iconDropdownFilterLaporan"></i>
+                        </button>
+                        <i class="fa-regular fa-calendar-days absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none"></i>
+                        
+                        <!-- Panel Melayang Neumorphism (Filter Dropdown) -->
+                        <div id="panelFilterLaporan" class="hidden absolute left-0 right-0 sm:w-[320px] top-[calc(100%+12px)] bg-[#f8fafc] rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.4)] border border-slate-200 overflow-hidden transform origin-top transition-all z-50">
+                            <div class="p-4 bg-white border-b border-slate-100">
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 pl-1"><i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Filter Pintas</p>
+                                <div class="flex flex-col gap-2">
+                                    <button onclick="setFilterLaporan('hari_ini')" class="text-left px-4 py-3 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl hover:bg-[#2e3136] hover:text-white hover:border-[#2e3136] transition-colors shadow-sm">📅 Hari Ini (Standar)</button>
+                                    <button onclick="setFilterLaporan('7_hari')" class="text-left px-4 py-3 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl hover:bg-[#2e3136] hover:text-white hover:border-[#2e3136] transition-colors shadow-sm">📊 7 Hari Terakhir</button>
+                                    <button onclick="setFilterLaporan('semua')" class="text-left px-4 py-3 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl hover:bg-[#2e3136] hover:text-white hover:border-[#2e3136] transition-colors shadow-sm">🕰️ Semua Waktu (Riwayat Total)</button>
+                                </div>
+                            </div>
+                            <div class="p-4">
+                                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 pl-1"><i class="fa-solid fa-sliders text-blue-500 mr-1"></i> Pilih Rentang Manual</p>
+                                <div class="flex items-center gap-3 mb-4">
+                                    <div class="flex-1">
+                                        <label class="block text-[9px] font-bold text-slate-500 mb-1">Dari Tanggal</label>
+                                        <input type="date" id="filterTglAwal" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-700 focus:outline-none shadow-inner">
+                                    </div>
+                                    <div class="flex-1">
+                                        <label class="block text-[9px] font-bold text-slate-500 mb-1">Sampai Tanggal</label>
+@                                        <input type="date" id="filterTglAkhir" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-700 focus:outline-none shadow-inner">
+                                    </div>
+                                </div>
+                                <button onclick="setFilterLaporan('manual')" class="w-full bg-[#1e40af] hover:bg-[#1e3a8a] text-white font-black py-3.5 rounded-xl text-xs transition-colors active:scale-95 shadow-md flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-check"></i> Terapkan Filter
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <button onclick="bukaModalMobile('modalPengeluaranMobile', 'panelPengeluaranMobile')" class="bg-[#781c2b] hover:bg-[#631623] text-white rounded-full px-5 shadow-lg font-black text-[10px] uppercase tracking-wider flex items-center gap-2 active:scale-95 transition-transform shrink-0">
+                        <i class="fa-solid fa-circle-minus text-base opacity-80"></i> Kas Keluar
+                    </button>
+                </div>
             </div>
-            <div class="px-6 space-y-5" id="kontenLaporanMobile"></div>
+            
+            <!-- Tempat Rincian Laporan (Sekarang diberi margin top agar tidak tertimpa header) -->
+            <div class="px-6 space-y-5 pt-4" id="kontenLaporanMobile"></div>
         </div>
+
 
 
 
@@ -1527,7 +1534,8 @@ tailwind.config = {
                         <div class="l-row"><span class="l-lbl">2. Harta Bank (QRIS)</span><span class="l-dots"></span><span class="l-val" id="p-harta-qris">Rp 0</span></div>
                         <div class="l-row"><span class="l-lbl">3. Harta Piutang (Luar)</span><span class="l-dots"></span><span class="l-val" id="p-harta-piutang">Rp 0</span></div>
                         <div class="l-row"><span class="l-lbl">4. Harta Barang (Rak)</span><span class="l-dots"></span><span class="l-val" id="p-harta-barang">Rp 0</span></div>
-                    </div>
+                    }
+</div>
                     <div>
                         <div class="l-divider"></div>
                         <div class="l-row l-total"><span class="l-lbl">TOTAL ASET KESELURUHAN</span><span class="l-dots"></span><span class="l-val" id="p-harta-total">Rp 0</span></div>
