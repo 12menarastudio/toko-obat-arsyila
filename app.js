@@ -1306,148 +1306,222 @@ function setFilterLaporan(tipe) {
 function renderLaporanMobile() {
     const wadah = document.getElementById('kontenLaporanMobile');
     
-    // MESIN MENCARI BERDASARKAN RENTANG WAKTU (RANGE)
+    // =======================================================
+    // MESIN 1: KALKULASI RENTANG WAKTU (LABA/RUGI & ARUS KAS)
+    // =======================================================
     let dataPeriode = cashierHistory.filter(t => t.tanggal >= laporanTglAwal && t.tanggal <= laporanTglAkhir);
     let dataKeluar = pengeluaranHistory.filter(p => p.tanggal >= laporanTglAwal && p.tanggal <= laporanTglAkhir);
     
-    let lOmset = 0, lHPP = 0, lTunai = 0, lQris = 0, lDebt = 0, lPelunasan = 0, cPembeli = 0, cItem = 0;
+    let lOmset = 0, lHPP = 0, omzetTunai = 0, omzetQRIS = 0, omzetDebt = 0;
     
     dataPeriode.forEach(t => {
-        if(t.metode === 'Tunai') { if(t.isPelunasan) lPelunasan += t.total; else lTunai += t.total; } 
-        else if(t.metode === 'QRIS') { if(t.isPelunasan) lPelunasan += t.total; else lQris += t.total; } 
-        else if(t.metode === 'Debt') { if(!t.statusLunas) lDebt += t.total; }
-        
         if(!t.isPelunasan) { 
             lOmset += t.total; lHPP += (t.total - t.laba);
-            cPembeli += 1; cItem += t.item; 
+            if(t.metode === 'Tunai') omzetTunai += t.total;
+            else if(t.metode === 'QRIS') omzetQRIS += t.total;
+            else if(t.metode === 'Debt') omzetDebt += t.total;
         }
     });
 
     let bBiayaToko = 0, bPrive = 0, bKulakan = 0;
-    let listKeluarHTML = '';
     let dataKulakan = []; 
     
     dataKeluar.forEach(p => {
-        if (p.kategori === 'Biaya Toko') {
-            bBiayaToko += p.nominal;
-            listKeluarHTML += `<div class="flex justify-between items-center border-b border-[#cca752] py-3.5 last:border-0"><div class="flex-1 pr-2"><p class="text-[11px] font-bold text-[#45320e] leading-tight mb-1.5">${p.keterangan}</p><span class="text-[8px] font-black uppercase tracking-wider text-[#a45309] bg-transparent border border-[#cca752] px-1.5 py-0.5 rounded">BIAYA TOKO</span></div><span class="text-[13px] font-black text-[#881b28] shrink-0 mt-1">- ${rupiah(p.nominal)}</span></div>`;
-        }
-        else if (p.kategori === 'Prive') {
-            bPrive += p.nominal;
-            listKeluarHTML += `<div class="flex justify-between items-center border-b border-[#cca752] py-3.5 last:border-0"><div class="flex-1 pr-2"><p class="text-[11px] font-bold text-[#45320e] leading-tight mb-1.5">${p.keterangan}</p><span class="text-[8px] font-black uppercase tracking-wider text-[#701a75] bg-transparent border border-[#cca752] px-1.5 py-0.5 rounded">PRIVE</span></div><span class="text-[13px] font-black text-[#881b28] shrink-0 mt-1">- ${rupiah(p.nominal)}</span></div>`;
-        }
-        else if (p.kategori === 'Kulakan') {
-            bKulakan += p.nominal;
-            dataKulakan.push(p); 
-        }
+        if (p.kategori === 'Biaya Toko') bBiayaToko += p.nominal;
+        else if (p.kategori === 'Prive') bPrive += p.nominal;
+        else if (p.kategori === 'Kulakan') { bKulakan += p.nominal; dataKulakan.push(p); }
     });
-
-    if (dataKulakan.length > 0) {
-        let detailGabungan = dataKulakan.map(k => `&bull; ${k.keterangan} <span class="font-black text-[#881b28]">(- ${rupiah(k.nominal)})</span>`).join('<br>');
-        
-        listKeluarHTML += `
-        <div class="flex flex-col border-b border-[#cca752] py-4 last:border-0">
-            <div class="flex justify-between items-start mb-2.5">
-                <div class="flex-1 pr-2">
-                    <p class="text-[12px] font-black text-[#45320e] leading-tight mb-1.5">Rekapitulasi Kulakan</p>
-                    <p class="text-[10px] font-bold text-[#71541c] mb-2.5"><i class="fa-regular fa-calendar-days opacity-80"></i> ${laporanLabelVisual} &nbsp;|&nbsp; <i class="fa-solid fa-file-invoice opacity-80"></i> ${dataKulakan.length} Transaksi</p>
-                    <span class="text-[8px] font-black uppercase tracking-widest text-[#1e40af] bg-transparent border border-[#8fa8d1] px-2.5 py-1 rounded-full inline-block">KULAKAN (DIGABUNG)</span>
-                </div>
-                <span class="text-[14px] font-black text-[#881b28] shrink-0 mt-1">- ${rupiah(bKulakan)}</span>
-            </div>
-            
-            <details class="mt-1.5 group cursor-pointer outline-none">
-                <summary class="text-[9px] font-bold text-[#71541c] list-none flex items-center gap-1.5 border border-[#cca752] px-3 py-2 rounded-full w-max active:scale-95 transition-transform outline-none select-none">
-                    <i class="fa-solid fa-chevron-right text-[8px] group-open:rotate-90 transition-transform"></i> Lihat rincian item obat
-                </summary>
-                <div class="mt-4 pl-2.5 border-l-[3px] border-[#cca752] text-[9.5px] font-medium text-[#5c430a] italic leading-relaxed">
-                    ${detailGabungan}
-                </div>
-            </details>
-        </div>`;
-    }
 
     let labaKotor = lOmset - lHPP;
     let labaBersihSejati = labaKotor - bBiayaToko; 
-    let estimasiIsiLaci = hitungSaldoLaciFisik(); // Ini tetap Mutlak (Bukan Rentang), sesuai SOP.
 
+    // =======================================================
+    // MESIN 2: KALKULASI REAL-TIME (NERACA HARTA KEKAYAAN)
+    // =======================================================
+    // 1. Harta Tunai
+    let estimasiIsiLaci = hitungSaldoLaciFisik(); 
+
+    // 2. Harta Bank (QRIS Mutlak)
+    let hartaQRIS = 0;
+    cashierHistory.forEach(t => {
+        if(t.metode === 'QRIS' && !t.isPelunasan) hartaQRIS += (t.total || 0);
+        if(t.isPelunasan && (t.metodeBayar === 'QRIS' || t.metodeBayar === 'qris' || t.metode === 'QRIS')) hartaQRIS += (t.total || 0);
+    });
+
+    // 3. Harta Piutang (Di Tangan Orang)
+    let hartaPiutang = 0;
+    let hutangMap = {};
+    cashierHistory.filter(t => t.metode === 'Debt' || t.isPelunasan).forEach(t => {
+        if(t.metode === 'Debt' && !t.statusLunas) hutangMap[t.id] = t.total;
+        if(t.isPelunasan && t.idTerkait && hutangMap[t.idTerkait]) hutangMap[t.idTerkait] -= t.total;
+    });
+    Object.values(hutangMap).forEach(v => { if(v > 0) hartaPiutang += v; });
+
+    // 4. Harta Barang (Nilai Rak Aktual)
+    let sisaQtyReal = 0; let sisaRpReal = 0;
+    masterItems.filter(i => i.nama !== '___SYSTEM_AUTH___' && i.kategori !== '⚠️ Barang Retur').forEach(b => { 
+        sisaQtyReal += (b.stok || 0); sisaRpReal += (b.totalModal !== undefined ? b.totalModal : (b.modal * b.stok)); 
+    });
+    etalaseItems.forEach(b => {
+        sisaQtyReal += (b.stok || 0);
+        if(b.antreanFIFO && b.antreanFIFO.length > 0) {
+            b.antreanFIFO.forEach(f => sisaRpReal += (f.totalModal !== undefined ? f.totalModal : (f.modal * f.stok)));
+        } else {
+            let m = masterItems.find(x => x.dnaInduk === b.dnaInduk || x.nama === b.nama);
+            sisaRpReal += (m ? (m.modal || 0) : 0) * (b.stok || 0);
+        }
+    });
+
+    // =======================================================
+    // MESIN 3: KALKULASI SIKLUS PERSEDIAAN (PERUBAHAN MODAL)
+    // =======================================================
+    let terjualQtySiklus = 0; let terjualRpSiklus = 0;
+    let wMulai = siklusAktif.waktuStart || 0;
+    cashierHistory.filter(t => (wMulai ? t.id >= wMulai : t.tanggal >= siklusAktif.tanggalStart) && !t.isPelunasan).forEach(t => {
+        terjualQtySiklus += (t.item || 1);
+        terjualRpSiklus += ((t.total || 0) - (t.laba || 0));
+    });
+
+    // Kalkulasi Sub-Total: Barang Tersedia untuk Dijual (Akuntansi Standar)
+    let totalQtyTersedia = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
+    let totalModalTersedia = (siklusAktif.modalAwal || 0) + (siklusAktif.modalTambahan || 0);
+
+    // =======================================================
+    // RENDERING UI: KAKU, 90 DERAJAT, PADAT & ELEGAN
+    // =======================================================
     wadah.innerHTML = `
-        <!-- KARTU 1: KINERJA LABA RUGI (CLEAN WHITE) -->
-        <div class="bg-white rounded-[2rem] p-6 shadow-md relative overflow-hidden mb-5">
-            <div class="flex justify-between items-start relative z-10 cursor-pointer" onclick="toggleAkordeonLaporan('rincian-laba')">
-                <div>
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 mb-2">
-                        <i class="fa-solid fa-scale-balanced text-slate-300 text-sm"></i> Kinerja Laba / Rugi
-                    </p>
-                    <p class="text-xs font-bold text-slate-700 mb-1.5">Laba Bersih (${laporanLabelVisual})</p>
-                    <p class="text-[34px] font-black ${labaBersihSejati >= 0 ? 'text-[#166534]' : 'text-[#881b28]'} tracking-tighter leading-none">${rupiah(labaBersihSejati)}</p>
-                </div>
-                <div class="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 transition-transform duration-300 bg-slate-50" id="icon-rincian-laba">
-                    <i class="fa-solid fa-chevron-down text-[10px]"></i>
-                </div>
+    <div class="flex flex-col gap-3 pb-4">
+        
+        <!-- BLOK I: LAPORAN PERUBAHAN PERSEDIAAN -->
+        <div class="bg-[#24272c] border border-[#3b3f46] rounded-sm p-3.5 shadow-sm">
+            <h3 class="text-[#93c5fd] font-bold text-[10px] uppercase tracking-widest border-b border-[#3b3f46] pb-2 mb-2"><i class="fa-solid fa-boxes-stacked mr-1"></i> I. Alur Modal Persediaan (Siklus Ini)</h3>
+            
+            <div class="flex justify-between items-center mb-1.5 text-[10px]">
+                <span class="text-slate-400">Modal Awal / Titik Nol</span>
+                <span class="font-mono text-slate-200">${siklusAktif.qtyAwal} Pcs | ${rupiah(siklusAktif.modalAwal)}</span>
+            </div>
+            <div class="flex justify-between items-center mb-1.5 text-[10px]">
+                <span class="text-slate-400">(+) Suntikan Kulakan</span>
+                <span class="font-mono text-emerald-400">+ ${siklusAktif.qtyTambahan} Pcs | + ${rupiah(siklusAktif.modalTambahan)}</span>
             </div>
             
-            <div id="rincian-laba" class="hidden mt-6 pt-4 border-t border-slate-100 relative z-10">
-                <div class="flex justify-between items-center mb-3"><span class="text-[11px] font-semibold text-slate-500">Total Omzet (Kotor)</span><span class="text-sm font-black text-slate-700">${rupiah(lOmset)}</span></div>
-                <div class="flex justify-between items-center mb-3"><span class="text-[11px] font-semibold text-slate-500">Modal Terjual (HPP)</span><span class="text-sm font-black text-slate-500">- ${rupiah(lHPP)}</span></div>
-                <div class="flex justify-between items-center mb-1"><span class="text-[11px] font-semibold text-slate-500">Biaya Toko (Operasional)</span><span class="text-sm font-black text-[#881b28]">- ${rupiah(bBiayaToko)}</span></div>
+            <!-- SUB-TOTAL ILMU AKUNTANSI: BARANG TERSEDIA UNTUK DIJUAL -->
+            <div class="border-t border-[#3b3f46] my-1.5 pt-1.5 flex justify-between items-center text-[10px]">
+                <span class="font-bold text-slate-300">(=) Total Persediaan Siap Jual</span>
+                <span class="font-bold font-mono text-blue-300">${totalQtyTersedia} Pcs | ${rupiah(totalModalTersedia)}</span>
+            </div>
+
+            <div class="flex justify-between items-center mb-1.5 text-[10px] mt-1.5">
+                <span class="text-slate-400">(-) Keluar Terjual (HPP)</span>
+                <span class="font-mono text-rose-400">- ${terjualQtySiklus} Pcs | - ${rupiah(terjualRpSiklus)}</span>
+            </div>
+            <div class="border-t border-dashed border-[#3b3f46] my-2"></div>
+            <div class="flex justify-between items-center text-[10.5px]">
+                <span class="font-bold text-white">(=) Aset Mengendap di Rak</span>
+                <span class="font-bold font-mono text-white tracking-tight">${sisaQtyReal} Pcs | ${rupiah(sisaRpReal)}</span>
             </div>
         </div>
 
-        <!-- KARTU 2: ARUS KAS FISIK (PREMIUM MATTE GOLD) -->
-        <div class="bg-gradient-to-br from-[#f2d890] to-[#dfbb5e] rounded-[2rem] p-6 shadow-[0_8px_20px_rgba(0,0,0,0.3),inset_0_2px_5px_rgba(255,255,255,0.6)] text-[#45320e] relative overflow-hidden border border-[#e8c678] mb-5">
-            <div class="flex justify-between items-start relative z-10 cursor-pointer" onclick="toggleAkordeonLaporan('rincian-laci')">
-                <div>
-                    <p class="text-[10px] font-black text-[#71541c] uppercase tracking-widest flex items-center gap-2 mb-2">
-                        <i class="fa-solid fa-wallet text-[#8f6d28] text-sm"></i> Arus Kas Fisik
-                    </p>
-                    <p class="text-xs font-bold text-[#5c430a] mb-1.5">Estimasi Uang di Laci</p>
-                    <p class="text-[34px] font-black text-[#3b2a07] tracking-tighter leading-none drop-shadow-sm">${rupiah(estimasiIsiLaci)}</p>
+        <!-- BLOK II: KINERJA PENJUALAN (INCOME STATEMENT) -->
+        <div class="bg-[#f8fafc] border border-slate-300 rounded-sm p-3.5 shadow-sm text-slate-800">
+            <div class="flex justify-between items-end border-b border-slate-300 pb-2 mb-2">
+                <h3 class="text-[#0f766e] font-bold text-[10px] uppercase tracking-widest"><i class="fa-solid fa-scale-balanced mr-1"></i> II. Kinerja Penjualan</h3>
+                <span class="text-[8px] font-bold text-slate-500 uppercase border border-slate-300 px-1 rounded-sm tracking-widest">${laporanLabelVisual}</span>
+            </div>
+            
+            <p class="text-[9px] font-black text-slate-500 mb-1.5 uppercase">A. Pendapatan Kotor (Omzet)</p>
+            <div class="flex justify-between text-[10px] mb-1 pl-2"><span class="text-slate-600">Tunai</span><span class="font-mono">${rupiah(omzetTunai)}</span></div>
+            <div class="flex justify-between text-[10px] mb-1 pl-2"><span class="text-slate-600">QRIS / Bank</span><span class="font-mono">${rupiah(omzetQRIS)}</span></div>
+            <div class="flex justify-between text-[10px] mb-1.5 pl-2"><span class="text-slate-600">Kasbon (Barang Keluar)</span><span class="font-mono">${rupiah(omzetDebt)}</span></div>
+            <div class="flex justify-between text-[10px] font-bold border-b border-slate-200 pb-1.5 mb-2 pl-2"><span class="text-slate-800">Total Penciptaan Omzet</span><span class="font-mono text-[#0f766e]">${rupiah(lOmset)}</span></div>
+
+            <p class="text-[9px] font-black text-slate-500 mb-1.5 uppercase">B. Beban & Biaya</p>
+            <div class="flex justify-between text-[10px] mb-1 pl-2"><span class="text-slate-600">Modal Terjual (HPP)</span><span class="font-mono text-rose-600">- ${rupiah(lHPP)}</span></div>
+            <div class="flex justify-between text-[10px] mb-1.5 pl-2"><span class="text-slate-600">Biaya Toko (Operasional)</span><span class="font-mono text-rose-600">- ${rupiah(bBiayaToko)}</span></div>
+            
+            <div class="border-t border-slate-400 mt-2 pt-2 flex justify-between items-center">
+                <span class="font-black text-[11px] uppercase">Laba Bersih Operasional</span>
+                <span class="font-black font-mono text-[13px] tracking-tight ${labaBersihSejati >= 0 ? 'text-[#166534]' : 'text-rose-600'}">${rupiah(labaBersihSejati)}</span>
+            </div>
+        </div>
+
+        <!-- BLOK AKORDEON: ARUS KAS KELUAR -->
+        <div class="bg-[#24272c] border border-[#3b3f46] rounded-sm p-3 shadow-sm text-slate-200 space-y-1.5">
+             <div class="flex justify-between items-center mb-1">
+                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1"><i class="fa-solid fa-file-invoice mr-1"></i> Rincian Kas Keluar</p>
+                <span class="text-[11px] font-black text-rose-400 font-mono tracking-tight">- ${rupiah(bKulakan + bBiayaToko + bPrive)}</span>
+            </div>
+            
+            ${dataKulakan.length > 0 ? `
+            <details class="group cursor-pointer outline-none border border-[#3b3f46] rounded-sm bg-[#1e2329]">
+                <summary class="text-[9px] font-bold text-slate-300 list-none flex justify-between items-center px-2 py-1.5 select-none">
+                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-truck-fast text-blue-400 w-3"></i> Faktur Kulakan (${dataKulakan.length} Trx)</span>
+                    <i class="fa-solid fa-chevron-right text-[8px] group-open:rotate-90 transition-transform"></i>
+                </summary>
+                <div class="px-2 pb-2 pt-1 border-t border-[#3b3f46] text-[8.5px] text-slate-400 space-y-1 bg-[#181a1e]">
+                    ${dataKulakan.map(k => `<div class="flex justify-between gap-2"><span class="truncate">&bull; ${k.keterangan}</span><span class="text-rose-400 font-mono shrink-0">-${rupiah(k.nominal)}</span></div>`).join('')}
                 </div>
-                <div class="w-8 h-8 rounded-full border border-[#cca752] flex items-center justify-center text-[#71541c] transition-transform duration-300 bg-[#e8cd83]/50" id="icon-rincian-laci" style="transform: rotate(180deg);">
-                    <i class="fa-solid fa-chevron-down text-[10px]"></i>
+            </details>` : ''}
+            
+            ${bBiayaToko > 0 ? `
+            <details class="group cursor-pointer outline-none border border-[#3b3f46] rounded-sm bg-[#1e2329]">
+                <summary class="text-[9px] font-bold text-slate-300 list-none flex justify-between items-center px-2 py-1.5 select-none">
+                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-shop text-orange-400 w-3"></i> Biaya Toko & Operasional</span>
+                    <i class="fa-solid fa-chevron-right text-[8px] group-open:rotate-90 transition-transform"></i>
+                </summary>
+                <div class="px-2 pb-2 pt-1 border-t border-[#3b3f46] text-[8.5px] text-slate-400 space-y-1 bg-[#181a1e]">
+                     ${dataKeluar.filter(p=>p.kategori==='Biaya Toko').map(k => `<div class="flex justify-between gap-2"><span class="truncate">&bull; ${k.keterangan}</span><span class="text-rose-400 font-mono shrink-0">-${rupiah(k.nominal)}</span></div>`).join('')}
                 </div>
-            </div>
+            </details>` : ''}
 
-            <!-- Rincian Akordeon Default Terbuka -->
-            <div id="rincian-laci" class="mt-6 pt-5 border-t border-[#cca752] relative z-10">
-                <p class="text-[10px] font-black text-[#166534] uppercase tracking-widest mb-3">UANG MASUK (${laporanLabelVisual})</p>
-                <div class="flex justify-between items-center mb-2.5"><span class="text-xs font-semibold text-[#45320e]">Penjualan Tunai</span><span class="text-xs font-black text-[#166534]">+ ${rupiah(lTunai)}</span></div>
-                <div class="flex justify-between items-center mb-5"><span class="text-xs font-semibold text-[#45320e]">Terima Pelunasan Utang</span><span class="text-xs font-black text-[#166534]">+ ${rupiah(lPelunasan)}</span></div>
-                
-                <p class="text-[10px] font-black text-[#881b28] uppercase tracking-widest mb-3 pt-5 border-t border-[#cca752]">UANG KELUAR (${laporanLabelVisual})</p>
-                ${listKeluarHTML || '<p class="text-[11px] text-[#71541c] font-bold italic mt-2">Tidak ada catatan kas keluar pada rentang ini.</p>'}
+            ${bPrive > 0 ? `
+            <details class="group cursor-pointer outline-none border border-[#3b3f46] rounded-sm bg-[#1e2329]">
+                <summary class="text-[9px] font-bold text-slate-300 list-none flex justify-between items-center px-2 py-1.5 select-none">
+                    <span class="flex items-center gap-1.5"><i class="fa-solid fa-wallet text-purple-400 w-3"></i> Prive (Ambilan Pribadi)</span>
+                    <i class="fa-solid fa-chevron-right text-[8px] group-open:rotate-90 transition-transform"></i>
+                </summary>
+                <div class="px-2 pb-2 pt-1 border-t border-[#3b3f46] text-[8.5px] text-slate-400 space-y-1 bg-[#181a1e]">
+                     ${dataKeluar.filter(p=>p.kategori==='Prive').map(k => `<div class="flex justify-between gap-2"><span class="truncate">&bull; ${k.keterangan}</span><span class="text-rose-400 font-mono shrink-0">-${rupiah(k.nominal)}</span></div>`).join('')}
+                </div>
+            </details>` : ''}
+        </div>
+
+        <!-- BLOK III: NERACA KEKAYAAN (REAL-TIME BALANCE SHEET) -->
+        <div class="bg-gradient-to-br from-[#cfa950] to-[#997321] border border-[#ebd088] rounded-sm p-4 shadow-md text-[#332508] mt-1">
+            <div class="flex justify-between items-center border-b border-[#a6802e] pb-2 mb-3">
+                <h3 class="font-black text-[10px] uppercase tracking-widest"><i class="fa-solid fa-vault mr-1"></i> III. Neraca Kekayaan (Detik Ini)</h3>
+                <i class="fa-solid fa-certificate opacity-50"></i>
+            </div>
+            
+            <div class="grid grid-cols-[max-content_1fr_max-content] gap-x-2 items-end mb-1.5 text-[10px] font-semibold">
+                <span>1. Harta Tunai (Laci Fisik)</span>
+                <div class="border-b border-dotted border-[#8c6b24] mb-1"></div>
+                <span class="font-mono font-black text-[#1d1504]">${rupiah(estimasiIsiLaci)}</span>
+            </div>
+            <div class="grid grid-cols-[max-content_1fr_max-content] gap-x-2 items-end mb-1.5 text-[10px] font-semibold">
+                <span>2. Harta Bank (QRIS)</span>
+                <div class="border-b border-dotted border-[#8c6b24] mb-1"></div>
+                <span class="font-mono font-black text-[#1d1504]">${rupiah(hartaQRIS)}</span>
+            </div>
+            <div class="grid grid-cols-[max-content_1fr_max-content] gap-x-2 items-end mb-1.5 text-[10px] font-semibold">
+                <span>3. Harta Piutang (Di Luar)</span>
+                <div class="border-b border-dotted border-[#8c6b24] mb-1"></div>
+                <span class="font-mono font-black text-[#1d1504]">${rupiah(hartaPiutang)}</span>
+            </div>
+            <div class="grid grid-cols-[max-content_1fr_max-content] gap-x-2 items-end mb-2.5 text-[10px] font-semibold">
+                <span>4. Harta Barang (Nilai Rak)</span>
+                <div class="border-b border-dotted border-[#8c6b24] mb-1"></div>
+                <span class="font-mono font-black text-[#1d1504]">${rupiah(sisaRpReal)}</span>
+            </div>
+            
+            <div class="border-t border-[#8c6b24] pt-2 flex justify-between items-center mt-1">
+                <span class="font-black text-[10px] uppercase">TOTAL ASET KESELURUHAN</span>
+                <span class="font-black font-mono text-[14px] tracking-tight">${rupiah(estimasiIsiLaci + hartaQRIS + hartaPiutang + sisaRpReal)}</span>
             </div>
         </div>
 
-        <!-- KARTU 3 & 4 (Tema Gelap Penyelaras Header) -->
-        <div class="grid grid-cols-2 gap-3 mb-3">
-            <div class="bg-[#3b3e45] border border-[#4b4e55] rounded-[1.5rem] p-5 shadow-sm relative overflow-hidden">
-                <div class="w-9 h-9 rounded-full bg-[#1e3a8a]/40 text-[#93c5fd] flex items-center justify-center mb-3"><i class="fa-solid fa-qrcode"></i></div>
-                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Masuk Rekening</p>
-                <p class="text-base font-black text-[#bfdbfe] font-mono tracking-tight">${rupiah(lQris)}</p>
-            </div>
-            <div class="bg-[#3b3e45] border border-[#4b4e55] rounded-[1.5rem] p-5 shadow-sm relative overflow-hidden">
-                <div class="w-9 h-9 rounded-full bg-[#7f1d1d]/40 text-[#fca5a5] flex items-center justify-center mb-3"><i class="fa-solid fa-book-open"></i></div>
-                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Kasbon Keluar</p>
-                <p class="text-base font-black text-[#fecaca] font-mono tracking-tight">${rupiah(lDebt)}</p>
-            </div>
-        </div>
-
-        <div class="bg-[#3b3e45] border border-[#4b4e55] rounded-[1.5rem] p-5 flex justify-around items-center shadow-inner mb-6">
-            <div class="text-center">
-                <span class="block text-2xl font-black text-white mb-0.5">${cPembeli}</span>
-                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Pembeli</span>
-            </div>
-            <div class="w-px h-10 bg-[#4b4e55]"></div>
-            <div class="text-center">
-                <span class="block text-2xl font-black text-white mb-0.5">${cItem}</span>
-                <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Obat Terjual</span>
-            </div>
-        </div>
-    `;
+    </div>`;
 }
-
 
 // ==========================================
 // 6.5. MESIN REKAPITULASI (TUNAI & DIGITAL)
@@ -1991,7 +2065,8 @@ function eksekusiSimpanEditLanjutanMobile(isKulakanBaru, nBaru, vBaru, kBaru, mB
 
 
 function simpanEditLanjutanMobile() {
-    let nBaru = document.getElementById('editNamaMobile').value; let vBaru = document.getElementById('editVarianMobile').value;
+    let nBaru = document.getElementById('editNamaMobile').value; 
+    let vBaru = document.getElementById('editVarianMobile').value;
     
     let kBaru = document.getElementById('editKategoriMobile').value;
     if (kBaru === 'kustom') {
@@ -2000,7 +2075,8 @@ function simpanEditLanjutanMobile() {
     }
     
     let mBaru = parseInt(document.getElementById('editModalMobile').value); 
-    let jBaru = parseInt(document.getElementById('editJualMobile').value); let sBaru = parseInt(document.getElementById('editStokMobile').value); 
+    let jBaru = parseInt(document.getElementById('editJualMobile').value); 
+    let sBaru = parseInt(document.getElementById('editStokMobile').value); 
     let expBaru = document.getElementById('editExpiredMobile').value;
     let satEcer = document.getElementById('editSatuanEceran').value;
     
@@ -2008,33 +2084,55 @@ function simpanEditLanjutanMobile() {
     if(!nBaru || isNaN(mBaru) || isNaN(jBaru) || isNaN(sBaru)) return alert("Pastikan Nama dan semua Harga terisi angka yang valid!");
     if(mBaru >= jBaru) return alert("Peringatan: Harga Jual tidak boleh lebih kecil/sama dengan Harga Modal.");
     
-    // TANGKAP DATA KONVERSI RIWAYAT ASAL 
     const isGrosir = document.getElementById('editToggleGrosir').checked;
     const qtyBeliAwal = parseFloat(document.getElementById('editQtyBeli').value) || 0;
     const satBesar = document.getElementById('editSatuanBesar').value || 'Box';
     const isiPerSatuan = parseFloat(document.getElementById('editIsiPerBox').value) || 1;
     let riwayatAsalBaru = { isGrosir: isGrosir, satuanEcer: satEcer, satuanBesar: satBesar, qtyBeli: qtyBeliAwal, isiPerBox: isiPerSatuan };
 
-    // MESIN PENCIPTA HPP PRESISI (ANTI BOCOR DESIMAL 18.181,81...)
     let modalRaw = document.getElementById('editModalKotor').value.replace(/\./g, '');
     let modalKotor = parseFloat(modalRaw) || 0;
     let hppPresisi = isGrosir ? (modalKotor / (isiPerSatuan || 1)) : modalKotor;
-    if (modalKotor === 0) hppPresisi = mBaru; // Fallback jika user malas pakai kalkulator dan ketik manual di kolom bawah
+    if (modalKotor === 0) hppPresisi = mBaru;
 
     let referensi = currentEditBatchesMobile[0];
     let hargaJualLama = referensi.jual;
 
+    let barang = masterItems.find(i => i.idBatch === idBatchAktif);
+    let selisihStok = isAddingNewBatchMobile ? sBaru : (sBaru - (barang ? barang.stok : 0));
+
     const jalankanPenyimpanan = () => {
-        if (isAddingNewBatchMobile) {
-            eksekusiSimpanEditLanjutanMobile(false, nBaru, vBaru, kBaru, mBaru, jBaru, sBaru, expBaru, 0, riwayatAsalBaru, hppPresisi);
+        if (selisihStok > 0) {
+            // --- MASUK KERANJANG PENAMPUNGAN (KULAKAN TAMBAH STOK) ---
+            let isPotongLaci = document.getElementById('editPotongLaciToggle') ? document.getElementById('editPotongLaciToggle').checked : false;
+            let tagihanMutlak = Math.round(selisihStok * hppPresisi);
+            let isKulakanBaru = isAddingNewBatchMobile || ((expBaru || '') !== (barang.expired || '') || mBaru !== barang.modal);
+
+            let itemAntrean = {
+                idTunggu: 'T-' + Date.now(), sumber: 'EDIT_STOK',
+                namaLengkap: nBaru + (vBaru ? ' ' + vBaru : ''),
+                tagihan: tagihanMutlak, isPotongLaci: isPotongLaci, qty: selisihStok, satEcer: satEcer,
+                payload: {
+                    isAddingNewBatchMobile: isAddingNewBatchMobile, 
+                    isKulakanBaru: isKulakanBaru, 
+                    idBatchAktif: idBatchAktif,
+                    dnaInduk: referensi.dnaInduk, barcode: referensi.barcode, qrcode: referensi.qrcode,
+                    nBaru: nBaru, vBaru: vBaru, kBaru: kBaru, mBaru: mBaru, jBaru: jBaru, sBaru: sBaru, expBaru: expBaru, selisihStok: selisihStok, riwayatAsalBaru: riwayatAsalBaru, hppPresisi: hppPresisi, tagihanMutlak: tagihanMutlak
+                }
+            };
+
+            antreanKulakan.push(itemAntrean);
+            saveApotekDB('apotek_antreanKulakan', antreanKulakan);
+
+            tutupModalMobile('modalEditMobile');
+            renderBadgeAntreanKulakan();
+            triggerHaptic(100);
+            alert('🛒 Tambah Stok diparkir di Keranjang Kulakan!\\n(Buka troli merah di atas untuk membayar & memasukkannya ke Gudang).');
         } else {
-            let barang = masterItems.find(i => i.idBatch === idBatchAktif);
-            if(!barang) return; let selisihStok = sBaru - barang.stok;
-            if (selisihStok > 0 && ((expBaru || '') !== (barang.expired || '') || mBaru !== barang.modal)) {
-        tampilkanConfirmMobile("📦 DETEKSI KULAKAN BARU:\n\nSistem melihat Anda menambah stok (+ " + selisihStok + ") sekaligus merubah Tgl Kedaluwarsa/Harga Modal.\n\nApakah ini barang Kulakan Baru? (Klik 'Ya, Lanjut' agar otomatis dibuatkan Batch baru).", 
-        function() { eksekusiSimpanEditLanjutanMobile(true, nBaru, vBaru, kBaru, mBaru, jBaru, sBaru, expBaru, selisihStok, riwayatAsalBaru, hppPresisi); });
-    } else { eksekusiSimpanEditLanjutanMobile(false, nBaru, vBaru, kBaru, mBaru, jBaru, sBaru, expBaru, selisihStok, riwayatAsalBaru, hppPresisi); }
-  }
+            // --- EKSEKUSI LANGSUNG (EDIT MURNI / KOREKSI KURANGI STOK) ---
+            // Tidak melibatkan uang laci karena selisihStok <= 0
+            eksekusiSimpanEditLanjutanMobile(false, nBaru, vBaru, kBaru, mBaru, jBaru, sBaru, expBaru, selisihStok, riwayatAsalBaru, hppPresisi);
+        }
     };
 
     if (jBaru !== hargaJualLama) {
@@ -2396,6 +2494,57 @@ function eksekusiAntreanKulakan() {
             masterItems.forEach(m => { if (m.dnaInduk === p.dnaInduk) { m.jual = p.jual; m.kategori = p.kategori; } });
             let bEtalase = etalaseItems.find(e => e.dnaInduk === p.dnaInduk);
             if (bEtalase) { bEtalase.jual = p.jual; bEtalase.kategori = p.kategori; }
+            
+        } else if (item.sumber === 'EDIT_STOK') {
+            let p = item.payload;
+            if (p.isKulakanBaru || p.isAddingNewBatchMobile) {
+                let batchAda = masterItems.find(m => m.dnaInduk === p.dnaInduk && m.expired === p.expBaru);
+
+                if (batchAda) {
+                    if (!batchAda.kulakan_keuangan) batchAda.kulakan_keuangan = [];
+                    let kulakanAda = batchAda.kulakan_keuangan.find(f => f.hpp === p.hppPresisi);
+
+                    if (kulakanAda) {
+                        kulakanAda.stokAwal += p.selisihStok;
+                        kulakanAda.sisaGudang += p.selisihStok;
+                        kulakanAda.modalKeluar += p.tagihanMutlak;
+                        if (kulakanAda.riwayatAsal && p.riwayatAsalBaru) {
+                            if (kulakanAda.riwayatAsal.satuanBesar === p.riwayatAsalBaru.satuanBesar && kulakanAda.riwayatAsal.isGrosir === p.riwayatAsalBaru.isGrosir) {
+                                kulakanAda.riwayatAsal.qtyBeli += (parseFloat(p.riwayatAsalBaru.qtyBeli) || 0);
+                            } else { kulakanAda.riwayatAsal = JSON.parse(JSON.stringify(p.riwayatAsalBaru)); }
+                        } else { kulakanAda.riwayatAsal = JSON.parse(JSON.stringify(p.riwayatAsalBaru)); }
+                    } else {
+                        batchAda.kulakan_keuangan.push({ idkulakan: "F-" + Date.now() + Math.floor(Math.random()*100), tanggalNota: getTanggalLokal(), hpp: p.hppPresisi, stokAwal: p.selisihStok, sisaGudang: p.selisihStok, sisaEtalase: 0, modalKeluar: p.tagihanMutlak, riwayatAsal: JSON.parse(JSON.stringify(p.riwayatAsalBaru)) });
+                    }
+                    batchAda.stok += p.selisihStok; batchAda.totalModal += p.tagihanMutlak; batchAda.modal = p.mBaru; batchAda.riwayatAsal = p.riwayatAsalBaru;
+                } else {
+                    const idBatchBaru = 'B-' + Date.now() + '-' + Math.floor(Math.random()*1000);
+                    masterItems.unshift({ 
+                        idBatch: idBatchBaru, dnaInduk: p.dnaInduk, barcode: p.barcode, qrcode: p.qrcode, nama: p.nBaru, varian: p.vBaru, keterangan: '', 
+                        kategori: p.kBaru, modal: p.mBaru, jual: p.jBaru, stok: p.selisihStok, expired: p.expBaru, totalModal: p.tagihanMutlak, riwayatAsal: p.riwayatAsalBaru,
+                        kulakan_keuangan: [{ idkulakan: "F-" + Date.now(), tanggalNota: getTanggalLokal(), hpp: p.hppPresisi, stokAwal: p.selisihStok, sisaGudang: p.selisihStok, sisaEtalase: 0, modalKeluar: p.tagihanMutlak, riwayatAsal: JSON.parse(JSON.stringify(p.riwayatAsalBaru)) }]
+                    });
+                }
+            } else {
+                let barang = masterItems.find(i => i.idBatch === p.idBatchAktif);
+                if(barang) {
+                    barang.modal = p.mBaru; barang.jual = p.jBaru; barang.stok += p.selisihStok; barang.expired = p.expBaru;
+                    barang.totalModal = Math.round(barang.stok * p.hppPresisi); 
+                    barang.riwayatAsal = p.riwayatAsalBaru; 
+                    
+                    if (barang.kulakan_keuangan && barang.kulakan_keuangan.length > 0) {
+                        let fTerakhir = barang.kulakan_keuangan[barang.kulakan_keuangan.length - 1];
+                        fTerakhir.hpp = p.hppPresisi; 
+                        fTerakhir.sisaGudang = Math.max(0, (fTerakhir.sisaGudang || 0) + p.selisihStok);
+                        fTerakhir.stokAwal = Math.max(0, (fTerakhir.stokAwal || 0) + p.selisihStok);
+                        fTerakhir.modalKeluar = fTerakhir.stokAwal * p.hppPresisi; 
+                    }
+                }
+            }
+
+            masterItems.forEach(m => { if (m.dnaInduk === p.dnaInduk) { m.nama = p.nBaru; m.varian = p.vBaru; m.jual = p.jBaru; m.kategori = p.kBaru; } });
+            let bEtalase = etalaseItems.find(e => e.dnaInduk === p.dnaInduk || e.nama === p.nBaru);
+            if (bEtalase) { bEtalase.dnaInduk = p.dnaInduk; bEtalase.nama = p.nBaru; bEtalase.varian = p.vBaru; bEtalase.jual = p.jBaru; bEtalase.kategori = p.kBaru; }
         }
     });
 
@@ -2407,11 +2556,11 @@ function eksekusiAntreanKulakan() {
         } else if (siklusAktif.isLanjutanDefisit) { siklusAktif.isLanjutanDefisit = false; }
     }
 
-        let nilaiSuntikanOwner = 0; 
+    let nilaiSuntikanOwner = 0; 
     
     // 1. Eksekusi Item yang Meminta Potong Laci (Saklar Menyala)
     if (totalTagihanPotongLaci > 0) {
-        nilaiSuntikanOwner = prosesPotongLaciOtomatis(totalTagihanPotongLaci, `Faktur Kulakan (Potong Laci)`);
+        nilaiSuntikanOwner = prosesPotongLaciOtomatis(totalTagihanPotongLaci, `Faktur Kulakan Kolektif (${antreanKulakan.length} Macam Obat)`);
     } 
 
     // 2. Eksekusi Item yang Murni Uang Bos (Saklar Mati / Tidak Dicentang)
@@ -2423,14 +2572,13 @@ function eksekusiAntreanKulakan() {
             tanggal: getTanggalLokal(),
             waktu: strWaktu,
             kategori: 'Kulakan',
-            nominal: 0, // Kunci Keamanan: Tidak sentuh uang laci sama sekali
-            keterangan: `Faktur Kulakan (Dana Pribadi) - MURNI PAKAI DANA BOS (Saklar Dimatikan)`,
+            nominal: 0, 
+            keterangan: `Faktur Kulakan Gabungan - MURNI PAKAI DANA PRIBADI BOS (Saklar Dimatikan)`,
             kasir: 'Sistem'
         });
         saveApotekDB('apotek_pengeluaranHistory', pengeluaranHistory);
     }
 
-    // 3. Gabungkan seluruh sisa uang pribadi untuk disuntik ke Modal Beranda
     let totalModalSuntikan = nilaiSuntikanOwner + totalTagihanModalBos;
 
     if (!siklusAktif.waktuStart && siklusAktif.qtyAwal === 0 && siklusAktif.qtyTambahan === 0) { 
@@ -2449,7 +2597,7 @@ function eksekusiAntreanKulakan() {
     renderGudangMobile(document.getElementById('cariGudangMobile').value); 
     renderBerandaMobile();
     triggerHaptic([100, 50, 100]);
-    alert('✅ EKSKUSI FAKTUR KULAKAN SELESAI!\\nSemua obat telah diturunkan ke Gudang secara bersamaan.');
+    alert('✅ EKSKUSI FAKTUR KULAKAN SELESAI!\\nSemua obat (Obat Baru & Tambah Stok) telah diturunkan ke Gudang secara bersamaan.');
 }
 
 function bukaModalAntreanKulakan() {
@@ -4043,132 +4191,167 @@ function prosesRenderDetailTigaSerangkai(jenis) {
 }
 
 // ==========================================
-// MESIN CETAK LAPORAN KE PDF (MENGGUNAKAN TEMPLATE BAWAAN HTML)
+// MESIN EXPORT LAPORAN KE MICROSOFT WORD (A4 LANDSCAPE)
 // ==========================================
-function exportLaporanKePDF() {
-    let tglFilter = document.getElementById('filterTglLaporanMobile')?.value || getTanggalLokal();
-    let dataPeriode = cashierHistory.filter(t => t.tanggal === tglFilter);
+function exportLaporanKeWord() {
+    let dataPeriode = cashierHistory.filter(t => t.tanggal >= laporanTglAwal && t.tanggal <= laporanTglAkhir);
+    let dataKeluar = pengeluaranHistory.filter(p => p.tanggal >= laporanTglAwal && p.tanggal <= laporanTglAkhir);
     
-    if(dataPeriode.length === 0) return alert("Data kosong! Belum ada transaksi pada tanggal ini.");
-
-    // Variabel Rekapitulasi
-    let lOmzet = 0, lLaba = 0, lHPP = 0;
-    let inTunai = 0, inQRIS = 0, inLunas = 0, outKasbon = 0;
+    if(dataPeriode.length === 0 && dataKeluar.length === 0) return alert("Data kosong! Belum ada transaksi pada rentang tanggal ini.");
+    
+    // 1. Kalkulasi Laba / Rugi (Income Statement)
+    let lOmset = 0, lHPP = 0, omzetTunai = 0, omzetQRIS = 0, omzetDebt = 0;
     let htmlTabel = ""; let urut = 1;
-    
-    // Perulangan Data Transaksi
+
     dataPeriode.forEach(t => {
         let hpp = 0, omzet = 0, laba = 0;
         let qty = t.item, namaObat = t.obat;
 
         if(!t.isPelunasan) {
             omzet = t.total; laba = t.laba; hpp = (t.total - t.laba);
-            lOmzet += omzet; lLaba += laba; lHPP += hpp;
-            if(t.metode === "Tunai") inTunai += omzet;
-            if(t.metode === "QRIS") inQRIS += omzet;
-            if(t.metode === "Debt" || t.metode === "Kasbon") outKasbon += omzet;
+            lOmset += omzet; lHPP += hpp;
+            if(t.metode === 'Tunai') omzetTunai += omzet;
+            else if(t.metode === 'QRIS') omzetQRIS += omzet;
+            else if(t.metode === 'Debt') omzetDebt += omzet;
         } else {
             qty = "-"; namaObat = "PELUNASAN KASBON (" + (t.pelanggan || 'Pelanggan') + ")";
-            omzet = t.total; inLunas += omzet;
-            if(t.metode === "Tunai") inTunai += omzet;
-            if(t.metode === "QRIS") inQRIS += omzet;
+            omzet = t.total; 
         }
 
-        // Baris Tabel (Garis hitam murni untuk Word)
         htmlTabel += `
             <tr>
-                <td style="border: 1px solid #000; padding: 6px; text-align: center;">${urut++}</td>
-                <td style="border: 1px solid #000; padding: 6px; text-align: center;">${t.waktu}</td>
-                <td style="border: 1px solid #000; padding: 6px;">${namaObat}</td>
-                <td style="border: 1px solid #000; padding: 6px; text-align: center;">${qty}</td>
-                <td style="border: 1px solid #000; padding: 6px; text-align: center;">${t.metode}</td>
-                <td style="border: 1px solid #000; padding: 6px; text-align: right;">${hpp > 0 ? rupiah(hpp) : '-'}</td>
-                <td style="border: 1px solid #000; padding: 6px; text-align: right;">${rupiah(omzet)}</td>
-                <td style="border: 1px solid #000; padding: 6px; text-align: right;">${laba > 0 ? rupiah(laba) : '-'}</td>
-            </tr>
-        `;
+                <td style="border: 1px solid #000; padding: 4px; text-align: center;">${urut++}</td>
+                <td style="border: 1px solid #000; padding: 4px; text-align: center;">${t.tanggal} ${t.waktu}</td>
+                <td style="border: 1px solid #000; padding: 4px;">${namaObat}</td>
+                <td style="border: 1px solid #000; padding: 4px; text-align: center;">${qty}</td>
+                <td style="border: 1px solid #000; padding: 4px; text-align: center;">${t.metode}</td>
+                <td style="border: 1px solid #000; padding: 4px; text-align: right; font-family: monospace;">${hpp > 0 ? rupiah(hpp) : '-'}</td>
+                <td style="border: 1px solid #000; padding: 4px; text-align: right; font-family: monospace;">${rupiah(omzet)}</td>
+                <td style="border: 1px solid #000; padding: 4px; text-align: right; font-family: monospace;">${laba > 0 ? rupiah(laba) : '-'}</td>
+            </tr>`;
     });
 
-    let totalOmzetSemua = lOmzet + inLunas;
-    let totalPemasukanFisik = inTunai + inQRIS;
+    let bBiayaToko = 0;
+    dataKeluar.forEach(p => { if (p.kategori === 'Biaya Toko') bBiayaToko += p.nominal; });
+    let labaBersihSejati = (lOmset - lHPP) - bBiayaToko;
 
-    // --- 1. HEADER & XML KHUSUS WORD (Set A4 Landscape) ---
+    // 2. Kalkulasi Neraca Kekayaan Lintas Waktu (Balance Sheet)
+    let estimasiIsiLaci = hitungSaldoLaciFisik(); 
+    let hartaQRIS = 0, hartaPiutang = 0, hutangMap = {};
+    
+    cashierHistory.forEach(t => {
+        if(t.metode === 'QRIS' && !t.isPelunasan) hartaQRIS += (t.total || 0);
+        if(t.isPelunasan && (t.metodeBayar === 'QRIS' || t.metodeBayar === 'qris' || t.metode === 'QRIS')) hartaQRIS += (t.total || 0);
+        
+        if(t.metode === 'Debt' || t.isPelunasan) {
+            if(t.metode === 'Debt' && !t.statusLunas) hutangMap[t.id] = t.total;
+            if(t.isPelunasan && t.idTerkait && hutangMap[t.idTerkait]) hutangMap[t.idTerkait] -= t.total;
+        }
+    });
+    Object.values(hutangMap).forEach(v => { if(v > 0) hartaPiutang += v; });
+
+    let sisaQtyReal = 0, sisaRpReal = 0;
+    masterItems.filter(i => i.nama !== '___SYSTEM_AUTH___' && i.kategori !== '⚠️ Barang Retur').forEach(b => { 
+        sisaQtyReal += (b.stok || 0); sisaRpReal += (b.totalModal !== undefined ? b.totalModal : (b.modal * b.stok)); 
+    });
+    etalaseItems.forEach(b => {
+        sisaQtyReal += (b.stok || 0);
+        if(b.antreanFIFO && b.antreanFIFO.length > 0) { b.antreanFIFO.forEach(f => sisaRpReal += (f.totalModal !== undefined ? f.totalModal : (f.modal * f.stok))); } 
+        else { let m = masterItems.find(x => x.dnaInduk === b.dnaInduk || x.nama === b.nama); sisaRpReal += (m ? (m.modal || 0) : 0) * (b.stok || 0); }
+    });
+
+    // 3. Kalkulasi Persediaan
+    let terjualQtySiklus = 0, terjualRpSiklus = 0;
+    let wMulai = siklusAktif.waktuStart || 0;
+    cashierHistory.filter(t => (wMulai ? t.id >= wMulai : t.tanggal >= siklusAktif.tanggalStart) && !t.isPelunasan).forEach(t => {
+        terjualQtySiklus += (t.item || 1); terjualRpSiklus += ((t.total || 0) - (t.laba || 0));
+    });
+    let totalQtyTersedia = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
+    let totalModalTersedia = (siklusAktif.modalAwal || 0) + (siklusAktif.modalTambahan || 0);
+
+    let dNow = new Date();
+    let strWaktuCetak = dNow.toLocaleDateString('id-ID') + " " + dNow.toLocaleTimeString('id-ID');
+
+    // --- HTML WORD CONSTRUCTION ---
     let header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>";
-    header += "<head><meta charset='utf-8'><title>Laporan Apotek</title>";
+    header += "<head><meta charset='utf-8'><title>Buku Besar Apotek</title>";
     header += `
     <style>
-        /* Perintah Wajib Word untuk Landscape A4 */
-        @page WordSection1 {
-            size: 841.95pt 595.35pt; 
-            mso-page-orientation: landscape;
-            margin: 1cm 1cm 1cm 1cm;
-        }
-        div.WordSection1 { page: WordSection1; font-family: 'Arial', sans-serif; font-size: 11pt; }
+        @page WordSection1 { size: 841.95pt 595.35pt; mso-page-orientation: landscape; margin: 1cm; }
+        div.WordSection1 { page: WordSection1; font-family: 'Arial', sans-serif; font-size: 10pt; color: #000; }
         table { border-collapse: collapse; width: 100%; }
-        th { background-color: #0f766e; color: white; border: 1px solid #000; padding: 8px; font-weight: bold; text-align: center; }
-        td { border: 1px solid #000; padding: 5px; }
-        .title { text-align: center; font-size: 18pt; font-weight: bold; color: #0f766e; margin-bottom: 5px; }
-        .subtitle { text-align: center; font-size: 11pt; margin-bottom: 25px; color: #444; }
-        .info-table { border: none; margin-bottom: 15px; width: 100%; }
-        .info-table td { border: none; padding: 4px; }
+        th { background-color: #e0e0e0; color: #000; border: 1px solid #000; padding: 6px; font-weight: bold; text-align: center; }
+        td { border: 1px solid #000; padding: 4px; }
+        .title { text-align: left; font-size: 18pt; font-weight: bold; text-transform: uppercase; margin-bottom: 2px;}
+        .subtitle { text-align: left; font-size: 10pt; font-weight: bold; margin-bottom: 15px; }
+        .info-table { border: none; margin-bottom: 15px; width: 60%; }
+        .info-table td { border: none; padding: 2px; }
+        .ledger-box { border: 1px solid #000; padding: 8px; vertical-align: top; }
+        .l-title { font-weight: bold; background: #e0e0e0; text-align: center; padding: 4px; border-bottom: 1px solid #000; margin-bottom: 5px; text-transform: uppercase;}
+        .r-val { text-align: right; font-family: monospace; font-weight: bold; }
     </style>
     </head><body><div class='WordSection1'>
     `;
 
-    // --- 2. ISI KONTEN (Tabel dan Teks) ---
     let content = `
-    <div class="title">${profilApotek.nama.toUpperCase()}</div>
-    <div class="subtitle">Laporan Harian Operasional & Keuangan<br>Alamat: ${profilApotek.alamat || '-'}</div>
+    <div class="title">${profilApotek.nama}</div>
+    <div class="subtitle">Buku Besar & Neraca Keuangan Komprehensif</div>
 
     <table class="info-table">
-        <tr>
-            <td width="15%"><b>Tanggal</b></td><td width="35%">: ${tglFilter}</td>
-            <td width="15%"><b>Shift</b></td><td width="35%">: Full Day</td>
-        </tr>
-        <tr>
-            <td><b>Kasir</b></td><td>: Sistem Kasir</td>
-            <td><b>Total Trx</b></td><td>: ${urut - 1} Nota</td>
-        </tr>
+        <tr><td width="15%"><b>Periode</b></td><td width="35%">: ${laporanLabelVisual}</td><td width="15%"><b>Kasir</b></td><td width="35%">: Sistem Laporan</td></tr>
+        <tr><td><b>Dicetak</b></td><td>: ${strWaktuCetak}</td><td><b>Trx</b></td><td>: ${urut - 1} Nota</td></tr>
     </table>
 
-    <h3 style="color: #0f766e; margin-bottom: 10px;">A. Rincian Penjualan Transaksi Harian</h3>
-    <table>
+    <h3 style="font-size: 11pt; margin-bottom: 5px; text-transform: uppercase; border-bottom:1px solid #000;">A. Rincian Buku Harian Transaksi</h3>
+    <table style="margin-bottom: 20px;">
         <thead>
-            <tr>
-                <th width="5%">No</th><th width="10%">Jam</th><th width="28%">Nama Obat / Keterangan</th>
-                <th width="7%">Qty</th><th width="12%">Metode</th><th width="12%">Modal (HPP)</th>
-                <th width="13%">Omzet</th><th width="13%">Laba Bersih</th>
-            </tr>
+            <tr><th width="4%">No</th><th width="12%">Waktu</th><th width="28%">Nama Obat / Keterangan</th><th width="6%">Qty</th><th width="10%">Metode</th><th width="13%">HPP Keluar</th><th width="13%">Omzet</th><th width="14%">Laba Kotor</th></tr>
         </thead>
-        <tbody>
-            ${htmlTabel}
-        </tbody>
-        <tfoot>
-            <tr>
-                <td colspan="5" style="text-align: right; font-weight: bold; border: 1px solid #000; padding: 8px;">TOTAL TRANSAKSI KESELURUHAN</td>
-                <td style="text-align: right; font-weight: bold; border: 1px solid #000;">${rupiah(lHPP)}</td>
-                <td style="text-align: right; font-weight: bold; border: 1px solid #000;">${rupiah(totalOmzetSemua)}</td>
-                <td style="text-align: right; font-weight: bold; border: 1px solid #000;">${rupiah(lLaba)}</td>
-            </tr>
-        </tfoot>
+        <tbody>${htmlTabel}</tbody>
     </table>
 
-    <br>
-    <h3 style="color: #0f766e; margin-bottom: 10px;">B. Arus Kas Kasir & Rekap Laci</h3>
-    <table style="width: 60%; margin-left: 0;">
-        <tr><td width="60%" style="border: none;">Tunai (Cash)</td><td style="border: none; text-align: right;">${rupiah(inTunai)}</td></tr>
-        <tr><td style="border: none;">Digital (QRIS)</td><td style="border: none; text-align: right;">${rupiah(inQRIS)}</td></tr>
-        <tr><td style="border: none;">Pelunasan Utang</td><td style="border: none; text-align: right;">${rupiah(inLunas)}</td></tr>
-        <tr><td style="border-top: 1px solid #000; border-bottom: none; border-left: none; border-right: none; font-weight:bold;">Total Pemasukan Murni</td><td style="border-top: 1px solid #000; border-bottom: none; border-left: none; border-right: none; text-align: right; font-weight:bold; color: green;">${rupiah(totalPemasukanFisik)}</td></tr>
-        <tr><td style="border: none;"><br><b>Uang Fisik (Laci Tunai)</b></td><td style="border: none; text-align: right;"><br><b>${rupiah(inTunai)}</b></td></tr>
-        <tr><td style="border: none; color: red;">Kasbon / Utang Baru</td><td style="border: none; text-align: right; color: red;">${rupiah(outKasbon)}</td></tr>
-    </table>
-
-    <br><br><br>
-    <table style="width: 100%; text-align: center; border: none; margin-top: 30px;">
+    <table style="width: 100%; border: none; margin-top: 10px;">
         <tr>
-            <td style="border: none; width: 50%;">Dibuat Oleh,<br><br><br><br><br>( Kasir / Shift )</td>
-            <td style="border: none; width: 50%;">Diperiksa Oleh,<br><br><br><br><br>( ${profilApotek.nama} )</td>
+            <!-- BLOK I -->
+            <td width="32%" class="ledger-box">
+                <div class="l-title">I. Alur Modal Persediaan</div>
+                <table style="border:none; width:100%;">
+                    <tr><td style="border:none; padding:2px;">Modal Awal / Titik Nol</td><td class="r-val" style="border:none; padding:2px;">${siklusAktif.qtyAwal} Pcs</td></tr>
+                    <tr><td style="border:none; padding:2px;"></td><td class="r-val" style="border:none; padding:2px;">${rupiah(siklusAktif.modalAwal)}</td></tr>
+                    <tr><td style="border:none; padding:2px;">(+) Suntikan Kulakan</td><td class="r-val" style="border:none; padding:2px;">${siklusAktif.qtyTambahan} Pcs</td></tr>
+                    <tr><td style="border:none; padding:2px; border-bottom: 1px solid #000;"></td><td class="r-val" style="border:none; padding:2px; border-bottom: 1px solid #000;">${rupiah(siklusAktif.modalTambahan)}</td></tr>
+                    <tr><td style="border:none; padding:2px; font-weight:bold;">Sedia Dijual</td><td class="r-val" style="border:none; padding:2px;">${rupiah(totalModalTersedia)}</td></tr>
+                    <tr><td style="border:none; padding:2px;">(-) Terjual (HPP)</td><td class="r-val" style="border:none; padding:2px;">${terjualQtySiklus} Pcs</td></tr>
+                    <tr><td style="border:none; padding:2px; border-bottom: 1px solid #000;"></td><td class="r-val" style="border:none; padding:2px; border-bottom: 1px solid #000;">${rupiah(terjualRpSiklus)}</td></tr>
+                    <tr><td style="border:none; padding:4px 2px; font-weight:bold;">ASET RAK SISA</td><td class="r-val" style="border:none; padding:4px 2px;">${rupiah(sisaRpReal)}</td></tr>
+                </table>
+            </td>
+            <td width="2%" style="border:none;"></td>
+            <!-- BLOK II -->
+            <td width="32%" class="ledger-box">
+                <div class="l-title">II. Kinerja Laba Rugi</div>
+                <table style="border:none; width:100%;">
+                    <tr><td style="border:none; padding:2px;">Omzet Tunai</td><td class="r-val" style="border:none; padding:2px;">${rupiah(omzetTunai)}</td></tr>
+                    <tr><td style="border:none; padding:2px;">Omzet QRIS</td><td class="r-val" style="border:none; padding:2px;">${rupiah(omzetQRIS)}</td></tr>
+                    <tr><td style="border:none; padding:2px; border-bottom: 1px solid #000;">Omzet Piutang</td><td class="r-val" style="border:none; padding:2px; border-bottom: 1px solid #000;">${rupiah(omzetDebt)}</td></tr>
+                    <tr><td style="border:none; padding:2px; font-weight:bold;">Total Omzet</td><td class="r-val" style="border:none; padding:2px;">${rupiah(lOmset)}</td></tr>
+                    <tr><td style="border:none; padding:2px;">(-) HPP Keluar</td><td class="r-val" style="border:none; padding:2px;">${rupiah(lHPP)}</td></tr>
+                    <tr><td style="border:none; padding:2px; border-bottom: 1px solid #000;">(-) Biaya Toko</td><td class="r-val" style="border:none; padding:2px; border-bottom: 1px solid #000;">${rupiah(bBiayaToko)}</td></tr>
+                    <tr><td style="border:none; padding:4px 2px; font-weight:bold;">LABA BERSIH</td><td class="r-val" style="border:none; padding:4px 2px;">${rupiah(labaBersihSejati)}</td></tr>
+                </table>
+            </td>
+            <td width="2%" style="border:none;"></td>
+            <!-- BLOK III -->
+            <td width="32%" class="ledger-box">
+                <div class="l-title">III. Neraca Kekayaan</div>
+                <table style="border:none; width:100%;">
+                    <tr><td style="border:none; padding:2px;">1. Harta Tunai Laci</td><td class="r-val" style="border:none; padding:2px;">${rupiah(estimasiIsiLaci)}</td></tr>
+                    <tr><td style="border:none; padding:2px;">2. Harta Bank QRIS</td><td class="r-val" style="border:none; padding:2px;">${rupiah(hartaQRIS)}</td></tr>
+                    <tr><td style="border:none; padding:2px;">3. Harta Piutang</td><td class="r-val" style="border:none; padding:2px;">${rupiah(hartaPiutang)}</td></tr>
+                    <tr><td style="border:none; padding:2px; border-bottom: 1px solid #000;">4. Harta Stok Barang</td><td class="r-val" style="border:none; padding:2px; border-bottom: 1px solid #000;">${rupiah(sisaRpReal)}</td></tr>
+                    <tr><td style="border:none; padding:4px 2px; font-weight:bold;">TOTAL ASET KESELURUHAN</td><td class="r-val" style="border:none; padding:4px 2px;">${rupiah(estimasiIsiLaci + hartaQRIS + hartaPiutang + sisaRpReal)}</td></tr>
+                </table>
+            </td>
         </tr>
     </table>
     `;
@@ -4176,98 +4359,137 @@ function exportLaporanKePDF() {
     let footer = "</div></body></html>";
     let fullHTML = header + content + footer;
 
-    // --- 3. PROSES UNDUH FILE .DOC ---
     let blob = new Blob(['\ufeff', fullHTML], { type: 'application/msword' });
-    let url = URL.createObjectURL(blob);
     let link = document.createElement("a");
-    link.href = url;
-    link.download = "Laporan_Apotek_" + tglFilter + ".doc";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    
-    alert("✅ File Laporan Word berhasil diunduh ke HP Anda!");
+    link.href = URL.createObjectURL(blob);
+    link.download = "BukuBesar_" + laporanLabelVisual.replace(/\s/g, '_') + ".doc";
+    document.body.appendChild(link); link.click(); document.body.removeChild(link);
+    alert("✅ File Laporan Word berhasil diunduh ke perangkat Anda!");
 }
 
 // ==========================================
-// MESIN CETAK LAPORAN KE PDF (MENGGUNAKAN TEMPLATE BAWAAN HTML)
+// MESIN CETAK LAPORAN KE PDF (A4 LANDSCAPE STRICT LEDGER)
 // ==========================================
 function exportLaporanKePDF() {
     let dataPeriode = cashierHistory.filter(t => t.tanggal >= laporanTglAwal && t.tanggal <= laporanTglAkhir);
-    if(dataPeriode.length === 0) return alert("Data kosong! Belum ada transaksi pada rentang tanggal ini.");
-    let tglFilter = laporanLabelVisual; // Ambil label visual yang aktif
-
-    // Variabel Rekapitulasi
-    let lOmzet = 0, lLaba = 0, lHPP = 0;
-    let inTunai = 0, inQRIS = 0, inLunas = 0, outKasbon = 0;
-    let urut = 1;
-    let isiTabelHTML = "";
+    let dataKeluar = pengeluaranHistory.filter(p => p.tanggal >= laporanTglAwal && p.tanggal <= laporanTglAkhir);
     
-    // Perulangan Data Transaksi
+    if(dataPeriode.length === 0 && dataKeluar.length === 0) return alert("Data kosong! Belum ada transaksi pada rentang tanggal ini.");
+
+    // 1. Kalkulasi Laba / Rugi (Income Statement)
+    let lOmset = 0, lHPP = 0, omzetTunai = 0, omzetQRIS = 0, omzetDebt = 0;
+    let isiTabelHTML = ""; let urut = 1;
+
     dataPeriode.forEach(t => {
         let hpp = 0, omzet = 0, laba = 0;
         let qty = t.item, namaObat = t.obat;
 
         if(!t.isPelunasan) {
             omzet = t.total; laba = t.laba; hpp = (t.total - t.laba);
-            lOmzet += omzet; lLaba += laba; lHPP += hpp;
-            if(t.metode === "Tunai") inTunai += omzet;
-            if(t.metode === "QRIS") inQRIS += omzet;
-            if(t.metode === "Debt" || t.metode === "Kasbon") outKasbon += omzet;
+            lOmset += omzet; lHPP += hpp;
+            if(t.metode === 'Tunai') omzetTunai += omzet;
+            else if(t.metode === 'QRIS') omzetQRIS += omzet;
+            else if(t.metode === 'Debt') omzetDebt += omzet;
         } else {
             qty = "-"; namaObat = "PELUNASAN KASBON (" + (t.pelanggan || 'Pelanggan') + ")";
-            omzet = t.total; inLunas += omzet;
-            if(t.metode === "Tunai") inTunai += omzet;
-            if(t.metode === "QRIS") inQRIS += omzet;
+            omzet = t.total; 
         }
 
-        // Rancang baris tabel untuk elemen `p-tabel-body`
         isiTabelHTML += `
             <tr>
                 <td class="text-center">${urut++}</td>
-                <td class="text-center">${t.waktu}</td>
+                <td class="text-center">${t.tanggal} ${t.waktu}</td>
                 <td>${namaObat}</td>
                 <td class="text-center">${qty}</td>
                 <td class="text-center">${t.metode}</td>
-                <td class="text-right">${hpp > 0 ? rupiah(hpp) : '-'}</td>
-                <td class="text-right">${rupiah(omzet)}</td>
-                <td class="text-right">${laba > 0 ? rupiah(laba) : '-'}</td>
-            </tr>
-        `;
+                <td class="text-right t-num">${hpp > 0 ? rupiah(hpp) : '-'}</td>
+                <td class="text-right t-num">${rupiah(omzet)}</td>
+                <td class="text-right t-num">${laba > 0 ? rupiah(laba) : '-'}</td>
+            </tr>`;
     });
 
-    let totalOmzetSemua = lOmzet + inLunas;
-    let totalPemasukanFisik = inTunai + inQRIS;
+    let bBiayaToko = 0;
+    dataKeluar.forEach(p => { if (p.kategori === 'Biaya Toko') bBiayaToko += p.nominal; });
+    let labaBersihSejati = (lOmset - lHPP) - bBiayaToko;
 
-    // --- SUNTIK DATA KE TEMPLATE CETAK HTML (DOM INJECTION) ---
-    // Header Info
+    // 2. Kalkulasi Neraca Kekayaan Lintas Waktu (Balance Sheet)
+    let estimasiIsiLaci = hitungSaldoLaciFisik(); 
+    let hartaQRIS = 0, hartaPiutang = 0, hutangMap = {};
+    
+    cashierHistory.forEach(t => {
+        if(t.metode === 'QRIS' && !t.isPelunasan) hartaQRIS += (t.total || 0);
+        if(t.isPelunasan && (t.metodeBayar === 'QRIS' || t.metodeBayar === 'qris' || t.metode === 'QRIS')) hartaQRIS += (t.total || 0);
+        
+        if(t.metode === 'Debt' || t.isPelunasan) {
+            if(t.metode === 'Debt' && !t.statusLunas) hutangMap[t.id] = t.total;
+            if(t.isPelunasan && t.idTerkait && hutangMap[t.idTerkait]) hutangMap[t.idTerkait] -= t.total;
+        }
+    });
+    Object.values(hutangMap).forEach(v => { if(v > 0) hartaPiutang += v; });
+
+    let sisaQtyReal = 0, sisaRpReal = 0;
+    masterItems.filter(i => i.nama !== '___SYSTEM_AUTH___' && i.kategori !== '⚠️ Barang Retur').forEach(b => { 
+        sisaQtyReal += (b.stok || 0); sisaRpReal += (b.totalModal !== undefined ? b.totalModal : (b.modal * b.stok)); 
+    });
+    etalaseItems.forEach(b => {
+        sisaQtyReal += (b.stok || 0);
+        if(b.antreanFIFO && b.antreanFIFO.length > 0) { b.antreanFIFO.forEach(f => sisaRpReal += (f.totalModal !== undefined ? f.totalModal : (f.modal * f.stok))); } 
+        else { let m = masterItems.find(x => x.dnaInduk === b.dnaInduk || x.nama === b.nama); sisaRpReal += (m ? (m.modal || 0) : 0) * (b.stok || 0); }
+    });
+
+    // 3. Kalkulasi Persediaan
+    let terjualQtySiklus = 0, terjualRpSiklus = 0;
+    let wMulai = siklusAktif.waktuStart || 0;
+    cashierHistory.filter(t => (wMulai ? t.id >= wMulai : t.tanggal >= siklusAktif.tanggalStart) && !t.isPelunasan).forEach(t => {
+        terjualQtySiklus += (t.item || 1); terjualRpSiklus += ((t.total || 0) - (t.laba || 0));
+    });
+    let totalQtyTersedia = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
+    let totalModalTersedia = (siklusAktif.modalAwal || 0) + (siklusAktif.modalTambahan || 0);
+
+    // --- SUNTIK DATA KE DOM HTML CETAK ---
+    let dNow = new Date();
+    document.getElementById('p-waktu-cetak').innerText = dNow.toLocaleDateString('id-ID') + " " + dNow.toLocaleTimeString('id-ID');
     document.getElementById('p-nama-apotek').innerText = profilApotek.nama.toUpperCase();
     document.getElementById('p-owner').innerText = profilApotek.nama;
-    document.getElementById('p-tgl').innerText = tglFilter;
+    document.getElementById('p-tgl').innerText = laporanLabelVisual;
     document.getElementById('p-trx').innerText = (urut - 1) + " Nota";
 
-    // A. Tabel Transaksi
+    // Tabel Trx
     document.getElementById('p-tabel-body').innerHTML = isiTabelHTML;
     document.getElementById('p-tot-hpp').innerText = rupiah(lHPP);
-    document.getElementById('p-tot-omzet').innerText = rupiah(totalOmzetSemua);
-    document.getElementById('p-tot-laba').innerText = rupiah(lLaba);
+    document.getElementById('p-tot-omzet').innerText = rupiah(lOmset); // Total omzet kotor tanpa pelunasan
+    document.getElementById('p-tot-laba').innerText = rupiah(lOmset - lHPP);
 
-    // B. Arus Kas
-    document.getElementById('p-in-tunai').innerText = inTunai.toLocaleString('id-ID');
-    document.getElementById('p-in-qris').innerText = inQRIS.toLocaleString('id-ID');
-    document.getElementById('p-in-lunas').innerText = inLunas.toLocaleString('id-ID');
-    document.getElementById('p-in-total').innerText = totalPemasukanFisik.toLocaleString('id-ID');
-    document.getElementById('p-out-kasbon').innerText = outKasbon.toLocaleString('id-ID');
+    // BLOK 1
+    document.getElementById('p-qty-awal').innerText = siklusAktif.qtyAwal + " Pcs";
+    document.getElementById('p-rp-awal').innerText = rupiah(siklusAktif.modalAwal);
+    document.getElementById('p-qty-tambah').innerText = siklusAktif.qtyTambahan + " Pcs";
+    document.getElementById('p-rp-tambah').innerText = rupiah(siklusAktif.modalTambahan);
+    document.getElementById('p-rp-siap').innerText = rupiah(totalModalTersedia);
+    document.getElementById('p-qty-jual').innerText = terjualQtySiklus + " Pcs";
+    document.getElementById('p-rp-jual').innerText = rupiah(terjualRpSiklus);
+    document.getElementById('p-rp-akhir').innerText = rupiah(sisaRpReal);
 
-    // C. Rekap Laci
-    document.getElementById('p-laci-tunai').innerText = inTunai.toLocaleString('id-ID');
-    document.getElementById('p-laci-total').innerText = inTunai.toLocaleString('id-ID');
+    // BLOK 2
+    document.getElementById('p-omzet-tunai').innerText = rupiah(omzetTunai);
+    document.getElementById('p-omzet-qris').innerText = rupiah(omzetQRIS);
+    document.getElementById('p-omzet-debt').innerText = rupiah(omzetDebt);
+    document.getElementById('p-omzet-total').innerText = rupiah(lOmset);
+    document.getElementById('p-beban-hpp').innerText = rupiah(lHPP);
+    document.getElementById('p-beban-biaya').innerText = rupiah(bBiayaToko);
+    document.getElementById('p-laba-bersih').innerText = rupiah(labaBersihSejati);
 
-    // Memicu perintah Print Bawaan Browser
-    setTimeout(() => {
-        window.print();
-    }, 300);
+    // BLOK 3
+    document.getElementById('p-harta-tunai').innerText = rupiah(estimasiIsiLaci);
+    document.getElementById('p-harta-qris').innerText = rupiah(hartaQRIS);
+    document.getElementById('p-harta-piutang').innerText = rupiah(hartaPiutang);
+    document.getElementById('p-harta-barang').innerText = rupiah(sisaRpReal);
+    document.getElementById('p-harta-total').innerText = rupiah(estimasiIsiLaci + hartaQRIS + hartaPiutang + sisaRpReal);
+
+    // Cetak
+    setTimeout(() => { window.print(); }, 300);
 }
+
 
 // ==========================================
 // MESIN KALKULATOR KONVERSI EDIT BATCH
