@@ -113,6 +113,16 @@ function bukaLayar(targetLayar) {
              btn.classList.replace('text-corporate-600', 'text-slate-400'); 
          }
     });
+
+    // [PENYEMPURNAAN BARU] Sinkronisasi Warna Latar Belakang Celah Bawah
+    const areaScroll = document.querySelector('.flex-1.overflow-y-auto');
+    if (areaScroll) {
+        if (targetLayar === 'laporan') {
+            areaScroll.classList.add('bg-[#2e3136]'); // Ubah celah jadi gelap
+        } else {
+            areaScroll.classList.remove('bg-[#2e3136]'); // Kembalikan celah jadi terang
+        }
+    }
     
     // [PENYEMPURNAAN UX] Hapus isi kolom pencarian otomatis jika pindah layar secara manual
     if (targetLayar === 'piutang') { let s = document.getElementById('cariPiutangMobile'); if(s) s.value = ''; }
@@ -128,6 +138,7 @@ function bukaLayar(targetLayar) {
     if (targetLayar === 'etalase') renderEtalaseMobile();
     if (targetLayar === 'laporan') renderLaporanMobile();
 }
+
 
 // ==========================================
 // 3. MESIN RENDER: BERANDA
@@ -1360,7 +1371,6 @@ function renderLaporanMobile() {
         }
     });
 
-    // SISTEM MISTAR UNTUK KAS KELUAR
     let bBiayaToko = 0, bPrive = 0, bKulakan = 0;
     let listKulakanHtml = '', listBiayaHtml = '', listPriveHtml = '';
     
@@ -1424,24 +1434,29 @@ function renderLaporanMobile() {
     let totalModalTersedia = (siklusAktif.modalAwal || 0) + (siklusAktif.modalTambahan || 0);
 
     // =======================================================
-    // RENDERING UI: AKORDEON DINAMIS DENGAN CSS GRID (MISTAR)
+    // RENDERING UI: AKORDEON DINAMIS & BATANGAN EMAS
     // =======================================================
     wadah.innerHTML = `
     <div class="flex flex-col gap-3 pb-4">
         
-        <!-- BLOK I: ALUR MODAL PERSEDIAAN -->
+                <!-- BLOK I: ALUR MODAL PERSEDIAAN -->
         <div class="bg-[#24272c] border border-[#3b3f46] rounded-sm shadow-sm select-none">
             <div class="flex justify-between items-center p-3.5 cursor-pointer" onclick="toggleAkordeonLaporan('blok-persediaan')">
-                <h3 class="text-[#93c5fd] font-bold text-[10px] uppercase tracking-widest"><i class="fa-solid fa-boxes-stacked mr-1"></i> I. Alur Modal Persediaan</h3>
+                <div class="flex items-center gap-2">
+                    <h3 class="text-[#93c5fd] font-bold text-[10px] uppercase tracking-widest"><i class="fa-solid fa-boxes-stacked mr-1"></i> I. Alur Modal Persediaan</h3>
+                    <span class="flex items-center gap-1.5 bg-red-500/10 border border-red-500/30 text-red-400 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest">
+                        <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_5px_rgba(239,68,68,0.8)]"></span> Live Shift
+                    </span>
+                </div>
                 <i class="fa-solid fa-chevron-down text-slate-400 text-[10px] transition-transform duration-300" id="icon-blok-persediaan"></i>
             </div>
             
             <div id="blok-persediaan" class="hidden px-3.5 pb-3.5 border-t border-[#3b3f46] pt-3">
-                
-                <!-- GRID 6 KOLOM: LABEL | ANGKA | PCS | BATAS | RP | NOMINAL -->
+                <p class="text-[8px] text-slate-400 font-medium italic mb-3 leading-tight bg-[#1e2329] p-2 rounded border border-[#3b3f46]">
+                    *Data di blok ini adalah <b class="text-slate-300">Stok Fisik Live</b> sejak terakhir tutup buku. Tidak terpengaruh filter tanggal.
+                </p>
                 <div class="grid grid-cols-[1fr_max-content_max-content_max-content_max-content_max-content] gap-y-1.5 items-center w-full text-[10px] whitespace-nowrap">
-                    
-                    <div class="text-slate-400 truncate pr-2">Modal Awal / Titik Nol</div>
+<div class="text-slate-400 truncate pr-2">Modal Awal / Titik Nol</div>
                     <div class="text-right font-mono text-slate-200">${siklusAktif.qtyAwal}</div>
                     <div class="text-left font-mono text-slate-200 pl-1">Pcs</div>
                     <div class="text-center font-mono text-slate-500 px-1.5">|</div>
@@ -1482,7 +1497,6 @@ function renderLaporanMobile() {
                     <div class="text-left font-bold font-mono text-white text-[10.5px]">Rp</div>
                     <div class="text-right font-bold font-mono text-white text-[10.5px] tracking-tight">${Math.round(sisaRpReal).toLocaleString('id-ID')}</div>
                 </div>
-
             </div>
         </div>
 
@@ -1498,7 +1512,6 @@ function renderLaporanMobile() {
             
             <div id="blok-penjualan" class="hidden px-3.5 pb-3.5 border-t border-slate-300 pt-3">
                 <p class="text-[9px] font-black text-slate-500 mb-2 uppercase">A. Pendapatan Kotor (Omzet)</p>
-                
                 <div class="grid grid-cols-[1fr_max-content_max-content] gap-y-1.5 items-center w-full text-[10px] pl-2 whitespace-nowrap">
                     <div class="text-slate-600 truncate pr-2">Tunai</div>
                     <div class="font-mono text-slate-800 pl-2 pr-1">Rp</div>
@@ -1577,7 +1590,7 @@ function renderLaporanMobile() {
             <div id="blok-trafik" class="hidden px-3.5 pb-3.5 border-t border-[#3b3f46] pt-3">
                 <div class="grid grid-cols-3 gap-2 mb-4">
                     <div class="border border-[#3b3f46] rounded-sm p-2 text-center bg-[#1e2329]">
-                        <p class="text-[8px] font-bold text-slate-400 uppercase mb-1">Total Nota</p>
+                        <p class="text-[8px] font-bold text-slate-400 uppercase mb-1">Jumlah Pembeli</p>
                         <p class="text-[12px] font-black text-white">${totalPembeli}</p>
                     </div>
                     <div class="border border-[#3b3f46] rounded-sm p-2 text-center bg-[#1e2329]">
@@ -1585,7 +1598,7 @@ function renderLaporanMobile() {
                         <p class="text-[12px] font-black text-white">${totalBiji} Biji</p>
                     </div>
                     <div class="border border-[#3b3f46] rounded-sm p-2 text-center bg-[#1e2329]">
-                        <p class="text-[8px] font-bold text-slate-400 uppercase mb-1">Rata-rata Nota</p>
+                        <p class="text-[8px] font-bold text-slate-400 uppercase mb-1">Rata-rata Belanja</p>
                         <p class="text-[10px] font-black text-emerald-400 font-mono">${rupiah(Math.round(aov))}</p>
                     </div>
                 </div>
@@ -1649,7 +1662,147 @@ function renderLaporanMobile() {
             </div>
         </div>
 
+        <!-- ====================================================================== -->
+        <!-- EXECUTIVE SUMMARY: 6 BATANGAN EMAS SIKU 90 DERAJAT -->
+        <!-- ====================================================================== -->
+        <div class="mt-6 flex flex-col w-full shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-[#a6802e]">
+            
+            <!-- HEADER KESIMPULAN INTI -->
+            <div class="bg-gradient-to-r from-slate-900 to-black p-2.5 text-center border-b border-slate-700">
+                <h3 class="text-white font-black text-[10px] uppercase tracking-[0.2em]"><i class="fa-solid fa-crown text-[#cfa950] mr-1"></i> Executive Summary</h3>
+            </div>
+
+            <!-- BATANG 1: OMZET -->
+            <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-3 flex justify-between items-center border-b border-[#735311]">
+                <span class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest">Omzet Kotor</span>
+                <span class="text-[#1a1202] font-black font-mono text-[13px]">${rupiah(Math.round(lOmset))}</span>
+            </div>
+
+            <!-- BATANG 2: HPP & BIAYA -->
+            <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-3 flex justify-between items-center border-b border-[#735311]">
+                <span class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest">HPP & Biaya Keluar</span>
+                <span class="text-[#5b1414] font-black font-mono text-[13px]">- ${rupiah(Math.round(lHPP + bBiayaToko))}</span>
+            </div>
+
+            <!-- BATANG 3: LABA BERSIH (GLOWING) -->
+            <div class="bg-gradient-to-r from-[#fcd34d] to-[#d97706] p-3.5 flex justify-between items-center border-b border-[#735311] shadow-inner">
+                <span class="text-black font-black text-[12px] uppercase tracking-widest"><i class="fa-solid fa-sack-dollar text-[#78350f] mr-1"></i> Laba Bersih</span>
+                <span class="text-black font-black font-mono text-[16px] drop-shadow-md">${rupiah(Math.round(labaBersihSejati))}</span>
+            </div>
+
+            <!-- BATANG 4: TRAFIK FISIK -->
+            <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-3 flex justify-between items-center border-b border-[#735311]">
+                <span class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest">Stok Awal: <span class="text-black">${totalQtyTersedia}</span></span>
+                <span class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest">Terjual: <span class="text-black">${terjualQtySiklus}</span></span>
+            </div>
+
+            <!-- BATANG 5: SISA ASET RAK -->
+            <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-3 flex justify-between items-center border-b border-[#735311]">
+                <span class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest">Aset Rak: <span class="text-black">${sisaQtyReal} Pcs</span></span>
+                <span class="text-[#1a1202] font-black font-mono text-[12px]">${rupiah(Math.round(sisaRpReal))}</span>
+            </div>
+
+            <!-- BATANG 6: PERFORMA OBAT (DROPDOWN) DENGAN LENCANA MACAM OBAT -->
+            <div class="bg-gradient-to-r from-slate-900 to-slate-800 border-t border-[#cfa950]">
+                <div class="p-3 flex justify-between items-center cursor-pointer" onclick="toggleAkordeonLaporan('tabel-performa-obat')">
+                    <span class="text-[#cfa950] font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5">
+                        <i class="fa-solid fa-list-ol"></i> Performa Rinci Obat
+                        <span id="badge-jenis-obat" class="bg-[#cfa950] text-[#1a1202] px-1.5 py-0.5 rounded-sm text-[8px] leading-none ml-1 hidden tracking-normal">0 Macam</span>
+                    </span>
+                    <i class="fa-solid fa-chevron-down text-[#cfa950] text-[12px] transition-transform duration-300" id="icon-tabel-performa-obat"></i>
+                </div>
+                
+                <!-- ISI DROPDOWN BATANG KE-6 -->
+                <div id="tabel-performa-obat" class="hidden bg-white overflow-x-auto hide-scrollbar border-t border-slate-700">
+                    <table class="w-full text-left border-collapse whitespace-nowrap">
+                        <thead>
+                            <tr class="bg-slate-100 text-[8px] font-black text-slate-500 uppercase tracking-widest border-b-2 border-slate-300">
+                                <th class="py-2 px-2 sticky left-0 bg-slate-100 z-10 border-r border-slate-200">Nama Obat</th>
+                                <th class="py-2 px-2 border-r border-slate-200 text-center">Awal</th>
+                                <th class="py-2 px-2 border-r border-slate-200 text-center text-amber-600">Laku</th>
+                                <th class="py-2 px-2 border-r border-slate-200 text-center text-emerald-600">Sisa</th>
+                                <th class="py-2 px-2 border-r border-slate-200 text-right">Modal/HPP</th>
+                                <th class="py-2 px-2 text-right">Jual</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-[9px] font-bold font-mono text-slate-700 divide-y divide-slate-100" id="body-tabel-performa">
+                            <!-- INJEKSI JS AKAN MASUK KE SINI -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
     </div>`;
+
+    // ======================================================================
+    // INJEKSI JS: MERAKIT DATA TABEL OBAT BATANG KE-6 (SANGAT AMAN)
+    // ======================================================================
+    setTimeout(function() {
+        var tabelPerforma = {};
+        
+        // 1. Ambil Sisa & Harga dari Etalase & Gudang
+        masterItems.filter(function(i) { return i.nama !== '___SYSTEM_AUTH___' && i.kategori !== '⚠️ Barang Retur'; }).forEach(function(m) {
+            var key = m.dnaInduk;
+            var nama = m.nama + (m.varian ? ' ' + m.varian : '');
+            if(!tabelPerforma[key]) tabelPerforma[key] = { nama: nama, sisa: 0, laku: 0, hpp: m.modal || 0, jual: m.jual || 0 };
+            tabelPerforma[key].sisa += (m.stok || 0);
+        });
+
+        etalaseItems.forEach(function(e) {
+            var key = e.dnaInduk || e.nama;
+            var nama = e.nama + (e.varian ? ' ' + e.varian : '');
+            var hppAman = (e.antreanFIFO && e.antreanFIFO.length > 0 && e.antreanFIFO[0].modal) ? e.antreanFIFO[0].modal : 0;
+            if(!tabelPerforma[key]) tabelPerforma[key] = { nama: nama, sisa: 0, laku: 0, hpp: hppAman, jual: e.jual || 0 };
+            tabelPerforma[key].sisa += (e.stok || 0);
+        });
+
+        // 2. Ambil Data Terjual dari Riwayat Kasir
+        var wMulai = siklusAktif.waktuStart || 0;
+        cashierHistory.filter(function(t) { return (wMulai ? t.id >= wMulai : t.tanggal >= siklusAktif.tanggalStart) && !t.isPelunasan; }).forEach(function(trx) {
+            if(trx.detailKeranjang) {
+                trx.detailKeranjang.forEach(function(item) {
+                    var key = item.dnaInduk || item.nama;
+                    if(tabelPerforma[key]) tabelPerforma[key].laku += (item.qty || 0);
+                });
+            } else {
+                var keyLama = trx.obat;
+                if(tabelPerforma[keyLama]) tabelPerforma[keyLama].laku += (trx.item || 1);
+            }
+        });
+
+        // 3. Rakit HTML Baris Tabel & Hitung Jumlah Macam Obat
+        var htmlTabelObat = '';
+        var jumlahJenisObat = 0; // <--- INI MESIN PENGHITUNGNYA
+        Object.values(tabelPerforma).sort(function(a,b) { return b.laku - a.laku; }).forEach(function(obat) {
+            var awal = obat.sisa + obat.laku;
+            if (awal > 0) {
+                jumlahJenisObat++; // Tambah 1 ke hitungan setiap ada obat yang valid
+                htmlTabelObat += '<tr class="hover:bg-amber-50/50 transition-colors">' +
+                    '<td class="py-2 px-2 sticky left-0 bg-white z-10 border-r border-slate-100 truncate max-w-[120px]" title="' + obat.nama + '">' + obat.nama + '</td>' +
+                    '<td class="py-2 px-2 border-r border-slate-100 text-center">' + awal + '</td>' +
+                    '<td class="py-2 px-2 border-r border-slate-100 text-center text-amber-600">' + obat.laku + '</td>' +
+                    '<td class="py-2 px-2 border-r border-slate-100 text-center text-emerald-600">' + obat.sisa + '</td>' +
+                    '<td class="py-2 px-2 border-r border-slate-100 text-right">' + (obat.hpp || 0).toLocaleString('id-ID') + '</td>' +
+                    '<td class="py-2 px-2 text-right">' + (obat.jual || 0).toLocaleString('id-ID') + '</td>' +
+                '</tr>';
+            }
+        });
+
+        var elemenBody = document.getElementById('body-tabel-performa');
+        if (elemenBody) {
+            elemenBody.innerHTML = htmlTabelObat || '<tr><td colspan="6" class="py-4 text-center text-slate-400">Belum ada data obat.</td></tr>';
+        }
+
+        // Tembakkan angka ke lencana/badge di Header Batang 6
+        var badgeObat = document.getElementById('badge-jenis-obat');
+        if (badgeObat) {
+            badgeObat.textContent = jumlahJenisObat + ' Macam';
+            badgeObat.classList.remove('hidden');
+        }
+
+    }, 100);
 }
 
 
