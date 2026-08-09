@@ -324,14 +324,47 @@ tailwind.config = {
                 </div>
             </div>
 
-            <!-- 3. BARIS FILTER: Bersih tanpa Tab, Murni hanya Filter Tanggal -->
+                        <!-- 3. BARIS FILTER PINTAR: Rentang Waktu (Dropdown Neumorphism) -->
             <div class="px-6 py-4 bg-[#f8fafc] border-b border-slate-100 shadow-sm sticky top-[88px] z-10">
-                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Cari Berdasarkan Tanggal</label>
-                <div class="relative">
-                    <i class="fa-regular fa-calendar-days absolute left-4 top-1/2 -translate-y-1/2 text-corporate-500 text-lg"></i>
-                    <input type="date" id="filterTglRiwayatMobile" onchange="renderRiwayatMobile()" class="w-full bg-white border border-slate-200 rounded-2xl pl-12 pr-4 py-3 text-sm font-bold text-slate-800 shadow-sm focus:outline-none">
+                <label class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 block">Cari Berdasarkan Rentang Waktu</label>
+                <div class="relative z-30">
+                    <!-- Tombol Pemicu Panel -->
+                    <button onclick="toggleDropdownFilterRiwayat()" class="w-full bg-white border border-slate-200 rounded-2xl pl-12 pr-4 py-3 text-sm font-black text-slate-800 shadow-sm focus:outline-none tracking-wide text-left flex justify-between items-center transition-all">
+                        <span id="teksFilterRiwayatUi" class="truncate">Hari Ini</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-300 shrink-0 ml-2" id="iconDropdownFilterRiwayat"></i>
+                    </button>
+                    <i class="fa-regular fa-calendar-days absolute left-4 top-1/2 -translate-y-1/2 text-corporate-500 text-lg pointer-events-none"></i>
+                    
+                    <!-- Panel Melayang Neumorphism -->
+                    <div id="panelFilterRiwayat" class="hidden absolute left-0 right-0 sm:w-[320px] top-[calc(100%+12px)] bg-[#f8fafc] rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.4)] border border-slate-200 overflow-hidden transform origin-top transition-all z-50">
+                        <div class="p-4 bg-white border-b border-slate-100">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 pl-1"><i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Filter Pintas</p>
+                            <div class="flex flex-col gap-2">
+                                <button onclick="setFilterRiwayat('hari_ini')" class="text-left px-4 py-3 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl hover:bg-corporate-600 hover:text-white hover:border-corporate-600 transition-colors shadow-sm">📅 Hari Ini (Standar)</button>
+                                <button onclick="setFilterRiwayat('7_hari')" class="text-left px-4 py-3 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl hover:bg-corporate-600 hover:text-white hover:border-corporate-600 transition-colors shadow-sm">📊 7 Hari Terakhir</button>
+                                <button onclick="setFilterRiwayat('semua')" class="text-left px-4 py-3 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200 rounded-xl hover:bg-corporate-600 hover:text-white hover:border-corporate-600 transition-colors shadow-sm">🕰️ Semua Waktu (Riwayat Total)</button>
+                            </div>
+                        </div>
+                        <div class="p-4">
+                            <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 pl-1"><i class="fa-solid fa-sliders text-blue-500 mr-1"></i> Pilih Rentang Manual</p>
+                            <div class="flex items-center gap-3 mb-4">
+                                <div class="flex-1">
+                                    <label class="block text-[9px] font-bold text-slate-500 mb-1">Dari Tanggal</label>
+                                    <input type="date" id="filterRiwayatTglAwal" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-700 focus:outline-none shadow-inner">
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-[9px] font-bold text-slate-500 mb-1">Sampai Tanggal</label>
+                                    <input type="date" id="filterRiwayatTglAkhir" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-700 focus:outline-none shadow-inner">
+                                </div>
+                            </div>
+                            <button onclick="setFilterRiwayat('manual')" class="w-full bg-corporate-600 hover:bg-corporate-700 text-white font-black py-3.5 rounded-xl text-xs transition-colors active:scale-95 shadow-md flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-check"></i> Terapkan Filter
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
+
 
             <!-- 4. WADAH KUITANSI -->
             <div class="px-6 pt-5 pb-8 space-y-3" id="daftarRiwayatMobile"></div>
@@ -415,16 +448,16 @@ tailwind.config = {
                             </div>
                             <div class="p-4">
                                 <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 pl-1"><i class="fa-solid fa-sliders text-blue-500 mr-1"></i> Pilih Rentang Manual</p>
-                                <div class="flex items-center gap-3 mb-4">
-                                    <div class="flex-1">
-                                        <label class="block text-[9px] font-bold text-slate-500 mb-1">Dari Tanggal</label>
-                                        <input type="date" id="filterTglAwal" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-700 focus:outline-none shadow-inner">
-                                    </div>
-                                    <div class="flex-1">
-                                        <label class="block text-[9px] font-bold text-slate-500 mb-1">Sampai Tanggal</label>
-@                                        <input type="date" id="filterTglAkhir" class="w-full bg-white border border-slate-300 rounded-xl px-3 py-2.5 text-[11px] font-bold text-slate-700 focus:outline-none shadow-inner">
-                                    </div>
+                                                       <div class="flex items-center gap-1.5 mb-4">
+                                <div class="flex-1 min-w-0">
+                                    <label class="block text-[8.5px] font-bold text-slate-500 mb-1 truncate">Dari Tanggal</label>
+                                    <input type="date" id="filterTglAwal" class="w-full bg-white border border-slate-300 rounded-xl px-2 py-2 text-[10px] font-bold text-slate-700 focus:outline-none shadow-inner">
                                 </div>
+                                <div class="flex-1 min-w-0">
+                                    <label class="block text-[8.5px] font-bold text-slate-500 mb-1 truncate">Sampai Tanggal</label>
+                                    <input type="date" id="filterTglAkhir" class="w-full bg-white border border-slate-300 rounded-xl px-2 py-2 text-[10px] font-bold text-slate-700 focus:outline-none shadow-inner">
+                                </div>
+                            </div>
                                 <button onclick="setFilterLaporan('manual')" class="w-full bg-[#1e40af] hover:bg-[#1e3a8a] text-white font-black py-3.5 rounded-xl text-xs transition-colors active:scale-95 shadow-md flex items-center justify-center gap-2">
                                     <i class="fa-solid fa-check"></i> Terapkan Filter
                                 </button>
@@ -1184,39 +1217,74 @@ tailwind.config = {
         </div>
     </div>
 
-    <div id="modalSetelanMobile" class="absolute inset-0 z-[140] hidden flex items-end sm:items-center justify-center pointer-events-none">
+        <div id="modalSetelanMobile" class="absolute inset-0 z-[140] hidden flex items-end sm:items-center justify-center pointer-events-none">
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity pointer-events-auto" onclick="tutupModalMobile('modalSetelanMobile')"></div>
         <div class="bg-[#f8fafc] w-full max-h-[85vh] rounded-t-3xl sm:rounded-3xl sm:w-[90%] sm:mb-10 shadow-2xl relative z-10 pointer-events-auto transform transition-transform translate-y-full flex flex-col" id="panelSetelanMobile">
             <div class="flex justify-center pt-3 pb-2" onclick="tutupModalMobile('modalSetelanMobile')"><div class="w-12 h-1.5 bg-slate-200 rounded-full"></div></div>
             <div class="px-6 pb-4 border-b border-slate-200 flex items-center gap-3">
-                <div class="h-10 w-10 rounded-xl bg-slate-200 flex items-center justify-center text-slate-600 border border-slate-300"><i class="fa-solid fa-gear"></i></div>
-                <div><h3 class="font-bold text-slate-800 text-lg leading-tight">Setelan Profil</h3><p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Header Struk Cetak</p></div>
+                <div class="h-10 w-10 rounded-xl bg-corporate-50 flex items-center justify-center text-corporate-600 border border-corporate-200"><i class="fa-solid fa-sliders"></i></div>
+                <div><h3 class="font-bold text-slate-800 text-lg leading-tight">Hub Pengaturan</h3><p class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Konfigurasi Sistem</p></div>
             </div>
-            <div class="p-6 overflow-y-auto hide-scrollbar flex-1 space-y-5">
-                <div class="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Nama Apotek</label>
-                        <input type="text" id="setNamaMobile" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none transition-all">
+            
+            <!-- Area Akordeon Master -->
+            <div class="p-6 overflow-y-auto hide-scrollbar flex-1 space-y-3">
+                
+                <!-- BLOK 1: PROFIL APOTEK -->
+                <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden select-none">
+                    <div class="flex justify-between items-center p-4 cursor-pointer bg-slate-50" onclick="toggleAkordeonSetelan('setelan-profil')">
+                        <h4 class="text-[11px] font-black text-corporate-700 uppercase tracking-widest flex items-center gap-2"><i class="fa-solid fa-store text-corporate-500"></i> Profil Apotek</h4>
+                        <i class="fa-solid fa-chevron-down text-slate-400 text-[10px] transition-transform duration-300" id="icon-setelan-profil"></i>
                     </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Alamat Lengkap</label>
-                        <textarea id="setAlamatMobile" rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none transition-all leading-relaxed"></textarea>
-                    </div>
-                    <div>
-                        <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">No. Telp / WhatsApp</label>
-                        <input type="number" id="setTelpMobile" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none transition-all">
+                    
+                    <div id="setelan-profil" class="hidden px-4 pb-4 pt-2 border-t border-slate-100 space-y-4">
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Nama Apotek</label>
+                            <input type="text" id="setNamaMobile" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Alamat Lengkap</label>
+                            <textarea id="setAlamatMobile" rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none transition-all leading-relaxed"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">No. Telp / WhatsApp</label>
+                            <input type="number" id="setTelpMobile" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none transition-all">
+                        </div>
+                        <button onclick="prosesSimpanSetelanMobile()" class="w-full bg-corporate-600 hover:bg-corporate-700 text-white font-black py-3.5 rounded-xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2 text-xs tracking-wider"><i class="fa-solid fa-save"></i> Simpan Profil</button>
                     </div>
                 </div>
-                <button onclick="resetSistemMobile()" class="mt-4 w-full bg-red-50 hover:bg-red-100 border border-red-200 text-red-500 text-xs font-bold py-3 rounded-2xl transition-colors flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-triangle-exclamation"></i> Kembalikan ke Pengaturan Awal (Reset)
-                </button>
+
+                <!-- BLOK 2: PRINTER -->
+                <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden select-none opacity-70">
+                    <div class="flex justify-between items-center p-4 cursor-pointer">
+                        <h4 class="text-[11px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><i class="fa-solid fa-print text-slate-400"></i> Printer & Struk</h4>
+                        <span class="text-[8px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded font-bold uppercase tracking-widest">Segera</span>
+                    </div>
+                </div>
+
+                <!-- BLOK 3: DATABASE -->
+                <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden select-none opacity-70">
+                    <div class="flex justify-between items-center p-4 cursor-pointer">
+                        <h4 class="text-[11px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><i class="fa-solid fa-cloud text-slate-400"></i> Database & Sync</h4>
+                        <span class="text-[8px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded font-bold uppercase tracking-widest">Segera</span>
+                    </div>
+                </div>
+
+                <!-- BLOK 4: KEAMANAN -->
+                <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden select-none opacity-70">
+                    <div class="flex justify-between items-center p-4 cursor-pointer">
+                        <h4 class="text-[11px] font-black text-slate-600 uppercase tracking-widest flex items-center gap-2"><i class="fa-solid fa-shield-halved text-slate-400"></i> Keamanan & Kasir</h4>
+                        <span class="text-[8px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded font-bold uppercase tracking-widest">Segera</span>
+                    </div>
+                </div>
+
             </div>
-             <div class="p-6 border-t border-slate-100 bg-white grid grid-cols-2 gap-3 rounded-b-3xl">
-                <button onclick="tutupModalMobile('modalSetelanMobile')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3.5 rounded-2xl transition-colors">Batal</button>
-                <button onclick="prosesSimpanSetelanMobile()" class="w-full bg-slate-800 hover:bg-slate-900 text-white font-bold py-3.5 rounded-2xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2"><i class="fa-solid fa-save"></i> Simpan</button>
+            
+            <div class="p-6 border-t border-slate-100 bg-white rounded-b-3xl">
+                <button onclick="tutupModalMobile('modalSetelanMobile')" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-black py-4 rounded-2xl transition-colors active:scale-95 uppercase tracking-wider text-sm">Tutup Pengaturan</button>
             </div>
         </div>
     </div>
+
 
     <div id="modalLacakMobile" class="absolute inset-0 z-[145] hidden flex items-end sm:items-center justify-center pointer-events-none">
         <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity pointer-events-auto" onclick="tutupModalMobile('modalLacakMobile')"></div>
