@@ -1453,20 +1453,23 @@ tailwind.config = {
 
     <div id="sidebarKiriOverlay" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-[250] hidden opacity-0 transition-opacity duration-300" onclick="tutupSidebarKiriMobile()"></div>
         <div id="sidebarKiriMobile" class="absolute top-0 left-0 h-full w-[280px] bg-[#f8fafc] z-[260] shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col rounded-r-[2.5rem] overflow-hidden border-r border-slate-200">
-        <div class="bg-gradient-to-br from-corporate-600 to-corporate-800 p-7 pt-12 text-white relative shadow-md">
+                <div class="bg-gradient-to-br from-corporate-600 to-corporate-800 p-7 pt-12 text-white relative shadow-md">
             <div class="relative inline-block cursor-pointer group" onclick="bukaModalSetelanMobile(); tutupSidebarKiriMobile()">
-                <div class="h-16 w-16 bg-white/20 backdrop-blur-md rounded-[1.25rem] flex items-center justify-center shadow-inner border border-white/30 group-active:scale-95 transition-transform overflow-hidden bg-white">
-                    <img src="logo.png" alt="Logo Apotek" class="w-full h-full object-cover">
-                </div>
-            </div>
-                        <div class="relative inline-block cursor-pointer group" onclick="bukaModalSetelanMobile(); tutupSidebarKiriMobile()">
-                <div class="h-16 w-16 bg-white/20 backdrop-blur-md rounded-[1.25rem] flex items-center justify-center shadow-inner border border-white/30 group-active:scale-95 transition-transform overflow-hidden bg-white/10">
+                <div class="h-16 w-16 bg-white/20 backdrop-blur-md rounded-[1.25rem] flex items-center justify-center shadow-inner border border-white/30 group-active:scale-95 transition-transform overflow-hidden">
                     <img id="logoSidebar" src="" class="w-full h-full object-cover hidden">
                     <i id="iconSidebar" class="fa-solid fa-mortar-pestle text-3xl text-white drop-shadow-md"></i>
                 </div>
             </div>
-
+            
+            <div class="mt-5 relative inline-block cursor-pointer group w-full" onclick="bukaModalSetelanMobile(); tutupSidebarKiriMobile()">
+                <h2 class="font-black text-[22px] tracking-tight pr-6 leading-none" id="namaApotekSidebar">Apotek Arsyila</h2>
+                <p class="text-corporate-100 text-[10px] mt-1 font-bold tracking-widest uppercase opacity-80">Ketuk untuk ubah profil</p>
+                <div class="absolute top-0 right-0 text-white/40 group-hover:text-white transition-colors">
+                    <i class="fa-solid fa-pen text-xs"></i>
+                </div>
+            </div>
         </div>
+
         <div class="flex-1 p-5 space-y-3 overflow-y-auto hide-scrollbar bg-slate-50">
             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2 mb-2 mt-2">Menu Sistem</p>
             
