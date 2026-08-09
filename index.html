@@ -547,49 +547,60 @@ tailwind.config = {
                     <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Varian Nama</label>
                     <input type="text" id="editVarianMobile" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none transition-all">
                 </div>
-                                <div class="grid grid-cols-2 gap-3">
-                    <div>
+                                                <div class="grid grid-cols-2 gap-3">
+                    <div class="relative">
                         <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Kategori <span class="text-red-500">*</span></label>
-                        <select id="editKategoriMobile" onchange="toggleKategoriKustomEditMobile()" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-sm font-bold text-slate-700 focus:outline-none appearance-none">
-                            <option value="" disabled selected hidden>Pilih Kategori</option>
-                            <option value="Sakit Kepala">Sakit Kepala</option>
-                            <option value="Vitamin">Vitamin</option>
-                            <option value="Sirup">Sirup</option>
-                            <option value="Analgesik">Analgesik</option>
-                            <option value="Antibiotik">Antibiotik</option>
-                            <option value="Salep">Salep</option>
-                            <option value="kustom">Kustom (Manual)...</option>
-                        </select>
+                        <input type="hidden" id="editKategoriMobile" value="">
+                        <button type="button" id="btn_editKategoriMobile" onclick="toggleDropdownCustom('editKategoriMobile')" class="custom-dropdown-btn w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none transition-all flex justify-between items-center text-left">
+                            <span id="teks_editKategoriMobile" class="truncate text-slate-400 text-xs">Contoh: <i>Vitamin</i></span>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-300 shrink-0 ml-2 custom-dropdown-icon" id="icon_editKategoriMobile"></i>
+                        </button>
+                        <div id="menu_editKategoriMobile" class="custom-dropdown-menu hidden absolute left-0 right-0 top-[65px] bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 max-h-48 overflow-y-auto divide-y divide-slate-50">
+                            <div onclick="pilihDropdownCustom('editKategoriMobile', 'kustom', 'Pilih Manual', true)" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-black text-blue-600">Pilih Manual</div>
+                            <div onclick="pilihDropdownCustom('editKategoriMobile', 'Sakit Kepala', 'Sakit Kepala')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Sakit Kepala</div>
+                            <div onclick="pilihDropdownCustom('editKategoriMobile', 'Vitamin', 'Vitamin')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Vitamin</div>
+                            <div onclick="pilihDropdownCustom('editKategoriMobile', 'Sirup', 'Sirup')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Sirup</div>
+                            <div onclick="pilihDropdownCustom('editKategoriMobile', 'Analgesik', 'Analgesik')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Analgesik</div>
+                            <div onclick="pilihDropdownCustom('editKategoriMobile', 'Antibiotik', 'Antibiotik')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Antibiotik</div>
+                            <div onclick="pilihDropdownCustom('editKategoriMobile', 'Salep', 'Salep')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Salep</div>
+                        </div>
                         <input type="text" id="editKategoriKustom" placeholder="Ketik Kategori..." class="hidden w-full bg-white border border-blue-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 focus:outline-none mt-2 shadow-inner transition-all">
                     </div>
-                    <div>
+                    <div class="relative">
                         <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Sat. Eceran <span class="text-red-500">*</span></label>
-                        <select id="editSatuanEceran" onchange="kalkulatorEditBatchMobile()" class="w-full bg-[#eef5ef] border border-[#b2d5bb] rounded-xl px-3 py-3 text-sm font-bold text-[#274f31] focus:outline-none appearance-none">
-                            <option value="" disabled selected hidden>Pilih (Cth: Strip)</option>
-                            <option value="Strip">Strip</option>
-                            <option value="Biji">Biji</option>
-                            <option value="Pcs">Pcs</option>
-                            <option value="Botol">Botol</option>
-                            <option value="Saset">Saset</option>
-                            <option value="Tube">Tube</option>
-                            <option value="Kotak / Box">Kotak / Box</option>
-                            <option value="Blister">Blister</option>
-                            <option value="Pak">Pak</option>
-                            <option value="Lembar">Lembar</option>
-                            <option value="Pot">Pot</option>
-                            <option value="Bungkus">Bungkus</option>
-                            <option value="Kaleng">Kaleng</option>
-                            <option value="Roll">Roll</option>
-                            <option value="Pasang">Pasang</option>
-                            <option value="Ampul">Ampul</option>
-                            <option value="Suppositoria">Suppositoria</option>
-                            <option value="Pen / Stik">Pen / Stik</option>
-                            <option value="Set">Set</option>
-                            <option value="Flabot">Flabot</option>
-                            <option value="Kantong">Kantong</option>
-                        </select>
+                        <input type="hidden" id="editSatuanEceran" value="">
+                        <button type="button" id="btn_editSatuanEceran" onclick="toggleDropdownCustom('editSatuanEceran')" class="custom-dropdown-btn w-full bg-[#eef5ef] border border-[#b2d5bb] rounded-xl px-4 py-3 focus:outline-none transition-all flex justify-between items-center text-left">
+                            <span id="teks_editSatuanEceran" class="truncate text-[#274f31] opacity-70 text-xs">Contoh: <i>Strip</i></span>
+                            <i class="fa-solid fa-chevron-down text-[10px] text-[#274f31] opacity-70 transition-transform duration-300 shrink-0 ml-2 custom-dropdown-icon" id="icon_editSatuanEceran"></i>
+                        </button>
+                        <div id="menu_editSatuanEceran" class="custom-dropdown-menu hidden absolute left-0 right-0 top-[65px] bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 max-h-48 overflow-y-auto divide-y divide-slate-50">
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Strip', 'Strip')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Strip</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Biji', 'Biji')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Biji</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Pcs', 'Pcs')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Pcs</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Botol', 'Botol')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Botol</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Saset', 'Saset')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Saset</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Tube', 'Tube')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Tube</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Kotak', 'Kotak')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Kotak</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Box', 'Box')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Box</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Blister', 'Blister')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Blister</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Pak', 'Pak')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Pak</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Lembar', 'Lembar')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Lembar</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Pot', 'Pot')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Pot</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Bungkus', 'Bungkus')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Bungkus</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Kaleng', 'Kaleng')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Kaleng</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Roll', 'Roll')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Roll</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Pasang', 'Pasang')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Pasang</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Ampul', 'Ampul')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Ampul</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Suppositoria', 'Suppositoria')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Suppositoria</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Pen', 'Pen')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Pen</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Stik', 'Stik')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Stik</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Set', 'Set')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Set</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Flabot', 'Flabot')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Flabot</div>
+                            <div onclick="pilihDropdownCustom('editSatuanEceran', 'Kantong', 'Kantong')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Kantong</div>
+                        </div>
                     </div>
                 </div>
+
 
                 <!-- KOTAK KALKULATOR PEMBELIAN & KONVERSI (DISAMAKAN DGN TAMBAH OBAT) -->
                 <div class="bg-blue-50 border border-blue-100 rounded-2xl p-4 shadow-inner mb-2 mt-2">
@@ -608,20 +619,26 @@ tailwind.config = {
                             <label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Jumlah Dibeli</label>
                             <input type="number" id="editQtyBeli" oninput="kalkulatorEditBatchMobile()" placeholder="Misal: 5" class="w-full bg-white border border-blue-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none text-center">
                         </div>
-                        <div>
+                                                <div class="relative">
                             <label class="block text-[9px] font-bold text-slate-500 mb-1 uppercase tracking-wider">Satuan Beli</label>
-                            <select id="editSatuanBesar" onchange="kalkulatorEditBatchMobile()" class="w-full bg-white border border-blue-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none appearance-none">
-                                <option value="" disabled selected hidden>Pilih (Cth: Box)</option>
-                                <option value="Bal">Bal</option>
-                                <option value="Botol">Botol</option>
-                                <option value="Box / Kotak">Box / Kotak</option>
-                                <option value="Dos / Karton">Dos / Karton</option>
-                                <option value="Kaleng">Kaleng</option>
-                                <option value="Pak">Pak</option>
-                                <option value="Renteng">Renteng</option>
-                                <option value="Hanger">Hanger</option>
-                                <option value="Lusin">Lusin</option>
-                            </select>
+                            <input type="hidden" id="editSatuanBesar" value="">
+                            <button type="button" id="btn_editSatuanBesar" onclick="toggleDropdownCustom('editSatuanBesar')" class="custom-dropdown-btn w-full bg-white border border-blue-200 rounded-xl px-4 py-2 focus:outline-none transition-all flex justify-between items-center text-left">
+                                <span id="teks_editSatuanBesar" class="truncate text-slate-400 text-xs">Contoh: <i>Box</i></span>
+                                <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-300 shrink-0 ml-2 custom-dropdown-icon" id="icon_editSatuanBesar"></i>
+                            </button>
+                            <div id="menu_editSatuanBesar" class="custom-dropdown-menu hidden absolute left-0 right-0 top-[60px] bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 max-h-48 overflow-y-auto divide-y divide-slate-50">
+                                <div onclick="pilihDropdownCustom('editSatuanBesar', 'Bal', 'Bal')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Bal</div>
+                                <div onclick="pilihDropdownCustom('editSatuanBesar', 'Botol', 'Botol')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Botol</div>
+                                <div onclick="pilihDropdownCustom('editSatuanBesar', 'Box', 'Box')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Box</div>
+                                <div onclick="pilihDropdownCustom('editSatuanBesar', 'Kotak', 'Kotak')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Kotak</div>
+                                <div onclick="pilihDropdownCustom('editSatuanBesar', 'Dos', 'Dos')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Dos</div>
+                                <div onclick="pilihDropdownCustom('editSatuanBesar', 'Karton', 'Karton')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Karton</div>
+                                <div onclick="pilihDropdownCustom('editSatuanBesar', 'Kaleng', 'Kaleng')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Kaleng</div>
+                                <div onclick="pilihDropdownCustom('editSatuanBesar', 'Pak', 'Pak')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Pak</div>
+                                <div onclick="pilihDropdownCustom('editSatuanBesar', 'Renteng', 'Renteng')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Renteng</div>
+                                <div onclick="pilihDropdownCustom('editSatuanBesar', 'Hanger', 'Hanger')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Hanger</div>
+                                <div onclick="pilihDropdownCustom('editSatuanBesar', 'Lusin', 'Lusin')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Lusin</div>
+                            </div>
                         </div>
                     </div>
 
@@ -935,48 +952,59 @@ tailwind.config = {
                     </div>
 
                   <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Kategori <span class="text-red-500">*</span></label>
-                            <select id="tambahKategoriMobile" onchange="toggleKategoriKustomMobile()" class="w-full bg-white border border-slate-200 rounded-2xl px-3 py-3 text-sm font-bold text-slate-700 focus:outline-none appearance-none">
-                                <option value="" disabled selected hidden>Pilih Kategori</option>
-                                <option value="Sakit Kepala">Sakit Kepala</option>
-                                <option value="Vitamin">Vitamin</option>
-                                <option value="Sirup">Sirup</option>
-                                <option value="Analgesik">Analgesik</option>
-                                <option value="Antibiotik">Antibiotik</option>
-                                <option value="Salep">Salep</option>
-                                <option value="kustom">Kustom (Manual)...</option>
-                            </select>
-                            <input type="text" id="tambahKategoriKustom" placeholder="Ketik Kategori..." class="hidden w-full bg-slate-50 border border-[#d97706]/40 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 focus:outline-none mt-2 shadow-inner transition-all">
-                        </div>
-                        <div>
-                            <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Satuan Eceran <span class="text-red-500">*</span></label>
-                            <select id="tambahSatuanEceran" onchange="kalkulasiTambahObatCerdas()" class="w-full bg-[#eef5ef] border border-[#b2d5bb] rounded-2xl px-3 py-3 text-sm font-bold text-[#274f31] focus:outline-none appearance-none">
-                                <option value="" disabled selected hidden>Pilih (Cth: Strip)</option>
-                                <option value="Strip">Strip</option>
-                                <option value="Biji">Biji</option>
-                                <option value="Pcs">Pcs</option>
-                                <option value="Botol">Botol</option>
-                                <option value="Saset">Saset</option>
-                                <option value="Tube">Tube</option>
-                                <option value="Kotak / Box">Kotak / Box</option>
-                                <option value="Blister">Blister</option>
-                                <option value="Pak">Pak</option>
-                                <option value="Lembar">Lembar</option>
-                                <option value="Pot">Pot</option>
-                                <option value="Bungkus">Bungkus</option>
-                                <option value="Kaleng">Kaleng</option>
-                                <option value="Roll">Roll</option>
-                                <option value="Pasang">Pasang</option>
-                                <option value="Ampul">Ampul</option>
-                                <option value="Suppositoria">Suppositoria</option>
-                                <option value="Pen / Stik">Pen / Stik</option>
-                                <option value="Set">Set</option>
-                                <option value="Flabot">Flabot</option>
-                                <option value="Kantong">Kantong</option>
-                            </select>
-                        </div>
-                    </div>
+    <div class="relative">
+        <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Kategori <span class="text-red-500">*</span></label>
+        <input type="hidden" id="tambahKategoriMobile" value="">
+        <button type="button" id="btn_tambahKategoriMobile" onclick="toggleDropdownCustom('tambahKategoriMobile')" class="custom-dropdown-btn w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 focus:outline-none transition-all flex justify-between items-center text-left">
+            <span id="teks_tambahKategoriMobile" class="truncate text-slate-400 text-xs">Contoh: <i>Vitamin</i></span>
+            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-300 shrink-0 ml-2 custom-dropdown-icon" id="icon_tambahKategoriMobile"></i>
+        </button>
+        <div id="menu_tambahKategoriMobile" class="custom-dropdown-menu hidden absolute left-0 right-0 top-[65px] bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 max-h-48 overflow-y-auto divide-y divide-slate-50">
+            <div onclick="pilihDropdownCustom('tambahKategoriMobile', 'kustom', 'Pilih Manual', true)" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-black text-blue-600">Pilih Manual</div>
+            <div onclick="pilihDropdownCustom('tambahKategoriMobile', 'Sakit Kepala', 'Sakit Kepala')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Sakit Kepala</div>
+            <div onclick="pilihDropdownCustom('tambahKategoriMobile', 'Vitamin', 'Vitamin')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Vitamin</div>
+            <div onclick="pilihDropdownCustom('tambahKategoriMobile', 'Sirup', 'Sirup')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Sirup</div>
+            <div onclick="pilihDropdownCustom('tambahKategoriMobile', 'Analgesik', 'Analgesik')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Analgesik</div>
+            <div onclick="pilihDropdownCustom('tambahKategoriMobile', 'Antibiotik', 'Antibiotik')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Antibiotik</div>
+            <div onclick="pilihDropdownCustom('tambahKategoriMobile', 'Salep', 'Salep')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Salep</div>
+        </div>
+        <input type="text" id="tambahKategoriKustom" placeholder="Ketik Kategori..." class="hidden w-full bg-slate-50 border border-[#d97706]/40 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 focus:outline-none mt-2 shadow-inner transition-all">
+    </div>
+    <div class="relative">
+        <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Satuan Eceran <span class="text-red-500">*</span></label>
+        <input type="hidden" id="tambahSatuanEceran" value="">
+        <button type="button" id="btn_tambahSatuanEceran" onclick="toggleDropdownCustom('tambahSatuanEceran')" class="custom-dropdown-btn w-full bg-[#eef5ef] border border-[#b2d5bb] rounded-2xl px-4 py-3 focus:outline-none transition-all flex justify-between items-center text-left">
+            <span id="teks_tambahSatuanEceran" class="truncate text-[#274f31] opacity-70 text-xs">Contoh: <i>Strip</i></span>
+            <i class="fa-solid fa-chevron-down text-[10px] text-[#274f31] opacity-70 transition-transform duration-300 shrink-0 ml-2 custom-dropdown-icon" id="icon_tambahSatuanEceran"></i>
+        </button>
+        <div id="menu_tambahSatuanEceran" class="custom-dropdown-menu hidden absolute left-0 right-0 top-[65px] bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 max-h-48 overflow-y-auto divide-y divide-slate-50">
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Strip', 'Strip')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Strip</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Biji', 'Biji')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Biji</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Pcs', 'Pcs')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Pcs</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Botol', 'Botol')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Botol</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Saset', 'Saset')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Saset</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Tube', 'Tube')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Tube</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Kotak', 'Kotak')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Kotak</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Box', 'Box')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Box</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Blister', 'Blister')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Blister</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Pak', 'Pak')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Pak</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Lembar', 'Lembar')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Lembar</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Pot', 'Pot')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Pot</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Bungkus', 'Bungkus')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Bungkus</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Kaleng', 'Kaleng')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Kaleng</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Roll', 'Roll')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Roll</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Pasang', 'Pasang')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Pasang</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Ampul', 'Ampul')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Ampul</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Suppositoria', 'Suppositoria')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Suppositoria</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Pen', 'Pen')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Pen</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Stik', 'Stik')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Stik</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Set', 'Set')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Set</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Flabot', 'Flabot')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Flabot</div>
+            <div onclick="pilihDropdownCustom('tambahSatuanEceran', 'Kantong', 'Kantong')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Kantong</div>
+        </div>
+    </div>
+</div>
+
                 </div>
 
                 <div class="bg-[#f8fafc] p-5 rounded-[24px] shadow-lg">
@@ -987,21 +1015,28 @@ tailwind.config = {
                             <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Jumlah Dibeli</label>
                             <input type="number" id="tambahQtyBeli" oninput="kalkulasiTambahObatCerdas()" placeholder="5" class="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none text-center">
                         </div>
-                        <div>
+                                                <div class="relative">
                             <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider">Satuan Beli</label>
-                            <select id="tambahSatuanBesar" onchange="kalkulasiTambahObatCerdas()" class="w-full bg-[#eef5ef] border border-[#b2d5bb] rounded-2xl px-3 py-3 text-sm font-bold text-[#274f31] focus:outline-none appearance-none">
-                                <option value="" disabled selected hidden>Pilih (Cth: Box)</option>
-                                <option value="Bal">Bal</option>
-                                <option value="Botol">Botol</option>
-                                <option value="Box / Kotak">Box / Kotak</option>
-                                <option value="Dos / Karton">Dos / Karton</option>
-                                <option value="Kaleng">Kaleng</option>
-                                <option value="Pak">Pak</option>
-                                <option value="Renteng">Renteng</option>
-                                <option value="Hanger">Hanger</option>
-                                <option value="Lusin">Lusin</option>
-                            </select>
+                            <input type="hidden" id="tambahSatuanBesar" value="">
+                            <button type="button" id="btn_tambahSatuanBesar" onclick="toggleDropdownCustom('tambahSatuanBesar')" class="custom-dropdown-btn w-full bg-[#eef5ef] border border-[#b2d5bb] rounded-2xl px-4 py-3 focus:outline-none transition-all flex justify-between items-center text-left">
+                                <span id="teks_tambahSatuanBesar" class="truncate text-[#274f31] opacity-70 text-xs">Contoh: <i>Box</i></span>
+                                <i class="fa-solid fa-chevron-down text-[10px] text-[#274f31] opacity-70 transition-transform duration-300 shrink-0 ml-2 custom-dropdown-icon" id="icon_tambahSatuanBesar"></i>
+                            </button>
+                            <div id="menu_tambahSatuanBesar" class="custom-dropdown-menu hidden absolute left-0 right-0 top-[65px] bg-white rounded-2xl shadow-xl border border-slate-100 overflow-hidden z-50 max-h-48 overflow-y-auto divide-y divide-slate-50">
+                                <div onclick="pilihDropdownCustom('tambahSatuanBesar', 'Bal', 'Bal')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Bal</div>
+                                <div onclick="pilihDropdownCustom('tambahSatuanBesar', 'Botol', 'Botol')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Botol</div>
+                                <div onclick="pilihDropdownCustom('tambahSatuanBesar', 'Box', 'Box')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Box</div>
+                                <div onclick="pilihDropdownCustom('tambahSatuanBesar', 'Kotak', 'Kotak')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Kotak</div>
+                                <div onclick="pilihDropdownCustom('tambahSatuanBesar', 'Dos', 'Dos')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Dos</div>
+                                <div onclick="pilihDropdownCustom('tambahSatuanBesar', 'Karton', 'Karton')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Karton</div>
+                                <div onclick="pilihDropdownCustom('tambahSatuanBesar', 'Kaleng', 'Kaleng')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Kaleng</div>
+                                <div onclick="pilihDropdownCustom('tambahSatuanBesar', 'Pak', 'Pak')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Pak</div>
+                                <div onclick="pilihDropdownCustom('tambahSatuanBesar', 'Renteng', 'Renteng')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Renteng</div>
+                                <div onclick="pilihDropdownCustom('tambahSatuanBesar', 'Hanger', 'Hanger')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Hanger</div>
+                                <div onclick="pilihDropdownCustom('tambahSatuanBesar', 'Lusin', 'Lusin')" class="px-4 py-3 hover:bg-slate-50 cursor-pointer text-sm font-bold text-slate-700">Lusin</div>
+                            </div>
                         </div>
+
                     </div>
 
                     <div class="flex items-center justify-between gap-3">

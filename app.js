@@ -1674,9 +1674,18 @@ function renderRekapMobile() {
 let idBatchAktif = null;
 
 function bukaModalMobile(idModal, idPanel) {
-    const modal = document.getElementById(idModal); const panel = document.getElementById(idPanel);
-    modal.classList.remove('hidden'); setTimeout(() => { panel.classList.remove('translate-y-full'); }, 10);
+    const modal = document.getElementById(idModal); 
+    const panel = document.getElementById(idPanel);
+    
+    // --- PENYEMPURNAAN UX: Paksa scroll kembali ke paling atas ---
+    const areaScroll = panel.querySelector('.overflow-y-auto');
+    if (areaScroll) areaScroll.scrollTop = 0;
+    // -------------------------------------------------------------
+
+    modal.classList.remove('hidden'); 
+    setTimeout(() => { panel.classList.remove('translate-y-full'); }, 10);
 }
+
 function tutupModalMobile(idModal) {
     const modal = document.getElementById(idModal); const panel = modal.querySelector('.transform.transition-transform');
     if(panel) panel.classList.add('translate-y-full'); setTimeout(() => { modal.classList.add('hidden'); }, 300);
@@ -1825,20 +1834,93 @@ function pindahTabEditMobile(index) {
     renderEditTabsMobile(); loadFormEditBatchMobile(); kunciFormEditMobile();
 }
 
-function isiKategoriEditCerdas(kategori) {
-    let select = document.getElementById('editKategoriMobile');
-    let input = document.getElementById('editKategoriKustom');
-    let options = Array.from(select.options).map(o => o.value);
-    if (kategori && !options.includes(kategori) && kategori !== 'kustom') {
-        select.value = 'kustom';
-        input.value = kategori;
-        input.classList.remove('hidden');
+// ==========================================
+// MESIN UI CUSTOM DROPDOWN (AMAN DARI CRASH)
+// ==========================================
+function toggleDropdownCustom(idKey) {
+    const menu = document.getElementById('menu_' + idKey);
+    const icon = document.getElementById('icon_' + idKey);
+    if (menu.classList.contains('hidden')) {
+        document.querySelectorAll('.custom-dropdown-menu').forEach(m => m.classList.add('hidden'));
+        document.querySelectorAll('.custom-dropdown-icon').forEach(i => i.style.transform = 'rotate(0deg)');
+        menu.classList.remove('hidden');
+        if(icon) icon.style.transform = 'rotate(180deg)';
     } else {
-        select.value = kategori || '';
-        input.value = '';
-        input.classList.add('hidden');
+        menu.classList.add('hidden');
+        if(icon) icon.style.transform = 'rotate(0deg)';
     }
 }
+
+function pilihDropdownCustom(idKey, nilaiKode, teksTampil, isManual = false) {
+    document.getElementById(idKey).value = nilaiKode; // Mengisi Nilai Rahasia (Aman untuk Logika)
+    setDropdownUIManual(idKey, teksTampil); // Mengubah Tampilan Kasir
+    toggleDropdownCustom(idKey); // Menutup Menu
+    
+    if (idKey === 'tambahKategoriMobile') {
+        let inputKustom = document.getElementById('tambahKategoriKustom');
+        if(isManual) { inputKustom.classList.remove('hidden'); inputKustom.focus(); } 
+        else { inputKustom.classList.add('hidden'); inputKustom.value = ''; }
+    } else if (idKey === 'editKategoriMobile') {
+        let inputKustom = document.getElementById('editKategoriKustom');
+        if(isManual) { inputKustom.classList.remove('hidden'); inputKustom.focus(); } 
+        else { inputKustom.classList.add('hidden'); inputKustom.value = ''; }
+    } else if (idKey === 'tambahSatuanEceran' || idKey === 'tambahSatuanBesar') {
+        kalkulasiTambahObatCerdas();
+    } else if (idKey === 'editSatuanEceran' || idKey === 'editSatuanBesar') {
+        kalkulatorEditBatchMobile();
+    }
+}
+
+function setDropdownUIManual(idKey, teksTampil) {
+    const btn = document.getElementById('btn_' + idKey);
+    const teks = document.getElementById('teks_' + idKey);
+    if(!teks) return;
+    teks.innerHTML = teksTampil;
+    teks.className = 'truncate font-black text-slate-800 text-sm'; // Teks berubah jadi hitam tebal!
+    
+    // Perubahan Warna Kotak JIKA itu Satuan Eceran/Besar
+    if(idKey.includes('SatuanEceran') || idKey.includes('SatuanBesar')) {
+         btn.classList.add('bg-[#eef5ef]', 'border-[#b2d5bb]');
+         btn.classList.remove('bg-white', 'bg-slate-50', 'border-slate-200');
+    } else {
+         btn.classList.add('bg-white');
+         btn.classList.remove('bg-slate-50');
+    }
+}
+
+function resetDropdownUI(idKey, placeholderHtml, isEditMode = false) {
+    const btn = document.getElementById('btn_' + idKey);
+    const teks = document.getElementById('teks_' + idKey);
+    if(!teks || !btn) return;
+    document.getElementById(idKey).value = ''; // Kosongkan Nilai Mesin
+    teks.innerHTML = placeholderHtml;
+    teks.className = 'truncate text-slate-400 text-xs'; // Teks kembali abu-abu buram (Placeholder)
+    
+    btn.classList.remove('bg-[#eef5ef]', 'border-[#b2d5bb]', 'bg-white');
+    if(isEditMode) btn.classList.add('bg-slate-50', 'border-slate-200');
+    else btn.classList.add('bg-white', 'border-slate-200');
+}
+
+// FUNGSI INI DIBANGUN ULANG AGAR TIDAK CRASH SAAT EDIT OBAT
+function isiKategoriEditCerdas(kategori) {
+    let inputSelect = document.getElementById('editKategoriMobile');
+    let inputKustom = document.getElementById('editKategoriKustom');
+    let opsiStandar = ['Sakit Kepala', 'Vitamin', 'Sirup', 'Analgesik', 'Antibiotik', 'Salep'];
+    
+    if (kategori && !opsiStandar.includes(kategori) && kategori !== 'kustom') {
+        inputSelect.value = 'kustom';
+        inputKustom.value = kategori;
+        inputKustom.classList.remove('hidden');
+        setDropdownUIManual('editKategoriMobile', 'Pilih Manual');
+    } else {
+        inputSelect.value = kategori || '';
+        inputKustom.value = '';
+        inputKustom.classList.add('hidden');
+        if(kategori) setDropdownUIManual('editKategoriMobile', kategori);
+        else resetDropdownUI('editKategoriMobile', 'Contoh: <i>Vitamin</i>', true);
+    }
+}
+
 
 function siapkanBatchBaruMobile() {
     isAddingNewBatchMobile = true; renderEditTabsMobile();
@@ -1908,12 +1990,18 @@ function loadFormEditBatchMobile() {
     }
 
 function kunciFormEditMobile() {
-    let formInputs = document.querySelectorAll('#panelEditMobile input, #panelEditMobile select');
+    let formInputs = document.querySelectorAll('#panelEditMobile input:not([type="hidden"]), #panelEditMobile select');
     formInputs.forEach(input => {
-        if(input.tagName === 'SELECT') { input.disabled = true; }
-        else if(input.type !== 'checkbox') { input.readOnly = true; }
+        if(input.type !== 'checkbox') { input.readOnly = true; }
         input.classList.add('bg-slate-100', 'text-slate-500'); 
         input.classList.remove('bg-white', 'text-slate-800', 'bg-slate-50', 'bg-[#eef5ef]', 'text-[#274f31]');
+    });
+    
+    let customBtns = document.querySelectorAll('#panelEditMobile .custom-dropdown-btn');
+    customBtns.forEach(btn => {
+        btn.disabled = true;
+        btn.classList.add('bg-slate-100', 'text-slate-500');
+        btn.classList.remove('bg-white', 'bg-slate-50', 'bg-[#eef5ef]', 'border-[#b2d5bb]');
     });
     
     document.getElementById('teksHeaderKunciEdit').innerHTML = '<i class="fa-solid fa-pen text-blue-300"></i> Edit Data Obat';
@@ -1926,19 +2014,27 @@ function kunciFormEditMobile() {
     btnAksi.className = 'w-full bg-slate-200 text-slate-600 font-bold py-4 rounded-2xl transition-transform active:scale-95 text-sm uppercase tracking-wider';
 }
 
+
 function aktifkanModeEditMobile() {
-    let formInputs = document.querySelectorAll('#panelEditMobile input, #panelEditMobile select');
+    let formInputs = document.querySelectorAll('#panelEditMobile input:not([type="hidden"]), #panelEditMobile select');
     formInputs.forEach(input => {
-        if(input.tagName === 'SELECT') { input.disabled = false; }
-        else if(input.type !== 'checkbox') { input.readOnly = false; }
+        if(input.type !== 'checkbox') { input.readOnly = false; }
         input.classList.remove('bg-slate-100', 'text-slate-500'); 
         input.classList.add('bg-white', 'text-slate-800');
     });
     
-    // Kembalikan warna dropdown satuan eceran (hijau halus)
-    let sEcer = document.getElementById('editSatuanEceran');
-    sEcer.classList.remove('bg-white', 'text-slate-800');
-    sEcer.classList.add('bg-[#eef5ef]', 'text-[#274f31]');
+    let customBtns = document.querySelectorAll('#panelEditMobile .custom-dropdown-btn');
+    customBtns.forEach(btn => {
+        btn.disabled = false;
+        btn.classList.remove('bg-slate-100', 'text-slate-500');
+        let hiddenInput = document.getElementById(btn.id.replace('btn_', ''));
+        if(hiddenInput && hiddenInput.value !== '') {
+            if(btn.id.includes('Satuan')) btn.classList.add('bg-[#eef5ef]', 'border-[#b2d5bb]');
+            else btn.classList.add('bg-white');
+        } else {
+            btn.classList.add('bg-slate-50');
+        }
+    });
     
     let inputJual = document.getElementById('editJualMobile');
     inputJual.readOnly = true; inputJual.classList.add('bg-slate-200', 'text-slate-500');
@@ -1952,6 +2048,7 @@ function aktifkanModeEditMobile() {
     btnAksi.innerHTML = '<i class="fa-solid fa-save text-lg"></i> Simpan Perubahan';
     btnAksi.className = 'w-full bg-blue-600 hover:bg-blue-700 text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-600/30 transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm uppercase tracking-wider';
 }
+
 
 
 function bukaKunciHargaJualMobile() {
@@ -2358,26 +2455,30 @@ function bukaModalTambahObatMobile() {
         if(btn && teks) {
             btn.className = "w-12 h-12 bg-white text-[#d97706] rounded-2xl flex flex-col items-center justify-center shrink-0 border border-slate-200 shadow-sm active:scale-95 transition-all gap-0.5";
             teks.classList.add('hidden');
-            teks.textContent = "Rekam"; // PERBAIKAN: Mengembalikan teks murni agar siklus UI sempurna
+            teks.textContent = "Rekam"; 
         }
     });
 
     document.getElementById('tambahNamaMobile').value = ''; document.getElementById('tambahVarianMobile').value = '';
-    document.getElementById('tambahKategoriMobile').value = ''; document.getElementById('tambahKategoriKustom').value = '';
-    document.getElementById('tambahSatuanEceran').value = ''; document.getElementById('tambahSatuanBesar').value = '';
+    
+    // RESET UI DROPDOWN CUSTOM (Aman 100%)
+    resetDropdownUI('tambahKategoriMobile', 'Contoh: <i>Vitamin</i>');
+    resetDropdownUI('tambahSatuanEceran', 'Contoh: <i>Strip</i>');
+    resetDropdownUI('tambahSatuanBesar', 'Contoh: <i>Box</i>');
+    document.getElementById('tambahKategoriKustom').value = '';
+    
     document.getElementById('tambahQtyBeli').value = ''; document.getElementById('tambahIsiPerSatuan').value = '';
     document.getElementById('tambahToggleBulk').checked = true;
     document.getElementById('tambahModalKotor').value = ''; document.getElementById('tambahJualEceran').value = ''; 
     document.getElementById('tambahExpiredMobile').value = '';
     
-    // Sembunyikan elemen kondisional di awal
     document.getElementById('wadahVarianMobile').classList.add('hidden');
     document.getElementById('tambahKategoriKustom').classList.add('hidden');
 
-    // Jalankan Kalkulasi Awal (Reset Label)
     kalkulasiTambahObatCerdas();
     bukaModalMobile('modalTambahObatMobile', 'panelTambahObatMobile');
 }
+
 
 // MESIN PENGGERAK LOGIKA (Dipanggil setiap kali user mengetik)
 function kalkulasiTambahObatCerdas() {
