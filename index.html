@@ -1369,8 +1369,8 @@ tailwind.config = {
         </div>
     </div>
 
-    <div id="modalAlertMobile" class="absolute inset-0 z-[200] bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center transition-opacity duration-300 opacity-0">
-        <div class="bg-white w-[85%] max-w-[320px] rounded-[2rem] shadow-2xl overflow-hidden transform transition-transform duration-300 scale-90" id="panelAlertMobile">
+    <div id="modalAlertMobile" class="absolute inset-0 z-[300] bg-slate-900/60 backdrop-blur-md hidden flex items-center justify-center transition-opacity duration-300 opacity-0">
+   <div class="bg-white w-[85%] max-w-[320px] rounded-[2rem] shadow-2xl overflow-hidden transform transition-transform duration-300 scale-90" id="panelAlertMobile">
             <div id="headerAlertMobile" class="pt-8 pb-6 px-6 text-center relative">
                 <div class="w-16 h-16 mx-auto rounded-full flex items-center justify-center text-3xl mb-3 shadow-inner" id="iconAlertMobile"></div>
                 <h3 class="font-black text-xl tracking-tight mb-2" id="judulAlertMobile">Pesan</h3>
@@ -1454,17 +1454,17 @@ tailwind.config = {
         <div class="flex-1 p-5 space-y-3 overflow-y-auto hide-scrollbar bg-slate-50">
             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2 mb-2 mt-2">Menu Sistem</p>
             
-            <button onclick="alert('Buku Panduan Aplikasi Sedang Dipersiapkan.')" class="w-full flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-blue-200 transition-all active:scale-95 text-left group">
+                            <button onclick="tutupSidebarKiriMobile(); setTimeout(() => alert('Buku Panduan Aplikasi Sedang Dipersiapkan.'), 300);" class="w-full flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-blue-200 transition-all active:scale-95 text-left group">
                 <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors"><i class="fa-solid fa-book-open"></i></div>
                 <div><span class="block text-sm font-black text-slate-700 mb-0.5">Panduan Aplikasi</span><span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider">Buku Manual Kasir</span></div>
             </button>
             
             <button onclick="bukaModalSetelanMobile(); tutupSidebarKiriMobile()" class="w-full flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-corporate-200 transition-all active:scale-95 text-left group">
-                <div class="w-10 h-10 rounded-xl bg-corporate-50 text-corporate-600 flex items-center justify-center group-hover:bg-corporate-600 group-hover:text-white transition-colors"><i class="fa-solid fa-gear"></i></div>
-                <div><span class="block text-sm font-black text-slate-700 mb-0.5">Setelan Akun</span><span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider">Ubah Header Struk</span></div>
+                <div class="w-10 h-10 rounded-xl bg-corporate-50 text-corporate-600 flex items-center justify-center group-hover:bg-corporate-600 group-hover:text-white transition-colors"><i class="fa-solid fa-sliders"></i></div>
+                <div><span class="block text-sm font-black text-slate-700 mb-0.5">Hub Pengaturan</span><span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider">Konfigurasi Sistem</span></div>
             </button>
             
-            <button onclick="alert('Pusat Bantuan Teknis IT Akan Segera Aktif.') " class="w-full flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-emerald-200 transition-all active:scale-95 text-left group">
+            <button onclick="tutupSidebarKiriMobile(); setTimeout(() => window.open('https://wa.me/6281235064233?text=Halo%20Tim%20Bantuan%20IT%2C%20saya%20membutuhkan%20dukungan%20teknis%20terkait%20aplikasi%20Sistem%20Kasir%20Apotek%20Arsyila.', '_blank'), 300);" class="w-full flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-emerald-200 transition-all active:scale-95 text-left group">
                 <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors"><i class="fa-solid fa-headset"></i></div>
                 <div><span class="block text-sm font-black text-slate-700 mb-0.5">Kontak Server</span><span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider">Bantuan Teknis IT</span></div>
             </button>
@@ -1475,6 +1475,8 @@ tailwind.config = {
                 <div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center"><i class="fa-solid fa-triangle-exclamation"></i></div>
                 <div><span class="block text-sm font-black text-red-600 mb-0.5">Kembalikan ke Awal</span><span class="block text-[9px] text-red-500 font-bold uppercase tracking-wider">Reset Semua Data</span></div>
             </button>
+
+
         </div>
     </div>
 
