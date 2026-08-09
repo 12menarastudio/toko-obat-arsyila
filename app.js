@@ -1286,25 +1286,13 @@ function setFilterLaporan(tipe) {
 
 function renderLaporanMobile() {
     const wadah = document.getElementById('kontenLaporanMobile');
-    let waktuMulaiShift = siklusAktif.waktuStart || 0; // KUNCI SHIFT
     
     // =======================================================
     // MESIN 1: KALKULASI RENTANG WAKTU (LABA/RUGI, ARUS KAS, TRAFIK)
     // =======================================================
-    let dataPeriode = cashierHistory.filter(t => {
-        let inDate = t.tanggal >= laporanTglAwal && t.tanggal <= laporanTglAkhir;
-        if (laporanLabelVisual === "Hari Ini") return inDate && t.id >= waktuMulaiShift;
-        return inDate;
-    });
-    
-    let dataKeluar = pengeluaranHistory.filter(p => {
-        let inDate = p.tanggal >= laporanTglAwal && p.tanggal <= laporanTglAkhir;
-        if (laporanLabelVisual === "Hari Ini") {
-            let stamp = parseInt(p.id.split('-').pop()) || 0; // Membaca jam kas keluar
-            return inDate && stamp >= waktuMulaiShift;
-        }
-        return inDate;
-    });
+    let dataPeriode = cashierHistory.filter(t => t.tanggal >= laporanTglAwal && t.tanggal <= laporanTglAkhir);
+    let dataKeluar = pengeluaranHistory.filter(p => p.tanggal >= laporanTglAwal && p.tanggal <= laporanTglAkhir);
+
   
     let lOmset = 0, lHPP = 0, omzetTunai = 0, omzetQRIS = 0, omzetDebt = 0;
     let inLunas = 0, totalPembeli = 0, totalBiji = 0;
@@ -4377,22 +4365,9 @@ function prosesRenderDetailTigaSerangkai(jenis) {
 // MESIN EXPORT LAPORAN KE MICROSOFT WORD (A4 LANDSCAPE)
 // ==========================================
 function exportLaporanKeWord() {
-    let waktuMulaiShift = siklusAktif.waktuStart || 0;
-    
-    let dataPeriode = cashierHistory.filter(t => {
-        let inDate = t.tanggal >= laporanTglAwal && t.tanggal <= laporanTglAkhir;
-        if (laporanLabelVisual === "Hari Ini") return inDate && t.id >= waktuMulaiShift;
-        return inDate;
-    });
-    
-    let dataKeluar = pengeluaranHistory.filter(p => {
-        let inDate = p.tanggal >= laporanTglAwal && p.tanggal <= laporanTglAkhir;
-        if (laporanLabelVisual === "Hari Ini") {
-            let stamp = parseInt(p.id.split('-').pop()) || 0;
-            return inDate && stamp >= waktuMulaiShift;
-        }
-        return inDate;
-    });
+    let dataPeriode = cashierHistory.filter(t => t.tanggal >= laporanTglAwal && t.tanggal <= laporanTglAkhir);
+    let dataKeluar = pengeluaranHistory.filter(p => p.tanggal >= laporanTglAwal && p.tanggal <= laporanTglAkhir);
+
 
     if(dataPeriode.length === 0 && dataKeluar.length === 0) return alert("Data kosong! Belum ada transaksi pada rentang tanggal ini.");
     
@@ -4568,22 +4543,9 @@ function exportLaporanKeWord() {
 // MESIN CETAK LAPORAN KE PDF (A4 LANDSCAPE STRICT LEDGER)
 // ==========================================
 function exportLaporanKePDF() {
-    let waktuMulaiShift = siklusAktif.waktuStart || 0;
-    
-    let dataPeriode = cashierHistory.filter(t => {
-        let inDate = t.tanggal >= laporanTglAwal && t.tanggal <= laporanTglAkhir;
-        if (laporanLabelVisual === "Hari Ini") return inDate && t.id >= waktuMulaiShift;
-        return inDate;
-    });
-    
-    let dataKeluar = pengeluaranHistory.filter(p => {
-        let inDate = p.tanggal >= laporanTglAwal && p.tanggal <= laporanTglAkhir;
-        if (laporanLabelVisual === "Hari Ini") {
-            let stamp = parseInt(p.id.split('-').pop()) || 0;
-            return inDate && stamp >= waktuMulaiShift;
-        }
-        return inDate;
-    });
+    let dataPeriode = cashierHistory.filter(t => t.tanggal >= laporanTglAwal && t.tanggal <= laporanTglAkhir);
+    let dataKeluar = pengeluaranHistory.filter(p => p.tanggal >= laporanTglAwal && p.tanggal <= laporanTglAkhir);
+
 
     if(dataPeriode.length === 0 && dataKeluar.length === 0) return alert("Data kosong! Belum ada transaksi pada rentang tanggal ini.");
 
