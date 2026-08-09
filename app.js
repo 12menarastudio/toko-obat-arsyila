@@ -3542,6 +3542,41 @@ function prosesSimpanSetelanMobile() {
     tutupModalMobile('modalSetelanMobile'); 
     alert("✅ Profil Apotek berhasil diperbarui!");
 }
+// ==========================================
+// MESIN UNGGAH & KONVERSI LOGO (BASE64)
+// ==========================================
+function prosesUnggahLogo(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+        return alert("⚠️ Ukuran gambar terlalu besar! Maksimal 2MB agar aplikasi tetap ringan.");
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const base64String = e.target.result;
+        profilApotek.logo = base64String;
+        
+        terapkanLogoVisual(base64String);
+        saveApotekDB('apotek_profilData', profilApotek);
+        alert("✅ Logo berhasil diperbarui!");
+    };
+    reader.readAsDataURL(file);
+}
+
+function terapkanLogoVisual(base64String) {
+    const arrImg = ['previewLogoSetelan', 'logoBeranda', 'logoSidebar'];
+    const arrIcon = ['iconLogoSetelan', 'iconBeranda', 'iconSidebar'];
+
+    if (base64String) {
+        arrImg.forEach(id => { let el = document.getElementById(id); if (el) { el.src = base64String; el.classList.remove('hidden'); } });
+        arrIcon.forEach(id => { let el = document.getElementById(id); if (el) el.classList.add('hidden'); });
+    } else {
+        arrImg.forEach(id => { let el = document.getElementById(id); if (el) { el.src = ''; el.classList.add('hidden'); } });
+        arrIcon.forEach(id => { let el = document.getElementById(id); if (el) el.classList.remove('hidden'); });
+    }
+}
 
 
 // ==========================================
@@ -4283,10 +4318,14 @@ window.onload = () => {
             document.getElementById('namaApotekHeader').innerText = p.nama; 
             if(document.getElementById('namaApotekSidebar')) document.getElementById('namaApotekSidebar').innerText = p.nama; 
             document.getElementById('setNamaMobile').value = p.nama; 
+            
+            // SUNTIKAN: Muat ulang gambar logo ke seluruh wajah aplikasi
+            if(p.logo) terapkanLogoVisual(p.logo);
         } 
     } catch(e) {}
     renderBerandaMobile(); 
 };
+
 
 // ==========================================
 // 24. MESIN DETAIL TIGA SERANGKAI STOK (POPUP & RINCIAN)
