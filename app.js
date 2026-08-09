@@ -134,50 +134,53 @@ function bukaLayar(targetLayar) {
 // ==========================================
 function renderBerandaMobile() {
     let tglHariIni = getTanggalLokal();
-    let omzet = 0, laba = 0, hpp = 0, daftarTerlaris = {}, totalKasbonBelumLunas = 0;
-    let totalItemTerjualHariIni = 0, totalPembeliHariIni = 0; // TAMBAHAN VARIABEL BARU
+    let waktuMulai = siklusAktif.waktuStart || 0; // KUNCI SHIFT: Membaca jam Tutup Buku terakhir
     
-    let totalPelunasan = 0; // TAMBAHAN: Untuk melacak uang masuk dari utang
+    let omzet = 0, laba = 0, hpp = 0, daftarTerlaris = {}, totalKasbonBelumLunas = 0;
+    let totalItemTerjualHariIni = 0, totalPembeliHariIni = 0; 
+    let totalPelunasan = 0; 
+    
     cashierHistory.forEach(t => {
-        if (t.tanggal === tglHariIni) {
+        // MENGHITUNG OMZET BERDASARKAN SHIFT AKTIF (Setelah Tutup Buku Terakhir)
+        if (t.id >= waktuMulai) {
             if (!t.isPelunasan) {
                 omzet += t.total || 0; laba += t.laba || 0; hpp += ((t.total || 0) - (t.laba || 0));
                 totalItemTerjualHariIni += (t.item || 0); 
                 totalPembeliHariIni++; 
+                
+                if (daftarTerlaris[t.obat]) { 
+                     daftarTerlaris[t.obat].item += t.item || 0; 
+                     daftarTerlaris[t.obat].omset += t.total || 0; 
+                 } else { 
+                     daftarTerlaris[t.obat] = { nama: t.obat, item: t.item || 0, omset: t.total || 0 }; 
+                 }
             } else {
-                totalPelunasan += t.total || 0; // Hanya catat sebagai kas masuk, bukan omzet
+                totalPelunasan += t.total || 0; 
             }
         }
+        
+        // PANTAUAN GLOBAL (Tetap menghitung hutang orang dari masa lalu)
         if (t.metode === 'Debt' && !t.statusLunas) totalKasbonBelumLunas++;
-        if (!t.isPelunasan) {
-            if (daftarTerlaris[t.obat]) { 
-                 daftarTerlaris[t.obat].item += t.item || 0; 
-                 daftarTerlaris[t.obat].omset += t.total || 0; 
-             } else { 
-                 daftarTerlaris[t.obat] = { nama: t.obat, item: t.item || 0, omset: t.total || 0 }; 
-             }
-        }
     });
     
-  document.getElementById('berandaOmzet').textContent = rupiah(Math.round(omzet));
+    document.getElementById('berandaOmzet').textContent = rupiah(Math.round(omzet));
     document.getElementById('berandaHPP').textContent = '- ' + rupiah(Math.round(hpp));
     document.getElementById('berandaLaba').textContent = rupiah(Math.round(laba));
     
-    // INJEKSI UI: Menampilkan Pelunasan agar kasir tahu uang masuk hari ini
     if(document.getElementById('berandaPelunasan')) {
         document.getElementById('berandaPelunasan').textContent = '+ ' + rupiah(totalPelunasan);
         document.getElementById('wadahPelunasan').classList.toggle('hidden', totalPelunasan === 0);
     }
 
     let asetGudang = 0, totalJenisObat = 0, countKritis = 0, countExpired = 0, stokGabungan = {};
-    let totalSisaStok = 0; // TAMBAHAN VARIABEL STOK
+    let totalSisaStok = 0; 
     
-        masterItems.forEach(b => {
+    masterItems.forEach(b => {
         if (b.nama !== '___SYSTEM_AUTH___') {
-            asetGudang += (b.totalModal !== undefined ? b.totalModal : (b.modal * b.stok)); // KIBLAT MUTLAK
+            asetGudang += (b.totalModal !== undefined ? b.totalModal : (b.modal * b.stok)); 
             if (!stokGabungan[b.dnaInduk]) { stokGabungan[b.dnaInduk] = 0; totalJenisObat++; }
             stokGabungan[b.dnaInduk] += b.stok;
-            totalSisaStok += b.stok; // MENGHITUNG STOK GUDANG
+            totalSisaStok += b.stok; 
             
             if (b.expired) {
                 let diffHari = Math.floor((new Date(b.expired) - new Date(tglHariIni)) / (1000 * 60 * 60 * 24));
@@ -189,14 +192,13 @@ function renderBerandaMobile() {
     
     let asetEtalase = 0;
     etalaseItems.forEach(b => {
-        // MENGHITUNG STOK ETALASE
         if (!stokGabungan[b.dnaInduk]) { stokGabungan[b.dnaInduk] = 0; totalJenisObat++; }
         stokGabungan[b.dnaInduk] += (b.stok || 0);
         totalSisaStok += (b.stok || 0); 
         
         if(b.antreanFIFO && b.antreanFIFO.length > 0) {
             b.antreanFIFO.forEach(fifo => { 
-                asetEtalase += (fifo.totalModal !== undefined ? fifo.totalModal : (fifo.modal * fifo.stok)); // KIBLAT MUTLAK
+                asetEtalase += (fifo.totalModal !== undefined ? fifo.totalModal : (fifo.modal * fifo.stok)); 
             });
         } else {
             let masterNya = masterItems.find(m => m.dnaInduk === b.dnaInduk || m.nama === b.nama); 
@@ -204,11 +206,10 @@ function renderBerandaMobile() {
         }
     });
 
-    // --- 1. KALKULASI ASET FISIK SAAT INI (KARTU 4 kulakan) ---
     let asetGudangkulakan = 0; let stokGudangkulakan = 0;
     masterItems.forEach(i => { 
         if (i.nama !== '___SYSTEM_AUTH___' && i.kategori !== '⚠️ Barang Retur') { 
-            asetGudangkulakan += (i.totalModal !== undefined ? i.totalModal : (i.modal * i.stok)); // KIBLAT MUTLAK
+            asetGudangkulakan += (i.totalModal !== undefined ? i.totalModal : (i.modal * i.stok)); 
             stokGudangkulakan += (i.stok || 0); 
         } 
     });
@@ -217,7 +218,7 @@ function renderBerandaMobile() {
     etalaseItems.forEach(i => {
         if(i.antreanFIFO && i.antreanFIFO.length > 0) {
             i.antreanFIFO.forEach(fifo => { 
-                asetEtalasekulakan += (fifo.totalModal !== undefined ? fifo.totalModal : (fifo.modal * fifo.stok)); // KIBLAT MUTLAK
+                asetEtalasekulakan += (fifo.totalModal !== undefined ? fifo.totalModal : (fifo.modal * fifo.stok)); 
             });
         } else {
             let masterNya = masterItems.find(m => m.dnaInduk === i.dnaInduk || m.nama === i.nama); 
@@ -227,23 +228,18 @@ function renderBerandaMobile() {
         stokEtalasekulakan += (i.stok || 0);
     });
 
-    
     let totalAsetFisik = asetGudangkulakan + asetEtalasekulakan;
     let totalStokFisik = stokGudangkulakan + stokEtalasekulakan;
     
-    // --- 2. LOGIKA KARTU MULTI-kulakan (DEFISIT vs LIKUIDASI) ---
     let topModalMurni = (siklusAktif.modalAwal || 0) + (siklusAktif.modalTambahan || 0);
     let topQtyMurni = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
     let tercapai = siklusAktif.uangMasuk || 0;
-    
-    // Mesin Pencari Target Hutang (Baca Hutang Bawaan atau Modal Murni)
     let targetHutang = (siklusAktif.hutangAwal !== undefined ? siklusAktif.hutangAwal : (siklusAktif.modalAwal || 0)) + (siklusAktif.modalTambahan || 0);
     
     let labelBawah = document.getElementById('berandaStatusSiklus');
     let progressBar = document.getElementById('berandaProgressSiklus');
 
     if (siklusAktif.isLikuidasi) {
-        // 🟢 kulakan LIKUIDASI (Gambar 4 - Habiskan Sisa Profit)
         if (document.getElementById('berandaTotalStokMasuk')) document.getElementById('berandaTotalStokMasuk').textContent = totalStokFisik + " Stok Persediaan";
         document.getElementById('berandaAset').textContent = rupiah(totalAsetFisik);
         let patokanAwal = siklusAktif.modalAwal || 1; 
@@ -252,27 +248,22 @@ function renderBerandaMobile() {
         if (labelBawah) labelBawah.innerHTML = `Persediaan Awal: <span class="text-emerald-500 font-black">${rupiah(totalAsetFisik)}</span>`;
         if (progressBar) { progressBar.className = "h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-1000"; progressBar.style.width = persenLikuidasi + "%"; }
     } else {
-        // 🔴/🟡/🟢 kulakan STANDAR & LANJUTAN DEFISIT (Gambar 1, 2, 5, 6, 7)
         let teksAtasLabel = siklusAktif.isLanjutanDefisit ? "Stok Terakhir" : "Stok Dibeli";
         if (document.getElementById('berandaTotalStokMasuk')) document.getElementById('berandaTotalStokMasuk').textContent = topQtyMurni + " " + teksAtasLabel;
         document.getElementById('berandaAset').textContent = rupiah(topModalMurni);
         
         if (targetHutang === 0 && tercapai === 0) {
-            // NOL MODAL (Gambar 2)
             if (labelBawah) labelBawah.innerHTML = `Sisa Target Balik Modal: <span class="text-red-500 font-black">Rp 0</span>`;
             if (progressBar) { progressBar.className = "h-full bg-gradient-to-r from-red-500 to-amber-400 rounded-full transition-all duration-1000"; progressBar.style.width = "0%"; }
         } else if (tercapai < targetHutang) {
-            // DEFISIT (Gambar 7 & Default)
             let sisaHutang = targetHutang - tercapai; 
             let persen = topModalMurni === 0 ? 0 : Math.max(0, ((topModalMurni - sisaHutang) / topModalMurni) * 100);
             if (labelBawah) labelBawah.innerHTML = `Sisa Target Balik Modal: <span class="text-red-500 font-black">${rupiah(sisaHutang)}</span>`;
             if (progressBar) { progressBar.className = "h-full bg-gradient-to-r from-red-500 to-amber-400 rounded-full transition-all duration-1000"; progressBar.style.width = persen + "%"; }
         } else if (tercapai === targetHutang && targetHutang > 0) {
-            // IMPAS (Gambar 5)
             if (labelBawah) labelBawah.innerHTML = `<div class="bg-amber-500 text-white px-3 py-1 rounded-lg font-black shadow-sm text-[10px] tracking-widest uppercase flex items-center justify-center gap-1.5 w-full"><i class="fa-solid fa-scale-balanced text-sm"></i> STATUS KEMBALI MODAL</div>`;
             if (progressBar) { progressBar.className = "h-full bg-amber-400 rounded-full transition-all duration-1000"; progressBar.style.width = "100%"; }
         } else {
-            // SURPLUS (Gambar 6)
             let untung = tercapai - targetHutang;
             if (labelBawah) labelBawah.innerHTML = `<div class="bg-emerald-600 text-white px-3 py-1 rounded-lg font-black shadow-sm text-[10px] tracking-widest uppercase flex items-center justify-center gap-1.5 w-full"><i class="fa-solid fa-circle-check text-sm"></i> ANDA TELAH UNTUNG: ${rupiah(untung)}</div>`;
             if (progressBar) { progressBar.className = "h-full bg-gradient-to-r from-emerald-400 to-teal-500 rounded-full shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all duration-1000"; progressBar.style.width = "100%"; }
@@ -283,7 +274,7 @@ function renderBerandaMobile() {
     const wadahTerlaris = document.getElementById('wadahObatTerlaris');
     
     if(arrTerlaris.length === 0) {
-        wadahTerlaris.innerHTML = `<div class="p-6 text-center text-slate-400 text-xs font-bold"><i class="fa-solid fa-box-open text-3xl mb-2 block opacity-50"></i><br>Belum ada penjualan</div>`;
+        wadahTerlaris.innerHTML = `<div class="p-6 text-center text-slate-400 text-xs font-bold"><i class="fa-solid fa-box-open text-3xl mb-2 block opacity-50"></i><br>Belum ada penjualan di sesi ini</div>`;
     } else {
         wadahTerlaris.innerHTML = arrTerlaris.map((ob, idx) => {
             let styling = idx === 0 ? 'bg-amber-100 text-amber-600 border-amber-200' : (idx === 1 ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-orange-50 text-orange-600 border-orange-200');
@@ -295,19 +286,14 @@ function renderBerandaMobile() {
     document.getElementById('berandaKasbon').textContent = totalKasbonBelumLunas;
     document.getElementById('berandaKedaluwarsa').textContent = countExpired;
     
-    // MENGIRIM DATA KE KOTAK BARU
     if (document.getElementById('berandaSisaStok')) document.getElementById('berandaSisaStok').textContent = totalSisaStok;
     if (document.getElementById('berandaObatTerjual')) document.getElementById('berandaObatTerjual').textContent = totalItemTerjualHariIni;
     if (document.getElementById('berandaPembeli')) document.getElementById('berandaPembeli').textContent = totalPembeliHariIni;
     if (document.getElementById('berandaJenis')) document.getElementById('berandaJenis').textContent = totalJenisObat;
-    if (document.getElementById('berandaJenisObat')) document.getElementById('berandaJenisObat').textContent = `${totalJenisObat} Obat Terdaftar`;
-
-    // INJEKSI ANGKA KE PANEL TIGA SERANGKAI EMAS
-    let terjualSiklusIni = 0;
-    let waktuMulaiSiklus = siklusAktif.waktuStart || 0;
     
+    let terjualSiklusIni = 0;
     cashierHistory.forEach(t => {
-        if (t.id >= waktuMulaiSiklus && !t.isPelunasan) {
+        if (t.id >= waktuMulai && !t.isPelunasan) {
             terjualSiklusIni += (t.item || 0);
         }
     });
@@ -315,23 +301,18 @@ function renderBerandaMobile() {
     if (document.getElementById('panelStokSisa')) document.getElementById('panelStokSisa').textContent = totalSisaStok;
     if (document.getElementById('panelStokTerjual')) document.getElementById('panelStokTerjual').textContent = terjualSiklusIni;
     
-    // --- LOGIKA BARU BATANG EMAS (AKUMULATIF VS LIKUIDASI) ---
     let angkaStokModal = 0;
     if (siklusAktif.isLikuidasi) {
-        // JIKA SURPLUS: Lupakan masa lalu, Stok Modal murni 0 atau hanya membaca barang baru (Kulakan)
         angkaStokModal = siklusAktif.qtyTambahan || 0;
     } else {
-        // JIKA DEFISIT & NORMAL: Akumulasikan seluruh pondasi fisik (Lama + Baru) secara utuh
         angkaStokModal = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
     }
     if (document.getElementById('panelStokTotal')) document.getElementById('panelStokTotal').textContent = angkaStokModal;
     
-    // KEMBALIKAN SCROLL KE KIRI (KOTAK PERTAMA) SAAT BERANDA DIBUKA
     const scrollPantauan = document.getElementById('wadahPantauanSistem');
-    if (scrollPantauan) {
-        scrollPantauan.scrollLeft = 0;
-    }
+    if (scrollPantauan) { scrollPantauan.scrollLeft = 0; }
 }
+
 
 // ==========================================
 // 4. MESIN RENDER: GUDANG & ETALASE
@@ -1583,23 +1564,22 @@ function bukaLayarRekapMobile(metode) {
 
 function renderRekapMobile() {
     const wadah = document.getElementById('daftarRekapMobile');
-    let tglHariIni = getTanggalLokal();
+    let waktuMulai = siklusAktif.waktuStart || 0; // KUNCI SHIFT: Membaca jam Tutup Buku terakhir
     
-    // Setting Header Sesuai Metode
+    // Setting Header
     document.getElementById('judulLayarRekap').textContent = metodeRekapAktif === 'Tunai' ? 'REKAP TUNAI' : 'REKAP DIGITAL';
-    document.getElementById('tanggalLayarRekap').textContent = 'Hari Ini: ' + tglHariIni;
+    document.getElementById('tanggalLayarRekap').textContent = 'Sesi / Shift Saat Ini';
 
-    // Filter Transaksi (Hanya hari ini, sesuai metode, bukan pelunasan utang)
-    let dataPeriode = cashierHistory.filter(t => t.tanggal === tglHariIni && t.metode === metodeRekapAktif && !t.isPelunasan);
+    // FILTER: Hanya transaksi SETELAH Tutup Buku terakhir (Sistem Shift)
+    let dataPeriode = cashierHistory.filter(t => t.id >= waktuMulai && t.metode === metodeRekapAktif && !t.isPelunasan);
     
     let rekapItem = {};
     let grandTotalBiji = 0;
     let grandTotalModal = 0;
     let grandTotalJual = 0;
 
-    // Mesin Penggiling & Pengelompokan Data
     dataPeriode.forEach(trx => {
-                if (trx.detailKeranjang && trx.detailKeranjang.length > 0) {
+        if (trx.detailKeranjang && trx.detailKeranjang.length > 0) {
             trx.detailKeranjang.forEach(item => {
                 let idKunci = item.dnaInduk || item.nama;
                 let namaLengkap = item.nama + (item.varian ? ` ${item.varian}` : '');
@@ -1607,7 +1587,6 @@ function renderRekapMobile() {
                 if(!rekapItem[idKunci]) {
                     rekapItem[idKunci] = { nama: namaLengkap, qty: 0, modal: 0, jual: 0 };
                 }
-
                 
                 let hpp = item.hppSatuan || Math.round(item.jual * 0.8); 
                 let subModal = hpp * item.qty;
@@ -1622,7 +1601,6 @@ function renderRekapMobile() {
                 grandTotalJual += subJual;
             });
         } else {
-            // Skema Fallback untuk data lama sebelum ada sistem keranjang
             let qty = trx.item || 1;
             let hpp = ((trx.total || 0) - (trx.laba || 0));
             let jual = trx.total || 0;
@@ -1642,7 +1620,7 @@ function renderRekapMobile() {
     });
 
     if (Object.keys(rekapItem).length === 0) {
-        wadah.innerHTML = `<div class="bg-white border border-slate-200 rounded-3xl p-8 text-center shadow-sm mt-4"><i class="fa-solid fa-box-open text-4xl text-slate-300 mb-3 block"></i><p class="font-bold text-slate-600">Belum ada item terjual via ${metodeRekapAktif} hari ini.</p></div>`;
+        wadah.innerHTML = `<div class="bg-white border border-slate-200 rounded-3xl p-8 text-center shadow-sm mt-4"><i class="fa-solid fa-box-open text-4xl text-slate-300 mb-3 block"></i><p class="font-bold text-slate-600">Belum ada penjualan ${metodeRekapAktif} di sesi ini.</p></div>`;
     } else {
         let urut = 1;
         wadah.innerHTML = Object.values(rekapItem).map(r => {
@@ -1662,11 +1640,11 @@ function renderRekapMobile() {
         }).join('');
     }
 
-    // Suntik Angka Kesimpulan ke Bottom Summary
     document.getElementById('rekapTotalBiji').textContent = grandTotalBiji + " Biji";
     document.getElementById('rekapTotalModal').textContent = rupiah(grandTotalModal);
     document.getElementById('rekapTotalJual').textContent = rupiah(grandTotalJual);
 }
+
 
 // ==========================================
 // 7. MESIN MODAL UMUM
@@ -1949,11 +1927,26 @@ function siapkanBatchBaruMobile() {
     document.getElementById('editNamaMobile').readOnly = true; document.getElementById('editNamaMobile').classList.add('bg-slate-200','text-slate-500');
     document.getElementById('editVarianMobile').readOnly = true; document.getElementById('editVarianMobile').classList.add('bg-slate-200','text-slate-500');
     document.getElementById('editKategoriMobile').disabled = true; document.getElementById('editKategoriMobile').classList.add('bg-slate-200','text-slate-500');
-    document.getElementById('editJualMobile').readOnly = true; document.getElementById('editJualMobile').classList.add('bg-slate-200','text-slate-500');
+        document.getElementById('editJualMobile').readOnly = true; document.getElementById('editJualMobile').classList.add('bg-slate-200','text-slate-500');
     document.getElementById('btnUbahJualMobile').classList.add('hidden');
      
+    // --- LOGIKA BARU: KUNCI SAKLAR LACI JIKA SALDO KOSONG ---
+    let toggleEditLaciBaru = document.getElementById('editPotongLaciToggle');
+    if (toggleEditLaciBaru) {
+        toggleEditLaciBaru.checked = false; 
+        let wadahEditLaciBaru = toggleEditLaciBaru.parentElement.parentElement; 
+        if (hitungSaldoLaciFisik() <= 0) {
+            toggleEditLaciBaru.disabled = true;
+            if (wadahEditLaciBaru) wadahEditLaciBaru.classList.add('opacity-40', 'grayscale', 'pointer-events-none');
+        } else {
+            toggleEditLaciBaru.disabled = false;
+            if (wadahEditLaciBaru) wadahEditLaciBaru.classList.remove('opacity-40', 'grayscale', 'pointer-events-none');
+        }
+    }
+    // --------------------------------------------------------
+
     let btnAksi = document.getElementById('btnAksiEditMobile');
-    btnAksi.innerHTML = '<i class="fa-solid fa-plus-circle text-lg"></i> Simpan Batch Baru';
+  btnAksi.innerHTML = '<i class="fa-solid fa-plus-circle text-lg"></i> Simpan Batch Baru';
     btnAksi.className = 'w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 rounded-2xl shadow-lg shadow-emerald-500/30 transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm uppercase tracking-wider';
 }
 
@@ -1983,11 +1976,24 @@ function loadFormEditBatchMobile() {
             document.getElementById('editSatuanEceran').value = '';
             document.getElementById('editModalKotor').value = '';
         }
-        kalkulatorEditBatchMobile();
+                kalkulatorEditBatchMobile();
         
-        // Reset centang saklar laci agar tidak terus-terusan aktif
-        if(document.getElementById('editPotongLaciToggle')) document.getElementById('editPotongLaciToggle').checked = false;
+        // --- LOGIKA BARU: KUNCI SAKLAR LACI JIKA SALDO KOSONG ---
+        let toggleEditLaci = document.getElementById('editPotongLaciToggle');
+        if (toggleEditLaci) {
+            toggleEditLaci.checked = false; // Reset selalu mati di awal
+            let wadahEditLaci = toggleEditLaci.parentElement.parentElement; // Menangkap kotak wadahnya
+            if (hitungSaldoLaciFisik() <= 0) {
+                toggleEditLaci.disabled = true;
+                if (wadahEditLaci) wadahEditLaci.classList.add('opacity-40', 'grayscale', 'pointer-events-none');
+            } else {
+                toggleEditLaci.disabled = false;
+                if (wadahEditLaci) wadahEditLaci.classList.remove('opacity-40', 'grayscale', 'pointer-events-none');
+            }
+        }
+        // --------------------------------------------------------
     }
+
 
 function kunciFormEditMobile() {
     let formInputs = document.querySelectorAll('#panelEditMobile input:not([type="hidden"]), #panelEditMobile select');
@@ -2469,9 +2475,24 @@ function bukaModalTambahObatMobile() {
     
     document.getElementById('tambahQtyBeli').value = ''; document.getElementById('tambahIsiPerSatuan').value = '';
     document.getElementById('tambahToggleBulk').checked = true;
-    document.getElementById('tambahModalKotor').value = ''; document.getElementById('tambahJualEceran').value = ''; 
+        document.getElementById('tambahModalKotor').value = ''; document.getElementById('tambahJualEceran').value = ''; 
     document.getElementById('tambahExpiredMobile').value = '';
     
+    // --- LOGIKA BARU: KUNCI SAKLAR LACI JIKA SALDO KOSONG ---
+    let toggleTambahLaci = document.getElementById('tambahPotongLaciToggle');
+    if (toggleTambahLaci) {
+        toggleTambahLaci.checked = false; // Reset selalu mati
+        let wadahTambahLaci = toggleTambahLaci.parentElement.parentElement; // Menangkap kotak wadahnya
+        if (hitungSaldoLaciFisik() <= 0) {
+            toggleTambahLaci.disabled = true;
+            if (wadahTambahLaci) wadahTambahLaci.classList.add('opacity-40', 'grayscale', 'pointer-events-none');
+        } else {
+            toggleTambahLaci.disabled = false;
+            if (wadahTambahLaci) wadahTambahLaci.classList.remove('opacity-40', 'grayscale', 'pointer-events-none');
+        }
+    }
+    // --------------------------------------------------------
+
     document.getElementById('wadahVarianMobile').classList.add('hidden');
     document.getElementById('tambahKategoriKustom').classList.add('hidden');
 
