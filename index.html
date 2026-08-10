@@ -91,16 +91,15 @@ tailwind.config = {
             
                                     <div class="px-6 mt-4">
                 <div class="flex rounded-xl btn-gold-3d overflow-hidden border border-[#b45309] h-12 shadow-md">
-                    <button onclick="bukaDetailTigaSerangkai('total')" class="flex-1 btn-gold-3d-active border-r border-[#b45309]/40 flex flex-col items-center justify-center transition-all">
+                                        <button onclick="bukaDetailTigaSerangkai('total')" class="flex-1 btn-gold-3d-active border-r border-[#b45309]/40 flex flex-col items-center justify-center transition-all">
                         <span class="text-[8px] font-black uppercase tracking-widest opacity-80 leading-none mb-0.5 flex items-center gap-1"><i class="fa-solid fa-boxes-stacked"></i> Stok Modal </span>
                         <span class="text-sm font-black leading-none" id="panelStokTotal">0</span>
                     </button>
                     <button onclick="bukaDetailTigaSerangkai('sisa')" class="flex-1 btn-gold-3d-active border-r border-[#b45309]/40 flex flex-col items-center justify-center transition-all">
-
-                    <button onclick="bukaDetailTigaSerangkai('sisa')" class="flex-1 btn-gold-3d-active border-r border-[#b45309]/40 flex flex-col items-center justify-center transition-all">
-   <span class="text-[8px] font-black uppercase tracking-widest opacity-80 leading-none mb-0.5">Sisa Stok</span>
+                        <span class="text-[8px] font-black uppercase tracking-widest opacity-80 leading-none mb-0.5">Sisa Stok</span>
                         <span class="text-sm font-black leading-none" id="panelStokSisa">0</span>
                     </button>
+
                     <button onclick="bukaDetailTigaSerangkai('terjual')" class="flex-1 btn-gold-3d-active flex flex-col items-center justify-center transition-all">
                         <span class="text-[8px] font-black uppercase tracking-widest opacity-80 leading-none mb-0.5">Terjual</span>
                         <span class="text-sm font-black leading-none" id="panelStokTerjual">0</span>
@@ -689,16 +688,34 @@ tailwind.config = {
                         <input type="text" inputmode="numeric" id="editModalKotor" oninput="formatAngkaRibuan(this); kalkulatorEditBatchMobile()" placeholder="Rp 0" class="w-full bg-white border border-blue-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none text-center shadow-inner">
                     </div>
                     <p id="infoKalkulasiEdit" class="text-[9px] text-blue-600 font-medium text-center mt-2">Nyalakan saklar jika beli dlm bentuk Grosir (Box/Dos)</p>
-                                    <!-- SAKLAR HIBRIDA EDIT (AUTO-ROUTING LACI) -->
-                <div class="mt-3 bg-blue-100/50 border border-blue-200 rounded-xl p-3 flex gap-3">
-                    <div class="pt-0.5">
-                        <input type="checkbox" id="editPotongLaciToggle" class="w-4 h-4 accent-blue-600 rounded cursor-pointer">
-                    </div>
-                    <div class="flex-1">
-                        <label for="editPotongLaciToggle" class="text-[10px] font-black text-blue-800 uppercase tracking-widest cursor-pointer block mb-0.5">Ambil Uang Laci?</label>
-                        <p class="text-[8.5px] text-blue-700 leading-tight font-medium">Potong laci otomatis jika kulakan ini pakai uang toko.</p>
+                                                                        <!-- SAKLAR HIBRIDA EDIT (SUMBER DANA KULAKAN) -->
+                <div class="mt-3">
+                    <label class="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Sumber Dana Tambah Stok</label>
+                    <div class="grid grid-cols-3 gap-1.5" id="wadahSumberDanaEdit">
+                        <label class="cursor-pointer group relative">
+                            <input type="radio" name="sumberDanaKulakanEdit" value="Pribadi" class="peer sr-only" checked>
+                            <div class="bg-white border border-slate-200 rounded-lg p-2 text-center transition-all peer-checked:border-slate-800 peer-checked:bg-slate-100 shadow-sm flex flex-col items-center justify-center gap-1 h-full">
+                                <i class="fa-solid fa-user-tie text-slate-400 peer-checked:text-slate-800 text-sm"></i>
+                                <span class="text-[8px] font-black text-slate-500 peer-checked:text-slate-800 uppercase tracking-wider leading-tight">Uang<br>Pribadi</span>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer group relative">
+                            <input type="radio" name="sumberDanaKulakanEdit" value="Tunai" class="peer sr-only">
+                            <div class="bg-white border border-slate-200 rounded-lg p-2 text-center transition-all peer-checked:border-orange-500 peer-checked:bg-orange-50 shadow-sm flex flex-col items-center justify-center gap-1 h-full">
+                                <i class="fa-solid fa-cash-register text-orange-400 peer-checked:text-orange-600 text-sm"></i>
+                                <span class="text-[8px] font-black text-slate-500 peer-checked:text-orange-700 uppercase tracking-wider leading-tight">Laci<br>Fisik</span>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer group relative">
+                            <input type="radio" name="sumberDanaKulakanEdit" value="QRIS" class="peer sr-only">
+                            <div class="bg-white border border-slate-200 rounded-lg p-2 text-center transition-all peer-checked:border-blue-500 peer-checked:bg-blue-50 shadow-sm flex flex-col items-center justify-center gap-1 h-full">
+                                <i class="fa-solid fa-building-columns text-blue-400 peer-checked:text-blue-600 text-sm"></i>
+                                <span class="text-[8px] font-black text-slate-500 peer-checked:text-blue-700 uppercase tracking-wider leading-tight">Bank /<br>QRIS</span>
+                            </div>
+                        </label>
                     </div>
                 </div>
+
 
                 </div>
 
@@ -909,10 +926,31 @@ tailwind.config = {
                 </div>
 
 
+                                <div>
+                    <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider pl-1">Sumber Dana <span class="text-red-500">*</span></label>
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        <label class="cursor-pointer group relative">
+                            <input type="radio" name="sumberDanaPengeluaran" value="Tunai" class="peer sr-only" checked>
+                            <div class="bg-white border border-slate-200 rounded-xl p-3 text-center transition-all peer-checked:border-emerald-500 peer-checked:bg-emerald-50 shadow-sm flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-cash-register text-emerald-500 text-base"></i>
+                                <span class="text-[10px] font-black text-slate-600 peer-checked:text-emerald-700 uppercase tracking-widest">Laci Fisik</span>
+                            </div>
+                        </label>
+                        <label class="cursor-pointer group relative">
+                            <input type="radio" name="sumberDanaPengeluaran" value="QRIS" class="peer sr-only">
+                            <div class="bg-white border border-slate-200 rounded-xl p-3 text-center transition-all peer-checked:border-blue-500 peer-checked:bg-blue-50 shadow-sm flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-building-columns text-blue-500 text-base"></i>
+                                <span class="text-[10px] font-black text-slate-600 peer-checked:text-blue-700 uppercase tracking-widest">Bank / QRIS</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
                 <div>
                     <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider pl-1">Nominal Uang (Rp) <span class="text-red-500">*</span></label>
                     <input type="text" inputmode="numeric" id="inputNominalPengeluaran" oninput="formatAngkaRibuan(this)" placeholder="Rp 0" class="w-full bg-white border border-slate-200 rounded-2xl px-4 py-3.5 text-lg font-black text-rose-600 shadow-inner focus:outline-none focus:border-rose-500">
                 </div>
+
 
                 <div>
                     <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider pl-1">Keterangan / Tujuan</label>
@@ -1108,15 +1146,33 @@ tailwind.config = {
                             <p id="teksEstimasiUntung" class="text-[9px] font-bold text-slate-500 mt-1.5 leading-tight">Est. Untung: Rp 0 / Pak</p>
                         </div>
                     </div>
-                    <!-- SAKLAR HIBRIDA (AUTO-ROUTING LACI) -->
-                    <div class="mb-5 bg-orange-50 border border-orange-200 rounded-xl p-3 flex gap-3 shadow-inner">
-                        <div class="pt-0.5">
-                            <input type="checkbox" id="tambahPotongLaciToggle" class="w-5 h-5 accent-orange-600 rounded cursor-pointer">
+                                        <!-- SAKLAR HIBRIDA (SUMBER DANA KULAKAN) -->
+                    <div class="mb-5">
+                        <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider pl-1">Sumber Dana Kulakan <span class="text-red-500">*</span></label>
+                        <div class="grid grid-cols-3 gap-1.5" id="wadahSumberDanaTambah">
+                            <label class="cursor-pointer group relative">
+                                <input type="radio" name="sumberDanaKulakanTambah" value="Pribadi" class="peer sr-only" checked>
+                                <div class="bg-white border border-slate-200 rounded-lg p-2 text-center transition-all peer-checked:border-slate-800 peer-checked:bg-slate-100 shadow-sm flex flex-col items-center justify-center gap-1 h-full">
+                                    <i class="fa-solid fa-user-tie text-slate-400 peer-checked:text-slate-800 text-sm"></i>
+                                    <span class="text-[8px] font-black text-slate-500 peer-checked:text-slate-800 uppercase tracking-wider leading-tight">Uang<br>Pribadi</span>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer group relative">
+                                <input type="radio" name="sumberDanaKulakanTambah" value="Tunai" class="peer sr-only">
+                                <div class="bg-white border border-slate-200 rounded-lg p-2 text-center transition-all peer-checked:border-orange-500 peer-checked:bg-orange-50 shadow-sm flex flex-col items-center justify-center gap-1 h-full">
+                                    <i class="fa-solid fa-cash-register text-orange-400 peer-checked:text-orange-600 text-sm"></i>
+                                    <span class="text-[8px] font-black text-slate-500 peer-checked:text-orange-700 uppercase tracking-wider leading-tight">Laci<br>Fisik</span>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer group relative">
+                                <input type="radio" name="sumberDanaKulakanTambah" value="QRIS" class="peer sr-only">
+                                <div class="bg-white border border-slate-200 rounded-lg p-2 text-center transition-all peer-checked:border-blue-500 peer-checked:bg-blue-50 shadow-sm flex flex-col items-center justify-center gap-1 h-full">
+                                    <i class="fa-solid fa-building-columns text-blue-400 peer-checked:text-blue-600 text-sm"></i>
+                                    <span class="text-[8px] font-black text-slate-500 peer-checked:text-blue-700 uppercase tracking-wider leading-tight">Bank /<br>QRIS</span>
+                                </div>
+                            </label>
                         </div>
-                        <div class="flex-1">
-                            <label for="tambahPotongLaciToggle" class="text-xs font-black text-orange-800 uppercase tracking-widest cursor-pointer block mb-1">Ambil dari Uang Laci?</label>
-                            <p class="text-[9px] text-orange-700 leading-tight font-medium">Jika dicentang, sistem akan memotong uang fisik di laci Anda secara otomatis (Sisanya dianggap uang Pribadi Owner).</p>
-                        </div>
+                        <p class="text-[8.5px] text-slate-500 font-medium mt-1.5 px-1 leading-tight">Sistem akan mengunci opsi jika saldo toko (Laci/Bank) Rp 0.</p>
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
@@ -1667,14 +1723,16 @@ tailwind.config = {
                         <div class="l-row"><span class="l-lbl">(+) Suntikan Kulakan</span><span class="l-dots"></span><span class="l-val" id="p-qty-tambah">0 Pcs</span></div>
                         <div class="l-row"><span class="l-lbl"></span><span class="l-val" id="p-rp-tambah">Rp 0</span></div>
                         <div class="l-divider"></div>
-                        <div class="l-row l-total"><span class="l-lbl">Persediaan Siap Jual</span><span class="l-dots"></span><span class="l-val" id="p-rp-siap">Rp 0</span></div>
+                                                <div class="l-row l-total"><span class="l-lbl">Persediaan Siap Jual</span><span class="l-dots"></span><span class="l-val" id="p-rp-siap">Rp 0</span></div>
                         <div class="l-row mt-2"><span class="l-lbl">(-) Laku Terjual (HPP)</span><span class="l-dots"></span><span class="l-val" id="p-qty-jual">0 Pcs</span></div>
                         <div class="l-row"><span class="l-lbl"></span><span class="l-val" id="p-rp-jual">Rp 0</span></div>
+                        <div class="l-row mt-1"><span class="l-lbl">(-) Dihapus / Rusak</span><span class="l-dots"></span><span class="l-val" id="p-qty-hapus">0 Pcs</span></div>
+                        <div class="l-row"><span class="l-lbl"></span><span class="l-val" id="p-rp-hapus">Rp 0</span></div>
                     </div>
                     <div>
                         <div class="l-divider"></div>
                         <div class="l-row l-total"><span class="l-lbl">ASET MENGENDAP DI RAK</span><span class="l-dots"></span><span class="l-val" id="p-rp-akhir">Rp 0</span></div>
-                    </div>
+   </div>
                 </div>
 
                 <!-- BLOK 2: KINERJA LABA RUGI -->
@@ -1702,10 +1760,10 @@ tailwind.config = {
                         <div class="l-row"><span class="l-lbl">1. Harta Tunai (Laci)</span><span class="l-dots"></span><span class="l-val" id="p-harta-tunai">Rp 0</span></div>
                         <div class="l-row"><span class="l-lbl">2. Harta Bank (QRIS)</span><span class="l-dots"></span><span class="l-val" id="p-harta-qris">Rp 0</span></div>
                         <div class="l-row"><span class="l-lbl">3. Harta Piutang (Luar)</span><span class="l-dots"></span><span class="l-val" id="p-harta-piutang">Rp 0</span></div>
-                        <div class="l-row"><span class="l-lbl">4. Harta Barang (Rak)</span><span class="l-dots"></span><span class="l-val" id="p-harta-barang">Rp 0</span></div>
-                    }
-</div>
+                                                <div class="l-row"><span class="l-lbl">4. Harta Barang (Rak)</span><span class="l-dots"></span><span class="l-val" id="p-harta-barang">Rp 0</span></div>
+                    </div>
                     <div>
+
                         <div class="l-divider"></div>
                         <div class="l-row l-total"><span class="l-lbl">TOTAL ASET KESELURUHAN</span><span class="l-dots"></span><span class="l-val" id="p-harta-total">Rp 0</span></div>
                     </div>
