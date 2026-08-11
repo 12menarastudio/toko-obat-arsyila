@@ -109,6 +109,24 @@ masterItems.forEach(obat => {
     }
 });
 
+// [AUTO-HEALER TAHAP 2] - PEMBASMI UANG SILUMAN QRIS (MIGRASI SEKALI JALAN)
+if (!localStorage.getItem('sudah_diperbaiki_qris_v1')) {
+    let adaPerbaikan = false;
+    cashierHistory.forEach(t => {
+        if (t.isPelunasan && t.metode === 'Tunai' && t.metodeBayar && (t.metodeBayar.toUpperCase() === 'QRIS')) {
+            t.metode = 'QRIS';
+            adaPerbaikan = true;
+        }
+    });
+    
+    if (adaPerbaikan) {
+        saveApotekDB('apotek_cashierHistory', cashierHistory);
+    }
+    // Tempelkan stiker hijau agar robot tidur selamanya setelah ini
+    localStorage.setItem('sudah_diperbaiki_qris_v1', 'true');
+}
+
+
 // ==========================================
 // 2. NAVIGASI LAYAR (ROUTING)
 // ==========================================
@@ -619,19 +637,29 @@ function pilihSemuaRiwayat() {
 function prosesHapusMasalRiwayat() {
     if(itemTerpilihRiwayat.length === 0) return;
 
-    // 1. MESIN PEMILAH ABSOLUT: Hanya 2 Jalur (Hangus & Kebal)
+    // 1. MESIN PEMILAH ARSIP CERDAS (3 JALUR)
     let idHangus = [];
     let idDilindungi = [];
+    let idTerlaluBaru = []; 
+    
+    // Set Batas Umur Aman: 30 Hari Kebelakang
+    let tglBatas = new Date();
+    tglBatas.setDate(tglBatas.getDate() - 30);
+    let strTglBatas = getTanggalLokal(tglBatas);
 
     itemTerpilihRiwayat.forEach(idTarget => {
         let trx = cashierHistory.find(t => t.id === idTarget);
         if (!trx) return;
 
-        // ATURAN BESI BARU: Semua jenis Piutang (Debt) & Laporan Pelunasan DITOLAK MUTLAK
+        // ATURAN BESI 1: Piutang & Pelunasan DITOLAK MUTLAK
         if (trx.metode === 'Debt' || trx.isPelunasan) {
             idDilindungi.push(idTarget);
         } 
-        // HANYA Transaksi Normal (Tunai/QRIS) yang BOLEH DIHAPUS PERMANEN
+        // ATURAN BESI 2: Umur di bawah 30 Hari DITOLAK (Demi Laporan Bulanan)
+        else if (trx.tanggal > strTglBatas) {
+            idTerlaluBaru.push(idTarget);
+        }
+        // LOLOS SENSOR -> Siap Dihapus dan Diakumulasi uangnya
         else {
             idHangus.push(idTarget);
         }
@@ -639,20 +667,50 @@ function prosesHapusMasalRiwayat() {
 
     // 2. CEK BLOKIR TOTAL
     if (idHangus.length === 0) {
-        return alert(`🛡️ AKSES DITOLAK!\n\nSeluruh ${itemTerpilihRiwayat.length} transaksi yang dipilih adalah data Kasbon/Pelunasan. Sistem melindunginya secara mutlak agar Buku Piutang tidak rusak.`);
+        if (idTerlaluBaru.length > 0) {
+            return alert(`🛡️ AKSES DITOLAK!\n\nTransaksi yang dipilih masih berumur di bawah 30 hari.\nSistem menguncinya agar Laporan Bulanan Anda tidak cacat/rusak.\n\nGunakan fungsi ini hanya untuk membersihkan arsip struk lama.`);
+        }
+        return alert(`🛡️ AKSES DITOLAK!\n\nSeluruh transaksi yang dipilih adalah data Kasbon/Pelunasan. Sistem melindunginya secara mutlak.`);
     }
 
     // 3. PESAN KONFIRMASI CERDAS
-    let pesanConfirm = `Hapus permanen ${idHangus.length} riwayat transaksi normal terpilih?\n\n(Total Uang di Brankas & Laporan Tutup Buku tetap aman).`;
+    let pesanConfirm = `Pembersihan Arsip: ${idHangus.length} struk lama akan dihapus permanen.\n\nSistem akan merangkum uangnya menjadi "Saldo Awal" agar Laci Kasir tetap balance. Lanjutkan?`;
     
-    if (idDilindungi.length > 0) {
-        pesanConfirm = `Dari ${itemTerpilihRiwayat.length} transaksi, ada ${idDilindungi.length} item Piutang/Pelunasan yang 🛡️ DILINDUNGI.\n\nLanjutkan menghapus sisa ${idHangus.length} transaksi normal?`;
+    if (idDilindungi.length > 0 || idTerlaluBaru.length > 0) {
+        pesanConfirm = `Dari ${itemTerpilihRiwayat.length} pilihan, ada:\n- ${idDilindungi.length} data Piutang dilindungi.\n- ${idTerlaluBaru.length} data terlalu baru (<30 hari).\n\nLanjutkan menghapus dan merangkum ${idHangus.length} arsip lama yang lolos sensor?`;
     }
 
     tampilkanConfirmMobile(pesanConfirm, function() {
         
-        // 4. EKSEKUSI PEMUSNAHAN MURNI HANYA UNTUK TRANSAKSI NORMAL
+        // 4. MESIN AKUMULASI (Mencegah Saldo Laci Minus)
+        let totalTunaiHangus = 0;
+        let totalQRISHangus = 0;
+
+        idHangus.forEach(id => {
+            let t = cashierHistory.find(x => x.id === id);
+            if (t.metode === 'Tunai') totalTunaiHangus += (t.total || 0);
+            else if (t.metode === 'QRIS') totalQRISHangus += (t.total || 0);
+        });
+
+        // Buang riwayat yang hangus dari memori
         cashierHistory = cashierHistory.filter(t => !idHangus.includes(t.id));
+
+        // Suntikkan Kapsul Akumulasi agar Saldo Laci & Bank tetap utuh
+        const idUnik = Date.now();
+        if (totalTunaiHangus > 0) {
+            cashierHistory.push({
+                id: idUnik + 1, tanggal: '2000-01-01', waktu: '00:00', // Ditaruh di tahun 2000 agar tenggelam ke dasar riwayat
+                obat: '📦 AKUMULASI ARSIP LAMA (TUNAI)',
+                kasir: 'Sistem Cleaner', item: 0, total: totalTunaiHangus, metode: 'Tunai', laba: 0, isPelunasan: false
+            });
+        }
+        if (totalQRISHangus > 0) {
+            cashierHistory.push({
+                id: idUnik + 2, tanggal: '2000-01-01', waktu: '00:00',
+                obat: '📦 AKUMULASI ARSIP LAMA (QRIS)',
+                kasir: 'Sistem Cleaner', item: 0, total: totalQRISHangus, metode: 'QRIS', laba: 0, isPelunasan: false
+            });
+        }
 
         saveApotekDB('apotek_cashierHistory', cashierHistory);
 
@@ -663,13 +721,10 @@ function prosesHapusMasalRiwayat() {
         triggerHaptic([100,50,100]);
 
         // 5. LAPORAN HASIL AKHIR
-        let pesanSukses = `✅ ${idHangus.length} Riwayat normal berhasil dihapus permanen.`;
-        if (idDilindungi.length > 0) {
-            pesanSukses += `\n🛡️ ${idDilindungi.length} riwayat DITOLAK penghapusannya demi menjaga rantai Piutang.`;
-        }
-        alert(pesanSukses);
+        alert(`✅ Pembersihan Selesai.\n\n${idHangus.length} Arsip lama dihapus dan diubah menjadi rangkuman Saldo Awal. Uang di Laci dan Bank dipastikan 100% aman.`);
     });
 }
+
 
 function prosesBintangMasalRiwayat() {
     if(itemTerpilihRiwayat.length === 0) return;
@@ -712,9 +767,9 @@ function renderRiwayatMobile() {
         if (t.isBorongan) return; 
         
         let key = t.isPelunasan ? `PELUNASAN_${t.id}` : `${t.waktu}_${t.pelanggan || 'UMUM'}_${t.metode}`;
-                                if (!grupRiwayat[key]) {
+                                            if (!grupRiwayat[key]) {
                 grupRiwayat[key] = {
-                    idGabungan: t.id, waktu: t.waktu, metode: t.metode, pelanggan: t.pelanggan, kasir: t.kasir,
+                    idGabungan: t.id, tanggal: t.tanggal, waktu: t.waktu, metode: t.metode, pelanggan: t.pelanggan, kasir: t.kasir,
                     isPelunasan: t.isPelunasan, isBintang: t.isBintang, statusLunas: t.statusLunas,
                     total: 0, item: 0, rincian: [], rawIds: [], metodeBayar: t.metodeBayar
                 };
@@ -850,7 +905,13 @@ function renderRiwayatMobile() {
         // -----------------------------------
 
 
-        let btnBatalHtml = (isUtangTercicil || isUtangLunas) ? '' : `<button onclick="event.stopPropagation(); prosesBatalTransaksiMobile(${g.rawIds[0]})" class="text-[10px] text-red-500 hover:bg-red-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-red-100 shadow-sm active:scale-95"><i class="fa-solid fa-rotate-left"></i> Batal</button>`;
+                // [PERISAI WAKTU & SHIFT] Cek apakah transaksi sudah lewat 24 Jam atau sudah Tutup Buku
+        let idTrx = g.rawIds[0];
+        let isLewatTutupBuku = siklusAktif.waktuStart && (idTrx < siklusAktif.waktuStart);
+        let isLewat24Jam = (Date.now() - idTrx) > (24 * 60 * 60 * 1000);
+        let isTerkunciWaktu = isLewatTutupBuku || isLewat24Jam;
+
+        let btnBatalHtml = (isUtangTercicil || isUtangLunas || isTerkunciWaktu) ? '' : `<button onclick="event.stopPropagation(); prosesBatalTransaksiMobile(${g.rawIds[0]})" class="text-[10px] text-red-500 hover:bg-red-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-red-100 shadow-sm active:scale-95"><i class="fa-solid fa-rotate-left"></i> Batal</button>`;
 
         let tombolAksi = modeSeleksiRiwayatAktif ? '' : `
             <div class="flex gap-2 relative z-10 mt-3 justify-end border-t border-slate-100 pt-3">
@@ -1283,7 +1344,7 @@ function eksekusiPelunasanCerdas(metode) {
         cashierHistory.unshift({
             id: idPelunasanBaru + idx, tanggal: strTanggal, waktu: strWaktu,
             obat: `Pelunasan Eceran: ${sel.namaObat.replace(/ \([^)]*\)/, '')}`, 
-            kasir: 'Pemilik', item: sel.qtyTebus, total: sel.hargaTebus, metode: 'Tunai', metodeBayar: metode, laba: 0, pelanggan: namaPelanggan, wa: waPelanggan, isPelunasan: true, idTerkait: sel.id
+            kasir: 'Pemilik', item: sel.qtyTebus, total: sel.hargaTebus, metode: metode, metodeBayar: metode, laba: 0, pelanggan: namaPelanggan, wa: waPelanggan, isPelunasan: true, idTerkait: sel.id
         });
     });
     
@@ -1403,14 +1464,14 @@ function renderLaporanMobile() {
     let aov = totalPembeli > 0 ? (lOmset / totalPembeli) : 0;
     let margin = lOmset > 0 ? ((labaBersihSejati / lOmset) * 100).toFixed(1) : 0;
 
-        // =======================================================
+    // =======================================================
     // MESIN 2: KALKULASI REAL-TIME (NERACA HARTA KEKAYAAN)
     // =======================================================
     let estimasiIsiLaci = hitungSaldoLaciFisik(); 
     let hartaQRIS = hitungSaldoQRIS();
 
     let hartaPiutang = 0; let hutangMap = {};
- cashierHistory.filter(t => t.metode === 'Debt' || t.isPelunasan).forEach(t => {
+    cashierHistory.filter(t => t.metode === 'Debt' || t.isPelunasan).forEach(t => {
         if(t.metode === 'Debt' && !t.statusLunas) hutangMap[t.id] = t.total;
         if(t.isPelunasan && t.idTerkait && hutangMap[t.idTerkait]) hutangMap[t.idTerkait] -= t.total;
     });
@@ -1449,7 +1510,7 @@ function renderLaporanMobile() {
     wadah.innerHTML = `
     <div class="flex flex-col gap-3 pb-4">
         
-                <!-- BLOK I: ALUR MODAL PERSEDIAAN -->
+        <!-- BLOK I: ALUR MODAL PERSEDIAAN -->
         <div class="bg-[#24272c] border border-[#3b3f46] rounded-sm shadow-sm select-none">
             <div class="flex justify-between items-center p-3.5 cursor-pointer" onclick="toggleAkordeonLaporan('blok-persediaan')">
                 <div class="flex items-center gap-2">
@@ -1466,7 +1527,7 @@ function renderLaporanMobile() {
                     *Data di blok ini adalah <b class="text-slate-300">Stok Fisik Live</b> sejak terakhir tutup buku. Tidak terpengaruh filter tanggal.
                 </p>
                 <div class="grid grid-cols-[1fr_max-content_max-content_max-content_max-content_max-content] gap-y-1.5 items-center w-full text-[10px] whitespace-nowrap">
-<div class="text-slate-400 truncate pr-2">Modal Awal / Titik Nol</div>
+                    <div class="text-slate-400 truncate pr-2">Modal Awal / Titik Nol</div>
                     <div class="text-right font-mono text-slate-200">${siklusAktif.qtyAwal}</div>
                     <div class="text-left font-mono text-slate-200 pl-1">Pcs</div>
                     <div class="text-center font-mono text-slate-500 px-1.5">|</div>
@@ -1491,7 +1552,7 @@ function renderLaporanMobile() {
 
                     <div class="col-span-6 h-1"></div>
 
-                                        <div class="text-slate-400 truncate pr-2">(-) Keluar Terjual (HPP)</div>
+                    <div class="text-slate-400 truncate pr-2">(-) Keluar Terjual (HPP)</div>
                     <div class="text-right font-mono text-rose-400">- ${terjualQtySiklus}</div>
                     <div class="text-left font-mono text-rose-400 pl-1">Pcs</div>
                     <div class="text-center font-mono text-slate-500 px-1.5">|</div>
@@ -1678,9 +1739,8 @@ function renderLaporanMobile() {
                 </div>
             </div>
         </div>
-
-        <!-- ====================================================================== -->
-        <!-- EXECUTIVE SUMMARY: 6 BATANGAN EMAS SIKU 90 DERAJAT -->
+                <!-- ====================================================================== -->
+        <!-- EXECUTIVE SUMMARY: ALIGNMENT GRID MISTAR TITIK DUA (KIRI) -->
         <!-- ====================================================================== -->
         <div class="mt-6 flex flex-col w-full shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-[#a6802e]">
             
@@ -1690,36 +1750,66 @@ function renderLaporanMobile() {
             </div>
 
             <!-- BATANG 1: OMZET -->
-            <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-3 flex justify-between items-center border-b border-[#735311]">
-                <span class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest">Omzet Kotor</span>
-                <span class="text-[#1a1202] font-black font-mono text-[13px]">${rupiah(Math.round(lOmset))}</span>
+            <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-2.5 grid grid-cols-[135px_10px_1fr_35px_max-content] items-center border-b border-[#735311]">
+                <div class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest truncate">Omzet Kotor</div>
+                <div class="text-[#2a1e04] font-black text-[10px] text-center">:</div>
+                <div></div>
+                <div class="text-[#1a1202] font-black text-[11px] text-left">Rp</div>
+                <div class="text-[#1a1202] font-black font-mono text-[13px] text-right">${Math.round(lOmset).toLocaleString('id-ID')}</div>
             </div>
 
             <!-- BATANG 2: HPP & BIAYA -->
-            <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-3 flex justify-between items-center border-b border-[#735311]">
-                <span class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest">HPP & Biaya Keluar</span>
-                <span class="text-[#5b1414] font-black font-mono text-[13px]">- ${rupiah(Math.round(lHPP + bBiayaToko))}</span>
+            <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-2.5 grid grid-cols-[135px_10px_1fr_35px_max-content] items-center border-b border-[#735311]">
+                <div class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest truncate">HPP & Biaya Keluar</div>
+                <div class="text-[#2a1e04] font-black text-[10px] text-center">:</div>
+                <div></div>
+                <div class="text-[#5b1414] font-black text-[11px] text-left">- Rp</div>
+                <div class="text-[#5b1414] font-black font-mono text-[13px] text-right">${Math.round(lHPP + bBiayaToko).toLocaleString('id-ID')}</div>
             </div>
 
             <!-- BATANG 3: LABA BERSIH (GLOWING) -->
-            <div class="bg-gradient-to-r from-[#fcd34d] to-[#d97706] p-3.5 flex justify-between items-center border-b border-[#735311] shadow-inner">
-                <span class="text-black font-black text-[12px] uppercase tracking-widest"><i class="fa-solid fa-sack-dollar text-[#78350f] mr-1"></i> Laba Bersih</span>
-                <span class="text-black font-black font-mono text-[16px] drop-shadow-md">${rupiah(Math.round(labaBersihSejati))}</span>
+            <div class="bg-gradient-to-r from-[#fcd34d] to-[#d97706] p-3 grid grid-cols-[135px_10px_1fr_35px_max-content] items-center border-b border-[#735311] shadow-inner">
+                <div class="text-black font-black text-[12px] uppercase tracking-widest flex items-center gap-1.5 truncate"><i class="fa-solid fa-sack-dollar text-[#78350f]"></i> Laba Bersih</div>
+                <div class="text-black font-black text-[12px] text-center">:</div>
+                <div></div>
+                <div class="text-black font-black text-[12px] text-left">Rp</div>
+                <div class="text-black font-black font-mono text-[16px] drop-shadow-md text-right tracking-tight">${Math.round(labaBersihSejati).toLocaleString('id-ID')}</div>
             </div>
 
-            <!-- BATANG 4: TRAFIK FISIK -->
-            <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-3 flex justify-between items-center border-b border-[#735311]">
-                <span class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest">Stok Awal: <span class="text-black">${totalQtyTersedia}</span></span>
-                <span class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest">Terjual: <span class="text-black">${terjualQtySiklus}</span></span>
+            <!-- BATANG 4: STOK AWAL -->
+            <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-2.5 grid grid-cols-[135px_10px_1fr_max-content] items-center border-b border-[#735311]/40">
+                <div class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest truncate">Stok Awal</div>
+                <div class="text-[#2a1e04] font-black text-[10px] text-center">:</div>
+                <div></div>
+                <div class="text-[#1a1202] font-black font-mono text-[12px] text-right">${totalQtyTersedia} Pcs</div>
             </div>
 
-            <!-- BATANG 5: SISA ASET RAK -->
-            <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-3 flex justify-between items-center border-b border-[#735311]">
-                <span class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest">Aset Rak: <span class="text-black">${sisaQtyReal} Pcs</span></span>
-                <span class="text-[#1a1202] font-black font-mono text-[12px]">${rupiah(Math.round(sisaRpReal))}</span>
+            <!-- BATANG 5: TERJUAL -->
+            <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-2.5 grid grid-cols-[135px_10px_1fr_max-content] items-center border-b border-[#735311]/40">
+                <div class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest truncate">Obat Terjual</div>
+                <div class="text-[#2a1e04] font-black text-[10px] text-center">:</div>
+                <div></div>
+                <div class="text-[#1a1202] font-black font-mono text-[12px] text-right">${terjualQtySiklus} Pcs</div>
             </div>
 
-            <!-- BATANG 6: PERFORMA OBAT (DROPDOWN) DENGAN LENCANA MACAM OBAT -->
+            <!-- BATANG 6: TOTAL PEMBELI -->
+            <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-2.5 grid grid-cols-[135px_10px_1fr_max-content] items-center border-b border-[#735311]">
+                <div class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest truncate">Total Pembeli</div>
+                <div class="text-[#2a1e04] font-black text-[10px] text-center">:</div>
+                <div></div>
+                <div class="text-black font-black font-mono text-[11px] bg-black/10 px-2 py-0.5 rounded text-right ml-auto w-max">${totalPembeli} Org</div>
+            </div>
+
+            <!-- BATANG 7: ASET RAK -->
+            <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-2.5 grid grid-cols-[135px_10px_1fr_35px_max-content] items-center border-b border-[#735311]">
+                <div class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest truncate">Aset Rak Sisa</div>
+                <div class="text-[#2a1e04] font-black text-[10px] text-center">:</div>
+                <div></div>
+                <div class="text-[#1a1202] font-black text-[11px] text-left">Rp</div>
+                <div class="text-[#1a1202] font-black font-mono text-[13px] text-right">${Math.round(sisaRpReal).toLocaleString('id-ID')}</div>
+            </div>
+
+            <!-- BATANG 8: PERFORMA OBAT (DROPDOWN) DENGAN LENCANA MACAM OBAT -->
             <div class="bg-gradient-to-r from-slate-900 to-slate-800 border-t border-[#cfa950]">
                 <div class="p-3 flex justify-between items-center cursor-pointer" onclick="toggleAkordeonLaporan('tabel-performa-obat')">
                     <span class="text-[#cfa950] font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5">
@@ -1729,15 +1819,15 @@ function renderLaporanMobile() {
                     <i class="fa-solid fa-chevron-down text-[#cfa950] text-[12px] transition-transform duration-300" id="icon-tabel-performa-obat"></i>
                 </div>
                 
-                <!-- ISI DROPDOWN BATANG KE-6 -->
+                <!-- ISI DROPDOWN BATANG KE-8 -->
                 <div id="tabel-performa-obat" class="hidden bg-white overflow-x-auto hide-scrollbar border-t border-slate-700">
                     <table class="w-full text-left border-collapse whitespace-nowrap">
                         <thead>
                             <tr class="bg-slate-100 text-[8px] font-black text-slate-500 uppercase tracking-widest border-b-2 border-slate-300">
                                 <th class="py-2 px-2 sticky left-0 bg-slate-100 z-10 border-r border-slate-200">Nama Obat</th>
-                                <th class="py-2 px-2 border-r border-slate-200 text-center">Awal</th>
-                                <th class="py-2 px-2 border-r border-slate-200 text-center text-amber-600">Laku</th>
-                                <th class="py-2 px-2 border-r border-slate-200 text-center text-emerald-600">Sisa</th>
+                                <th class="py-2 px-2 border-r border-slate-200 text-right">Awal</th>
+                                <th class="py-2 px-2 border-r border-slate-200 text-right text-amber-600">Laku</th>
+                                <th class="py-2 px-2 border-r border-slate-200 text-right text-emerald-600">Sisa</th>
                                 <th class="py-2 px-2 border-r border-slate-200 text-right">Modal/HPP</th>
                                 <th class="py-2 px-2 text-right">Jual</th>
                             </tr>
@@ -1754,24 +1844,36 @@ function renderLaporanMobile() {
     </div>`;
 
     // ======================================================================
-    // INJEKSI JS: MERAKIT DATA TABEL OBAT BATANG KE-6 (SANGAT AMAN)
+    // INJEKSI JS: MERAKIT DATA TABEL OBAT BATANG KE-8 (SANGAT AMAN)
     // ======================================================================
     setTimeout(function() {
         var tabelPerforma = {};
         
-        // 1. Ambil Sisa & Harga dari Etalase & Gudang
+        // 1. Ambil Sisa & Harga dari Etalase & Gudang (Satu Jalur Pemrosesan)
         masterItems.filter(function(i) { return i.nama !== '___SYSTEM_AUTH___' && i.kategori !== '⚠️ Barang Retur'; }).forEach(function(m) {
             var key = m.dnaInduk;
-            var nama = m.nama + (m.varian ? ' ' + m.varian : '');
-            if(!tabelPerforma[key]) tabelPerforma[key] = { nama: nama, sisa: 0, laku: 0, hpp: m.modal || 0, jual: m.jual || 0 };
+            if(!tabelPerforma[key]) {
+                tabelPerforma[key] = { 
+                    namaUtama: m.nama, 
+                    varian: m.varian || '', 
+                    kategori: m.kategori || 'Umum', 
+                    sisa: 0, laku: 0, hpp: m.modal || 0, jual: m.jual || 0 
+                };
+            }
             tabelPerforma[key].sisa += (m.stok || 0);
         });
 
         etalaseItems.forEach(function(e) {
             var key = e.dnaInduk || e.nama;
-            var nama = e.nama + (e.varian ? ' ' + e.varian : '');
             var hppAman = (e.antreanFIFO && e.antreanFIFO.length > 0 && e.antreanFIFO[0].modal) ? e.antreanFIFO[0].modal : 0;
-            if(!tabelPerforma[key]) tabelPerforma[key] = { nama: nama, sisa: 0, laku: 0, hpp: hppAman, jual: e.jual || 0 };
+            if(!tabelPerforma[key]) {
+                tabelPerforma[key] = { 
+                    namaUtama: e.nama, 
+                    varian: e.varian || '', 
+                    kategori: e.kategori || 'Umum', 
+                    sisa: 0, laku: 0, hpp: hppAman, jual: e.jual || 0 
+                };
+            }
             tabelPerforma[key].sisa += (e.stok || 0);
         });
 
@@ -1781,28 +1883,59 @@ function renderLaporanMobile() {
             if(trx.detailKeranjang) {
                 trx.detailKeranjang.forEach(function(item) {
                     var key = item.dnaInduk || item.nama;
-                    if(tabelPerforma[key]) tabelPerforma[key].laku += (item.qty || 0);
+                    if(tabelPerforma[key]) {
+                        tabelPerforma[key].laku += (item.qty || 0);
+                    } else {
+                        tabelPerforma[key] = { 
+                            namaUtama: item.nama, varian: item.varian || '', kategori: item.kategori || 'Dihapus', 
+                            sisa: 0, laku: (item.qty || 0), hpp: item.hppSatuan || 0, jual: item.jual || 0 
+                        };
+                    }
                 });
             } else {
                 var keyLama = trx.obat;
-                if(tabelPerforma[keyLama]) tabelPerforma[keyLama].laku += (trx.item || 1);
+                if(tabelPerforma[keyLama]) {
+                    tabelPerforma[keyLama].laku += (trx.item || 1);
+                } else {
+                    tabelPerforma[keyLama] = { 
+                        namaUtama: trx.obat, varian: '', kategori: 'Lama', 
+                        sisa: 0, laku: (trx.item || 1), hpp: 0, jual: 0 
+                    };
+                }
             }
         });
 
         // 3. Rakit HTML Baris Tabel & Hitung Jumlah Macam Obat
         var htmlTabelObat = '';
-        var jumlahJenisObat = 0; // <--- INI MESIN PENGHITUNGNYA
+        var jumlahJenisObat = 0; 
+        
         Object.values(tabelPerforma).sort(function(a,b) { return b.laku - a.laku; }).forEach(function(obat) {
             var awal = obat.sisa + obat.laku;
             if (awal > 0) {
-                jumlahJenisObat++; // Tambah 1 ke hitungan setiap ada obat yang valid
+                jumlahJenisObat++;
+                
+                // Desain Bersusun: Nama Utama Besar, Varian & Kategori di Bawahnya
+                var subInfo = '';
+                if(obat.varian) subInfo += obat.varian;
+                if(obat.kategori) subInfo += (subInfo ? ' • ' : '') + obat.kategori;
+
+                var kolomNamaHtml = '<div class="flex flex-col py-1">' +
+                    '<span class="font-black text-slate-900 text-[11px] leading-tight">' + (obat.namaUtama || 'Obat Dihapus') + '</span>' +
+                    (subInfo ? '<span class="text-[8.5px] font-bold text-corporate-600 mt-0.5 uppercase tracking-wide">' + subInfo + '</span>' : '') +
+                '</div>';
+
+                // DESAIN PENYEMPURNAAN TABEL (RP DI KIRI, ANGKA DI KANAN - MISTAR PRESISI)
                 htmlTabelObat += '<tr class="hover:bg-amber-50/50 transition-colors">' +
-                    '<td class="py-2 px-2 sticky left-0 bg-white z-10 border-r border-slate-100 truncate max-w-[120px]" title="' + obat.nama + '">' + obat.nama + '</td>' +
-                    '<td class="py-2 px-2 border-r border-slate-100 text-center">' + awal + '</td>' +
-                    '<td class="py-2 px-2 border-r border-slate-100 text-center text-amber-600">' + obat.laku + '</td>' +
-                    '<td class="py-2 px-2 border-r border-slate-100 text-center text-emerald-600">' + obat.sisa + '</td>' +
-                    '<td class="py-2 px-2 border-r border-slate-100 text-right">' + (obat.hpp || 0).toLocaleString('id-ID') + '</td>' +
-                    '<td class="py-2 px-2 text-right">' + (obat.jual || 0).toLocaleString('id-ID') + '</td>' +
+                    '<td class="py-1.5 px-2 sticky left-0 bg-white z-10 border-r border-slate-100 max-w-[140px]">' + kolomNamaHtml + '</td>' +
+                    '<td class="py-1.5 px-2 border-r border-slate-100 text-right font-mono text-[10px]">' + awal + '</td>' +
+                    '<td class="py-1.5 px-2 border-r border-slate-100 text-right text-amber-600 font-bold font-mono text-[10px]">' + obat.laku + '</td>' +
+                    '<td class="py-1.5 px-2 border-r border-slate-100 text-right text-emerald-600 font-bold font-mono text-[10px]">' + obat.sisa + '</td>' +
+                    '<td class="py-1.5 px-2 border-r border-slate-100">' +
+                        '<div class="grid grid-cols-[15px_1fr] items-center w-full min-w-[55px]"><span class="text-[8px] text-slate-400 font-sans text-left">Rp</span><span class="text-right font-mono text-[10px]">' + (obat.hpp || 0).toLocaleString('id-ID') + '</span></div>' +
+                    '</td>' +
+                    '<td class="py-1.5 px-2">' +
+                        '<div class="grid grid-cols-[15px_1fr] items-center w-full min-w-[55px]"><span class="text-[8px] text-slate-400 font-sans text-left">Rp</span><span class="text-right font-mono text-[10px]">' + (obat.jual || 0).toLocaleString('id-ID') + '</span></div>' +
+                    '</td>' +
                 '</tr>';
             }
         });
@@ -1821,7 +1954,6 @@ function renderLaporanMobile() {
 
     }, 100);
 }
-
 
 
 // ==========================================
@@ -2479,22 +2611,33 @@ function eksekusiSimpanEditLanjutanMobile(isKulakanBaru, nBaru, vBaru, kBaru, mB
         // MURNI KOREKSI DATA BATCH LAMA (EDIT BIASA, BUKAN NAMBAH KULAKAN)
         let nilaiSuntikanMutlak = Math.round(selisihStok * hppPresisi); 
         
-                // --- SAKLAR HIBRIDA EDIT BIASA (LANGSUNG) ---
+                        // --- SAKLAR HIBRIDA EDIT BIASA (LANGSUNG) ---
         let nilaiSuntikanOwner = nilaiSuntikanMutlak; 
         let rdSumbEd2 = document.querySelector('input[name="sumberDanaKulakanEdit"]:checked');
         let sumberEd2 = rdSumbEd2 ? rdSumbEd2.value : 'Pribadi';
         
-        if (sumberEd2 !== 'Pribadi' && nilaiSuntikanMutlak > 0) {
-            nilaiSuntikanOwner = prosesPotongSaldoOtomatis(nilaiSuntikanMutlak, `Koreksi Tambah Stok: ${barang.nama}`, sumberEd2);
+        if (selisihStok > 0) {
+            // STOK BERTAMBAH (KOREKSI NAIK)
+            if (sumberEd2 !== 'Pribadi' && nilaiSuntikanMutlak > 0) {
+                nilaiSuntikanOwner = prosesPotongSaldoOtomatis(nilaiSuntikanMutlak, `Koreksi Tambah Stok: ${barang.nama}`, sumberEd2);
+            }
+            siklusAktif.qtyTambahan += selisihStok; 
+            siklusAktif.modalTambahan += nilaiSuntikanOwner; 
+        } else if (selisihStok < 0) {
+            // STOK BERKURANG (RUSAK / KEDALUWARSA / DIPAKAI PRIBADI)
+            // Nilai diubah menjadi positif murni untuk dimasukkan ke keranjang Kerugian
+            let qtySusut = Math.abs(selisihStok);
+            let modalSusut = Math.abs(nilaiSuntikanMutlak);
+            
+            siklusAktif.qtyDihapus = (siklusAktif.qtyDihapus || 0) + qtySusut;
+            siklusAktif.modalDihapus = (siklusAktif.modalDihapus || 0) + modalSusut;
+            // Target Balik Modal (qtyTambahan & modalTambahan) TIDAK BOLEH dikurangi!
         }
         
-        siklusAktif.qtyTambahan += selisihStok; 
-
-        siklusAktif.modalTambahan += nilaiSuntikanOwner; // Hanya catat uang bos
         barang.modal = mBaru; barang.jual = jBaru; barang.stok = sBaru; barang.expired = expBaru;
         barang.totalModal = Math.round(sBaru * hppPresisi); 
         barang.riwayatAsal = riwayatAsalBaru; 
-        
+
         // Update kulakan terakhir jika dikoreksi manual
         if (barang.kulakan_keuangan && barang.kulakan_keuangan.length > 0) {
             let fTerakhir = barang.kulakan_keuangan[barang.kulakan_keuangan.length - 1];
@@ -3103,7 +3246,7 @@ function eksekusiAntreanKulakan() {
             waktu: strWaktu,
             kategori: 'Kulakan',
             nominal: 0, 
-            keterangan: `[Pribadi] Faktur Kulakan Gabungan - MURNI PAKAI DANA BOS`,
+            keterangan: `[Pribadi] Kulakan Gabungan - PAKAI DANA BOS`,
             kasir: 'Sistem',
             sumberDana: 'Pribadi'
         });
