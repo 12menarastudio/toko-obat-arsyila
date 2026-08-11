@@ -1421,6 +1421,8 @@ function setFilterLaporan(tipe) {
     renderLaporanMobile();
 }
 
+
+// GANTI / TEMPELKAN KODE DI BAWAH INI SECARA UTUH:
 function renderLaporanMobile() {
     const wadah = document.getElementById('kontenLaporanMobile');
     
@@ -1526,7 +1528,7 @@ function renderLaporanMobile() {
         <div class="bg-[#24272c] border border-[#3b3f46] rounded-sm shadow-sm select-none">
             <div class="flex justify-between items-center p-3.5 cursor-pointer" onclick="toggleAkordeonLaporan('blok-persediaan')">
                 <div class="flex items-center gap-2">
-                    <h3 class="text-[#93c5fd] font-bold text-[10px] uppercase tracking-widest"><i class="fa-solid fa-boxes-stacked mr-1"></i> I. Alur Modal Persediaan</h3>
+                    <h3 class="text-[#93c5fd] font-bold text-[10px] uppercase tracking-widest"><i class="fa-solid fa-boxes-stacked mr-1"></i> 1. Barang Di Toko / Persediaan</h3>
                     <span class="flex items-center gap-1.5 bg-red-500/10 border border-red-500/30 text-red-400 px-1.5 py-0.5 rounded text-[7px] font-black uppercase tracking-widest">
                         <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse shadow-[0_0_5px_rgba(239,68,68,0.8)]"></span> Live Shift
                     </span>
@@ -1539,14 +1541,14 @@ function renderLaporanMobile() {
                     *Data di blok ini adalah <b class="text-slate-300">Stok Fisik Live</b> sejak terakhir tutup buku. Tidak terpengaruh filter tanggal.
                 </p>
                 <div class="grid grid-cols-[1fr_max-content_max-content_max-content_max-content_max-content] gap-y-1.5 items-center w-full text-[10px] whitespace-nowrap">
-                    <div class="text-slate-400 truncate pr-2">Modal Awal / Titik Nol</div>
+                    <div class="text-slate-400 truncate pr-2">Stok Awal</div>
                     <div class="text-right font-mono text-slate-200">${siklusAktif.qtyAwal}</div>
                     <div class="text-left font-mono text-slate-200 pl-1">Pcs</div>
                     <div class="text-center font-mono text-slate-500 px-1.5">|</div>
                     <div class="text-left font-mono text-slate-200">Rp</div>
                     <div class="text-right font-mono text-slate-200">${Math.round(siklusAktif.modalAwal).toLocaleString('id-ID')}</div>
 
-                    <div class="text-slate-400 truncate pr-2">(+) Suntikan Kulakan</div>
+                    <div class="text-slate-400 truncate pr-2">(+) Barang Masuk / Kulakan </div>
                     <div class="text-right font-mono text-emerald-400">+ ${siklusAktif.qtyTambahan}</div>
                     <div class="text-left font-mono text-emerald-400 pl-1">Pcs</div>
                     <div class="text-center font-mono text-slate-500 px-1.5">|</div>
@@ -1555,7 +1557,7 @@ function renderLaporanMobile() {
 
                     <div class="col-span-6 border-t border-[#3b3f46] my-1"></div>
 
-                    <div class="font-bold text-slate-300 truncate pr-2">(=) Total Persediaan Siap Jual</div>
+                    <div class="font-bold text-slate-300 truncate pr-2">(=) Total Barang Siap Jual</div>
                     <div class="text-right font-bold font-mono text-blue-300">${totalQtyTersedia}</div>
                     <div class="text-left font-bold font-mono text-blue-300 pl-1">Pcs</div>
                     <div class="text-center font-bold font-mono text-slate-500 px-1.5">|</div>
@@ -1564,14 +1566,14 @@ function renderLaporanMobile() {
 
                     <div class="col-span-6 h-1"></div>
 
-                    <div class="text-slate-400 truncate pr-2">(-) Keluar Terjual (HPP)</div>
+                    <div class="text-slate-400 truncate pr-2">(-) Terjual (Modal Barang)</div>
                     <div class="text-right font-mono text-rose-400">- ${terjualQtySiklus}</div>
                     <div class="text-left font-mono text-rose-400 pl-1">Pcs</div>
                     <div class="text-center font-mono text-slate-500 px-1.5">|</div>
                     <div class="text-left font-mono text-rose-400">- Rp</div>
                     <div class="text-right font-mono text-rose-400">${Math.round(terjualRpSiklus).toLocaleString('id-ID')}</div>
                     
-                    <div class="text-slate-500 truncate pr-2 mt-1">(-) Barang Dihapus / Rusak</div>
+                    <div class="text-slate-500 truncate pr-2 mt-1">(-) Rusak / Hilang</div>
                     <div class="text-right font-mono text-orange-400 mt-1">- ${siklusAktif.qtyDihapus || 0}</div>
                     <div class="text-left font-mono text-orange-400 pl-1 mt-1">Pcs</div>
                     <div class="text-center font-mono text-slate-600 px-1.5 mt-1">|</div>
@@ -1580,7 +1582,7 @@ function renderLaporanMobile() {
 
                     <div class="col-span-6 border-t border-dashed border-[#3b3f46] my-1.5"></div>
 
-                    <div class="font-bold text-white text-[10.5px] truncate pr-2">(=) Aset Mengendap di Rak</div>
+                    <div class="font-bold text-white text-[10.5px] truncate pr-2">(=) Sisa Barang / Stok di Rak</div>
                     <div class="text-right font-bold font-mono text-white text-[10.5px]">${sisaQtyReal}</div>
                     <div class="text-left font-bold font-mono text-white text-[10.5px] pl-1">Pcs</div>
                     <div class="text-center font-bold font-mono text-slate-500 text-[10.5px] px-1.5">|</div>
@@ -1593,7 +1595,7 @@ function renderLaporanMobile() {
         <!-- BLOK II: KINERJA PENJUALAN -->
         <div class="bg-[#f8fafc] border border-slate-300 rounded-sm shadow-sm text-slate-800 select-none">
             <div class="flex justify-between items-center p-3.5 cursor-pointer" onclick="toggleAkordeonLaporan('blok-penjualan')">
-                <h3 class="text-[#0f766e] font-bold text-[10px] uppercase tracking-widest"><i class="fa-solid fa-scale-balanced mr-1"></i> II. Kinerja Penjualan</h3>
+                <h3 class="text-[#0f766e] font-bold text-[10px] uppercase tracking-widest"><i class="fa-solid fa-scale-balanced mr-1"></i> 2. Penjualan / Keuntungan </h3>
                 <div class="flex items-center gap-2">
                     <span class="text-[8px] font-bold text-slate-500 uppercase border border-slate-300 px-1 rounded-sm tracking-widest">${laporanLabelVisual}</span>
                     <i class="fa-solid fa-chevron-down text-slate-400 text-[10px] transition-transform duration-300" id="icon-blok-penjualan"></i>
@@ -1601,47 +1603,47 @@ function renderLaporanMobile() {
             </div>
             
             <div id="blok-penjualan" class="hidden px-3.5 pb-3.5 border-t border-slate-300 pt-3">
-                <p class="text-[9px] font-black text-slate-500 mb-2 uppercase">A. Pendapatan Kotor (Omzet)</p>
+                <p class="text-[9px] font-black text-slate-500 mb-2 uppercase">A. Pemasukan (Omzet)</p>
                 <div class="grid grid-cols-[1fr_max-content_max-content] gap-y-1.5 items-center w-full text-[10px] pl-2 whitespace-nowrap">
-                    <div class="text-slate-600 truncate pr-2">Tunai</div>
+                    <div class="text-slate-600 truncate pr-2">Pembayaran via Tunai</div>
                     <div class="font-mono text-slate-800 pl-2 pr-1">Rp</div>
                     <div class="font-mono text-slate-800 text-right">${Math.round(omzetTunai).toLocaleString('id-ID')}</div>
 
-                    <div class="text-slate-600 truncate pr-2">QRIS / Bank</div>
+                    <div class="text-slate-600 truncate pr-2">Pembayaran via QRIS / Bank</div>
                     <div class="font-mono text-slate-800 pl-2 pr-1">Rp</div>
                     <div class="font-mono text-slate-800 text-right">${Math.round(omzetQRIS).toLocaleString('id-ID')}</div>
 
-                    <div class="text-slate-600 truncate pr-2">Kasbon (Barang Keluar)</div>
+                    <div class="text-slate-600 truncate pr-2">Pelanggan Bon / Piutang</div>
                     <div class="font-mono text-slate-800 pl-2 pr-1">Rp</div>
                     <div class="font-mono text-slate-800 text-right">${Math.round(omzetDebt).toLocaleString('id-ID')}</div>
 
                     <div class="col-span-3 border-t border-slate-200 my-0.5"></div>
 
-                    <div class="text-slate-800 font-bold truncate pr-2">Total Penciptaan Omzet</div>
+                    <div class="text-slate-800 font-bold truncate pr-2">Total</div>
                     <div class="font-mono text-[#0f766e] font-bold pl-2 pr-1">Rp</div>
                     <div class="font-mono text-[#0f766e] font-bold text-right">${Math.round(lOmset).toLocaleString('id-ID')}</div>
 
                     <div class="col-span-3 h-2"></div>
 
-                    <div class="text-[#0f766e] font-bold truncate pr-2">(+) Terima Pelunasan Piutang</div>
+                    <div class="text-[#0f766e] font-bold truncate pr-2">(+) Terima Bayaran Bon</div>
                     <div class="font-mono text-[#0f766e] font-bold pl-2 pr-1">+ Rp</div>
                     <div class="font-mono text-[#0f766e] font-bold text-right">${Math.round(inLunas).toLocaleString('id-ID')}</div>
                 </div>
 
-                <p class="text-[9px] font-black text-slate-500 mt-4 mb-2 uppercase">B. Beban & Biaya</p>
+                <p class="text-[9px] font-black text-slate-500 mt-4 mb-2 uppercase">B. HPP Terjual & Biaya Operasional Toko</p>
                 <div class="grid grid-cols-[1fr_max-content_max-content] gap-y-1.5 items-center w-full text-[10px] pl-2 whitespace-nowrap">
-                    <div class="text-slate-600 truncate pr-2">Modal Terjual (HPP)</div>
+                    <div class="text-slate-600 truncate pr-2">Modal Barang (Hpp) Terjual</div>
                     <div class="font-mono text-rose-600 pl-2 pr-1">- Rp</div>
                     <div class="font-mono text-rose-600 text-right">${Math.round(lHPP).toLocaleString('id-ID')}</div>
 
-                    <div class="text-slate-600 truncate pr-2">Biaya Toko (Operasional)</div>
+                    <div class="text-slate-600 truncate pr-2">Biaya Operasional Toko</div>
                     <div class="font-mono text-rose-600 pl-2 pr-1">- Rp</div>
                     <div class="font-mono text-rose-600 text-right">${Math.round(bBiayaToko).toLocaleString('id-ID')}</div>
                 </div>
                 
                 <div class="border-t border-slate-400 mt-3 pt-2 flex justify-between items-center">
                     <div class="flex items-center gap-2">
-                        <span class="font-black text-[11px] uppercase">Laba Bersih Opr.</span>
+                        <span class="font-black text-[11px] uppercase">Untung Bersih</span>
                         <span class="bg-[#0f766e] text-white text-[8px] px-1 rounded-sm font-black">${margin}% Margin</span>
                     </div>
                     <div class="flex items-center gap-1">
@@ -1655,7 +1657,7 @@ function renderLaporanMobile() {
         <!-- BLOK RINCIAN KAS KELUAR -->
         <div class="bg-[#24272c] border border-[#3b3f46] rounded-sm shadow-sm text-slate-200 select-none">
             <div class="flex justify-between items-center p-3.5 cursor-pointer" onclick="toggleAkordeonLaporan('blok-kaskeluar')">
-                 <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><i class="fa-solid fa-file-invoice"></i> Rincian Kas Keluar</p>
+                 <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><i class="fa-solid fa-file-invoice"></i> 3. UANG KELUAR</p>
                  <div class="flex items-center gap-2">
                     <span class="text-[11px] font-black text-rose-400 font-mono tracking-tight">- ${rupiah(Math.round(bKulakan + bBiayaToko + bPrive))}</span>
                     <i class="fa-solid fa-chevron-down text-slate-400 text-[10px] transition-transform duration-300" id="icon-blok-kaskeluar"></i>
@@ -1663,9 +1665,9 @@ function renderLaporanMobile() {
             </div>
             
             <div id="blok-kaskeluar" class="hidden px-3.5 pb-3.5 border-t border-[#3b3f46] pt-2 space-y-2">
-                ${listKulakanHtml ? `<div class="bg-[#1e2329] border border-[#3b3f46] p-2 rounded-sm"><p class="text-[8px] text-blue-400 font-black uppercase mb-1.5">Faktur Kulakan</p>${listKulakanHtml}</div>` : ''}
+                ${listKulakanHtml ? `<div class="bg-[#1e2329] border border-[#3b3f46] p-2 rounded-sm"><p class="text-[8px] text-blue-400 font-black uppercase mb-1.5">Belanja Barang</p>${listKulakanHtml}</div>` : ''}
                 ${listBiayaHtml ? `<div class="bg-[#1e2329] border border-[#3b3f46] p-2 rounded-sm"><p class="text-[8px] text-orange-400 font-black uppercase mb-1.5">Biaya Toko</p>${listBiayaHtml}</div>` : ''}
-                ${listPriveHtml ? `<div class="bg-[#1e2329] border border-[#3b3f46] p-2 rounded-sm"><p class="text-[8px] text-purple-400 font-black uppercase mb-1.5">Prive (Ambilan Pribadi)</p>${listPriveHtml}</div>` : ''}
+                ${listPriveHtml ? `<div class="bg-[#1e2329] border border-[#3b3f46] p-2 rounded-sm"><p class="text-[8px] text-purple-400 font-black uppercase mb-1.5">Diambil Pribadi</p>${listPriveHtml}</div>` : ''}
                 ${(!listKulakanHtml && !listBiayaHtml && !listPriveHtml) ? `<p class="text-[9px] text-slate-500 italic">Tidak ada catatan kas keluar.</p>` : ''}
             </div>
         </div>
@@ -1673,7 +1675,7 @@ function renderLaporanMobile() {
         <!-- BLOK III: TRAFIK & EKUITAS -->
         <div class="bg-[#24272c] border border-[#3b3f46] rounded-sm shadow-sm text-slate-200 select-none">
             <div class="flex justify-between items-center p-3.5 cursor-pointer" onclick="toggleAkordeonLaporan('blok-trafik')">
-                <h3 class="text-[#fcd34d] font-bold text-[10px] uppercase tracking-widest"><i class="fa-solid fa-chart-line mr-1"></i> III. Analisis Trafik & Ekuitas</h3>
+                <h3 class="text-[#fcd34d] font-bold text-[10px] uppercase tracking-widest"><i class="fa-solid fa-chart-line mr-1"></i> 4. Keramaian & Sisa Untung</h3>
                 <i class="fa-solid fa-chevron-down text-slate-400 text-[10px] transition-transform duration-300" id="icon-blok-trafik"></i>
             </div>
             
@@ -1694,17 +1696,17 @@ function renderLaporanMobile() {
                 </div>
 
                 <div class="grid grid-cols-[1fr_max-content_max-content] gap-y-1.5 items-center w-full text-[10px] whitespace-nowrap">
-                    <div class="text-slate-400 truncate pr-2">Laba Bersih</div>
+                    <div class="text-slate-400 truncate pr-2">Untung Bersih</div>
                     <div class="font-mono text-slate-200 pl-2 pr-1">Rp</div>
                     <div class="font-mono text-slate-200 text-right">${Math.round(labaBersihSejati).toLocaleString('id-ID')}</div>
                     
-                    <div class="text-slate-400 truncate pr-2">(-) Prive (Ambilan Pribadi)</div>
+                    <div class="text-slate-400 truncate pr-2">(-) Diambil Pribadi</div>
                     <div class="font-mono text-rose-400 pl-2 pr-1">- Rp</div>
                     <div class="font-mono text-rose-400 text-right">${Math.round(bPrive).toLocaleString('id-ID')}</div>
 
                     <div class="col-span-3 border-t border-[#3b3f46] my-0.5"></div>
 
-                    <div class="font-bold text-white text-[10.5px] truncate pr-2">Laba Ditahan (Tumbuh)</div>
+                    <div class="font-bold text-white text-[10.5px] truncate pr-2">Untung Yang Tinggal</div>
                     <div class="font-bold font-mono ${labaDitahan >= 0 ? 'text-[#fcd34d]' : 'text-rose-500'} text-[10.5px] pl-2 pr-1">Rp</div>
                     <div class="font-bold font-mono ${labaDitahan >= 0 ? 'text-[#fcd34d]' : 'text-rose-500'} text-right text-[10.5px] tracking-tight">${Math.round(labaDitahan).toLocaleString('id-ID')}</div>
                 </div>
@@ -1714,36 +1716,36 @@ function renderLaporanMobile() {
         <!-- BLOK IV: NERACA KEKAYAAN (GOLD CARD) -->
         <div class="bg-gradient-to-br from-[#cfa950] to-[#997321] border border-[#ebd088] rounded-sm shadow-md text-[#332508] mt-1 select-none">
             <div class="flex justify-between items-center p-3.5 cursor-pointer" onclick="toggleAkordeonLaporan('blok-neraca')">
-                <h3 class="font-black text-[10px] uppercase tracking-widest"><i class="fa-solid fa-vault mr-1"></i> IV. Neraca Kekayaan (Detik Ini)</h3>
+                <h3 class="font-black text-[10px] uppercase tracking-widest"><i class="fa-solid fa-vault mr-1"></i> 5. Total Milik Toko (Sekarang)</h3>
                 <i class="fa-solid fa-chevron-down text-[#6b4e12] text-[10px] transition-transform duration-300" id="icon-blok-neraca"></i>
             </div>
             
             <div id="blok-neraca" class="hidden px-3.5 pb-3.5 border-t border-[#a6802e] pt-3">
                 <div class="grid grid-cols-[max-content_1fr_max-content_max-content] gap-x-1.5 items-end w-full text-[10px] font-semibold whitespace-nowrap">
                     
-                    <span>1. Harta Tunai (Laci Fisik)</span>
+                    <span>1. Uang Tunai (Laci)</span>
                     <div class="border-b border-dotted border-[#8c6b24] mb-1 relative top-[-4px]"></div>
                     <span class="font-mono font-black text-[#1d1504]">Rp</span>
                     <span class="font-mono font-black text-[#1d1504] text-right">${Math.round(estimasiIsiLaci).toLocaleString('id-ID')}</span>
                     
-                    <span class="mt-1.5">2. Harta Bank (QRIS)</span>
+                    <span class="mt-1.5">2. Bank / QRIS</span>
                     <div class="border-b border-dotted border-[#8c6b24] mb-1 relative top-[-4px] mt-1.5"></div>
                     <span class="font-mono font-black text-[#1d1504] mt-1.5">Rp</span>
                     <span class="font-mono font-black text-[#1d1504] text-right mt-1.5">${Math.round(hartaQRIS).toLocaleString('id-ID')}</span>
 
-                    <span class="mt-1.5">3. Harta Piutang (Di Luar)</span>
+                    <span class="mt-1.5">3. Bon / Piutang (Di Luar)</span>
                     <div class="border-b border-dotted border-[#8c6b24] mb-1 relative top-[-4px] mt-1.5"></div>
                     <span class="font-mono font-black text-[#1d1504] mt-1.5">Rp</span>
                     <span class="font-mono font-black text-[#1d1504] text-right mt-1.5">${Math.round(hartaPiutang).toLocaleString('id-ID')}</span>
 
-                    <span class="mt-1.5">4. Harta Barang (Nilai Rak)</span>
+                    <span class="mt-1.5">4. Nilai Stok Barang</span>
                     <div class="border-b border-dotted border-[#8c6b24] mb-1 relative top-[-4px] mt-1.5"></div>
                     <span class="font-mono font-black text-[#1d1504] mt-1.5">Rp</span>
                     <span class="font-mono font-black text-[#1d1504] text-right mt-1.5">${Math.round(sisaRpReal).toLocaleString('id-ID')}</span>
                 </div>
                 
                 <div class="border-t border-[#8c6b24] pt-2 flex justify-between items-center mt-2">
-                    <span class="font-black text-[10px] uppercase">TOTAL ASET KESELURUHAN</span>
+                    <span class="font-black text-[10px] uppercase">TOTAL MILIK TOKO</span>
                     <div class="flex items-center gap-1">
                         <span class="font-black font-mono text-[11px]">Rp</span>
                         <span class="font-black font-mono text-[14px] tracking-tight">${Math.round(estimasiIsiLaci + hartaQRIS + hartaPiutang + sisaRpReal).toLocaleString('id-ID')}</span>
@@ -1758,12 +1760,12 @@ function renderLaporanMobile() {
             
             <!-- HEADER KESIMPULAN INTI -->
             <div class="bg-gradient-to-r from-slate-900 to-black p-2.5 text-center border-b border-slate-700">
-                <h3 class="text-white font-black text-[10px] uppercase tracking-[0.2em]"><i class="fa-solid fa-crown text-[#cfa950] mr-1"></i> Executive Summary</h3>
+                <h3 class="text-white font-black text-[10px] uppercase tracking-[0.2em]"><i class="fa-solid fa-crown text-[#cfa950] mr-1"></i> Ringkasan Hari Ini</h3>
             </div>
 
             <!-- BATANG 1: OMZET -->
             <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-2.5 grid grid-cols-[135px_10px_1fr_35px_max-content] items-center border-b border-[#735311]">
-                <div class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest truncate">Omzet Kotor</div>
+                <div class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest truncate">Jualan</div>
                 <div class="text-[#2a1e04] font-black text-[10px] text-center">:</div>
                 <div></div>
                 <div class="text-[#1a1202] font-black text-[11px] text-left">Rp</div>
@@ -1772,7 +1774,7 @@ function renderLaporanMobile() {
 
             <!-- BATANG 2: HPP & BIAYA -->
             <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-2.5 grid grid-cols-[135px_10px_1fr_35px_max-content] items-center border-b border-[#735311]">
-                <div class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest truncate">HPP & Biaya Keluar</div>
+                <div class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest truncate">Modal & Biaya Toko</div>
                 <div class="text-[#2a1e04] font-black text-[10px] text-center">:</div>
                 <div></div>
                 <div class="text-[#5b1414] font-black text-[11px] text-left">- Rp</div>
@@ -1781,7 +1783,7 @@ function renderLaporanMobile() {
 
             <!-- BATANG 3: LABA BERSIH (GLOWING) -->
             <div class="bg-gradient-to-r from-[#fcd34d] to-[#d97706] p-3 grid grid-cols-[135px_10px_1fr_35px_max-content] items-center border-b border-[#735311] shadow-inner">
-                <div class="text-black font-black text-[12px] uppercase tracking-widest flex items-center gap-1.5 truncate"><i class="fa-solid fa-sack-dollar text-[#78350f]"></i> Laba Bersih</div>
+                <div class="text-black font-black text-[12px] uppercase tracking-widest flex items-center gap-1.5 truncate"><i class="fa-solid fa-sack-dollar text-[#78350f]"></i> Untung Bersih</div>
                 <div class="text-black font-black text-[12px] text-center">:</div>
                 <div></div>
                 <div class="text-black font-black text-[12px] text-left">Rp</div>
@@ -1798,7 +1800,7 @@ function renderLaporanMobile() {
 
             <!-- BATANG 5: TERJUAL -->
             <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-2.5 grid grid-cols-[135px_10px_1fr_max-content] items-center border-b border-[#735311]/40">
-                <div class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest truncate">Obat Terjual</div>
+                <div class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest truncate">Barang Terjual</div>
                 <div class="text-[#2a1e04] font-black text-[10px] text-center">:</div>
                 <div></div>
                 <div class="text-[#1a1202] font-black font-mono text-[12px] text-right">${terjualQtySiklus} Pcs</div>
@@ -1830,7 +1832,7 @@ function renderLaporanMobile() {
 
             <!-- BATANG 9: ASET RAK -->
             <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-2.5 grid grid-cols-[135px_10px_1fr_35px_max-content] items-center border-b border-[#735311]">
-                <div class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest truncate">Aset Rak Sisa</div>
+                <div class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest truncate">Nilai Sisa Stok</div>
                 <div class="text-[#2a1e04] font-black text-[10px] text-center">:</div>
                 <div></div>
                 <div class="text-[#1a1202] font-black text-[11px] text-left">Rp</div>
@@ -1841,7 +1843,7 @@ function renderLaporanMobile() {
             <div class="bg-gradient-to-r from-slate-900 to-slate-800 border-t border-[#cfa950]">
                 <div class="p-3 flex justify-between items-center cursor-pointer" onclick="toggleAkordeonLaporan('tabel-performa-obat')">
                     <span class="text-[#cfa950] font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5">
-                        <i class="fa-solid fa-list-ol"></i> Performa Rinci Obat
+                        <i class="fa-solid fa-list-ol"></i> Rincian Performa Barang
                         <span id="badge-jenis-obat" class="bg-[#cfa950] text-[#1a1202] px-1.5 py-0.5 rounded-sm text-[8px] leading-none ml-1 hidden tracking-normal">0 Macam</span>
                     </span>
                     <i class="fa-solid fa-chevron-down text-[#cfa950] text-[12px] transition-transform duration-300" id="icon-tabel-performa-obat"></i>
@@ -1852,7 +1854,7 @@ function renderLaporanMobile() {
                     <table class="w-full text-left border-collapse whitespace-nowrap">
                         <thead>
                             <tr class="bg-slate-100 text-[8px] font-black text-slate-500 uppercase tracking-widest border-b-2 border-slate-300">
-                                <th class="py-2 px-2 sticky left-0 bg-slate-100 z-10 border-r border-slate-200">Nama Obat</th>
+                                <th class="py-2 px-2 sticky left-0 bg-slate-100 z-10 border-r border-slate-200">Nama Barang</th>
                                 <th class="py-2 px-2 border-r border-slate-200 text-right">Awal</th>
                                 <th class="py-2 px-2 border-r border-slate-200 text-right text-amber-600">Laku</th>
                                 <th class="py-2 px-2 border-r border-slate-200 text-right text-emerald-600">Sisa</th>
@@ -1948,7 +1950,7 @@ function renderLaporanMobile() {
                 if(obat.kategori) subInfo += (subInfo ? ' • ' : '') + obat.kategori;
 
                 var kolomNamaHtml = '<div class="flex flex-col py-1">' +
-                    '<span class="font-black text-slate-900 text-[11px] leading-tight">' + (obat.namaUtama || 'Obat Dihapus') + '</span>' +
+                    '<span class="font-black text-slate-900 text-[11px] leading-tight">' + (obat.namaUtama || 'Barang Dihapus') + '</span>' +
                     (subInfo ? '<span class="text-[8.5px] font-bold text-corporate-600 mt-0.5 uppercase tracking-wide">' + subInfo + '</span>' : '') +
                 '</div>';
 
@@ -1970,7 +1972,7 @@ function renderLaporanMobile() {
 
         var elemenBody = document.getElementById('body-tabel-performa');
         if (elemenBody) {
-            elemenBody.innerHTML = htmlTabelObat || '<tr><td colspan="6" class="py-4 text-center text-slate-400">Belum ada data obat.</td></tr>';
+            elemenBody.innerHTML = htmlTabelObat || '<tr><td colspan="6" class="py-4 text-center text-slate-400">Belum ada data barang.</td></tr>';
         }
 
         // Tembakkan angka ke lencana/badge di Header Batang 6
@@ -1982,6 +1984,7 @@ function renderLaporanMobile() {
 
     }, 100);
 }
+
 
 
 // ==========================================
