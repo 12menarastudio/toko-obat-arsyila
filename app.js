@@ -1504,6 +1504,18 @@ function renderLaporanMobile() {
     let totalQtyTersedia = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
     let totalModalTersedia = (siklusAktif.modalAwal || 0) + (siklusAktif.modalTambahan || 0);
 
+  // =======================================================
+    // MESIN 4: KALKULASI JENIS BARANG (BARU)
+    // =======================================================
+    let unikObat = new Set();
+    masterItems.forEach(m => { 
+        if(m.nama !== '___SYSTEM_AUTH___' && m.kategori !== '⚠️ Barang Retur') unikObat.add(m.dnaInduk); 
+    });
+    etalaseItems.forEach(e => { 
+        unikObat.add(e.dnaInduk || e.nama); 
+    });
+    let totalJenisObat = unikObat.size;
+
     // =======================================================
     // RENDERING UI: AKORDEON DINAMIS & BATANGAN EMAS
     // =======================================================
@@ -1673,7 +1685,7 @@ function renderLaporanMobile() {
                     </div>
                     <div class="border border-[#3b3f46] rounded-sm p-2 text-center bg-[#1e2329]">
                         <p class="text-[8px] font-bold text-slate-400 uppercase mb-1">Terjual</p>
-                        <p class="text-[12px] font-black text-white">${totalBiji} Biji</p>
+                        <p class="text-[12px] font-black text-white">${totalBiji} Stok</p>
                     </div>
                     <div class="border border-[#3b3f46] rounded-sm p-2 text-center bg-[#1e2329]">
                         <p class="text-[8px] font-bold text-slate-400 uppercase mb-1">Rata-rata Belanja</p>
@@ -1740,13 +1752,13 @@ function renderLaporanMobile() {
             </div>
         </div>
                 <!-- ====================================================================== -->
-        <!-- Gambaran Umum Toko Anda: ALIGNMENT GRID MISTAR TITIK DUA (KIRI) -->
+        <!-- EXECUTIVE SUMMARY: ALIGNMENT GRID MISTAR TITIK DUA (KIRI) -->
         <!-- ====================================================================== -->
         <div class="mt-6 flex flex-col w-full shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-[#a6802e]">
             
             <!-- HEADER KESIMPULAN INTI -->
             <div class="bg-gradient-to-r from-slate-900 to-black p-2.5 text-center border-b border-slate-700">
-                <h3 class="text-white font-black text-[10px] uppercase tracking-[0.2em]"><i class="fa-solid fa-crown text-[#cfa950] mr-1"></i> Gambaran Umum Toko Anda</h3>
+                <h3 class="text-white font-black text-[10px] uppercase tracking-[0.2em]"><i class="fa-solid fa-crown text-[#cfa950] mr-1"></i> Executive Summary</h3>
             </div>
 
             <!-- BATANG 1: OMZET -->
@@ -1792,15 +1804,31 @@ function renderLaporanMobile() {
                 <div class="text-[#1a1202] font-black font-mono text-[12px] text-right">${terjualQtySiklus} Pcs</div>
             </div>
 
-            <!-- BATANG 6: TOTAL PEMBELI -->
+            <!-- BATANG 6: SISA STOK (BARU) -->
+            <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-2.5 grid grid-cols-[135px_10px_1fr_max-content] items-center border-b border-[#735311]/40">
+                <div class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest truncate">Sisa Stok</div>
+                <div class="text-[#2a1e04] font-black text-[10px] text-center">:</div>
+                <div></div>
+                <div class="text-[#1a1202] font-black font-mono text-[12px] text-right">${sisaQtyReal} Pcs</div>
+            </div>
+
+            <!-- BATANG 7: JENIS BARANG (BARU) -->
+            <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-2.5 grid grid-cols-[135px_10px_1fr_max-content] items-center border-b border-[#735311]/40">
+                <div class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest truncate">Jenis Barang</div>
+                <div class="text-[#2a1e04] font-black text-[10px] text-center">:</div>
+                <div></div>
+                <div class="text-[#1a1202] font-black font-mono text-[12px] text-right">${totalJenisObat} Macam</div>
+            </div>
+
+            <!-- BATANG 8: TOTAL PEMBELI -->
             <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-2.5 grid grid-cols-[135px_10px_1fr_max-content] items-center border-b border-[#735311]">
                 <div class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest truncate">Total Pembeli</div>
                 <div class="text-[#2a1e04] font-black text-[10px] text-center">:</div>
                 <div></div>
-                <div class="text-black font-black font-mono text-[11px] bg-black/10 px-2 py-0.5 rounded text-right ml-auto w-max">${totalPembeli} Org</div>
+                <div class="text-black font-black font-mono text-[11px] bg-black/10 px-2 py-0.5 rounded text-right ml-auto w-max justify-self-end">${totalPembeli} Org</div>
             </div>
 
-            <!-- BATANG 7: ASET RAK -->
+            <!-- BATANG 9: ASET RAK -->
             <div class="bg-gradient-to-r from-[#cfa950] to-[#997321] p-2.5 grid grid-cols-[135px_10px_1fr_35px_max-content] items-center border-b border-[#735311]">
                 <div class="text-[#2a1e04] font-black text-[10px] uppercase tracking-widest truncate">Aset Rak Sisa</div>
                 <div class="text-[#2a1e04] font-black text-[10px] text-center">:</div>
@@ -1809,7 +1837,7 @@ function renderLaporanMobile() {
                 <div class="text-[#1a1202] font-black font-mono text-[13px] text-right">${Math.round(sisaRpReal).toLocaleString('id-ID')}</div>
             </div>
 
-            <!-- BATANG 8: PERFORMA OBAT (DROPDOWN) DENGAN LENCANA MACAM OBAT -->
+            <!-- BATANG 10: PERFORMA OBAT (DROPDOWN) DENGAN LENCANA MACAM OBAT -->
             <div class="bg-gradient-to-r from-slate-900 to-slate-800 border-t border-[#cfa950]">
                 <div class="p-3 flex justify-between items-center cursor-pointer" onclick="toggleAkordeonLaporan('tabel-performa-obat')">
                     <span class="text-[#cfa950] font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5">
@@ -1819,7 +1847,7 @@ function renderLaporanMobile() {
                     <i class="fa-solid fa-chevron-down text-[#cfa950] text-[12px] transition-transform duration-300" id="icon-tabel-performa-obat"></i>
                 </div>
                 
-                <!-- ISI DROPDOWN BATANG KE-8 -->
+                <!-- ISI DROPDOWN BATANG -->
                 <div id="tabel-performa-obat" class="hidden bg-white overflow-x-auto hide-scrollbar border-t border-slate-700">
                     <table class="w-full text-left border-collapse whitespace-nowrap">
                         <thead>
@@ -2301,7 +2329,7 @@ function isiKategoriEditCerdas(kategori) {
         inputSelect.value = 'kustom';
         inputKustom.value = kategori;
         inputKustom.classList.remove('hidden');
-        setDropdownUIManual('editKategoriMobile', 'Pilih Manual');
+        setDropdownUIManual('editKategoriMobile', 'Tulis Manual');
     } else {
         inputSelect.value = kategori || '';
         inputKustom.value = '';
