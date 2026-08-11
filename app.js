@@ -1740,13 +1740,13 @@ function renderLaporanMobile() {
             </div>
         </div>
                 <!-- ====================================================================== -->
-        <!-- EXECUTIVE SUMMARY: ALIGNMENT GRID MISTAR TITIK DUA (KIRI) -->
+        <!-- Gambaran Umum Toko Anda: ALIGNMENT GRID MISTAR TITIK DUA (KIRI) -->
         <!-- ====================================================================== -->
         <div class="mt-6 flex flex-col w-full shadow-[0_10px_30px_rgba(0,0,0,0.5)] border border-[#a6802e]">
             
             <!-- HEADER KESIMPULAN INTI -->
             <div class="bg-gradient-to-r from-slate-900 to-black p-2.5 text-center border-b border-slate-700">
-                <h3 class="text-white font-black text-[10px] uppercase tracking-[0.2em]"><i class="fa-solid fa-crown text-[#cfa950] mr-1"></i> Executive Summary</h3>
+                <h3 class="text-white font-black text-[10px] uppercase tracking-[0.2em]"><i class="fa-solid fa-crown text-[#cfa950] mr-1"></i> Gambaran Umum Toko Anda</h3>
             </div>
 
             <!-- BATANG 1: OMZET -->
