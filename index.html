@@ -280,6 +280,10 @@ tailwind.config = {
                 <div>
                     <h2 class="font-black text-corporate-900 text-2xl tracking-tight">Master Gudang</h2>
                     <p class="text-[10px] text-slate-500 font-bold uppercase tracking-widest mt-0.5">Kelola Inventori</p>
+                    <button onclick="bukaModalPenyusutanMobile()" class="bg-rose-50 text-rose-600 border border-rose-200 hover:bg-rose-100 px-3 py-1.5 rounded-lg text-[10px] font-black shadow-sm transition-all active:scale-95 inline-flex items-center gap-1.5 mt-2.5">
+    <i class="fa-solid fa-dumpster-fire text-sm"></i>
+    Penyusutan
+</button>
                 </div>
                 <div class="flex gap-2">
                     <button onclick="bukaModalAntreanKulakan()" class="relative bg-white text-corporate-700 w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm transition-transform active:scale-95 border border-slate-200">
@@ -582,9 +586,8 @@ tailwind.config = {
                 </div>
                                                 <div class="grid grid-cols-2 gap-3">
                     <div class="relative">
-                        <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Kategori <span class="text-red-500">*</span></label>
-                        <input type="hidden" id="editKategoriMobile" value="">
-                        <button type="button" id="btn_editKategoriMobile" onclick="toggleDropdownCustom('editKategoriMobile')" class="custom-dropdown-btn w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none transition-all flex justify-between items-center text-left">
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Kategori <i class="fa-solid fa-lock text-slate-400 ml-0.5"></i> <span class="text-red-500">*</span></label>
+                        <input type="hidden" id="editKategoriMobile" value="">    <button type="button" id="btn_editKategoriMobile" onclick="toggleDropdownCustom('editKategoriMobile')" class="custom-dropdown-btn w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 focus:outline-none transition-all flex justify-between items-center text-left">
                             <span id="teks_editKategoriMobile" class="truncate text-slate-400 text-xs">Contoh: <i>Vitamin</i></span>
                             <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-300 shrink-0 ml-2 custom-dropdown-icon" id="icon_editKategoriMobile"></i>
                         </button>
@@ -600,9 +603,8 @@ tailwind.config = {
                         <input type="text" id="editKategoriKustom" placeholder="Ketik Kategori..." class="hidden w-full bg-white border border-blue-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-800 focus:outline-none mt-2 shadow-inner transition-all">
                     </div>
                     <div class="relative">
-                        <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Sat. Eceran <span class="text-red-500">*</span></label>
-                        <input type="hidden" id="editSatuanEceran" value="">
-                        <button type="button" id="btn_editSatuanEceran" onclick="toggleDropdownCustom('editSatuanEceran')" class="custom-dropdown-btn w-full bg-[#eef5ef] border border-[#b2d5bb] rounded-xl px-4 py-3 focus:outline-none transition-all flex justify-between items-center text-left">
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Sat. Eceran <i class="fa-solid fa-lock text-slate-400 ml-0.5"></i> <span class="text-red-500">*</span></label>
+                        <input type="hidden" id="editSatuanEceran" value="">       <button type="button" id="btn_editSatuanEceran" onclick="toggleDropdownCustom('editSatuanEceran')" class="custom-dropdown-btn w-full bg-[#eef5ef] border border-[#b2d5bb] rounded-xl px-4 py-3 focus:outline-none transition-all flex justify-between items-center text-left">
                             <span id="teks_editSatuanEceran" class="truncate text-[#274f31] opacity-70 text-xs">Contoh: <i>Strip</i></span>
                             <i class="fa-solid fa-chevron-down text-[10px] text-[#274f31] opacity-70 transition-transform duration-300 shrink-0 ml-2 custom-dropdown-icon" id="icon_editSatuanEceran"></i>
                         </button>
@@ -717,22 +719,19 @@ tailwind.config = {
                 </div>
 
 
-                <div class="grid grid-cols-2 gap-3">
+                                <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Modal (HPP)</label>
-   <input type="number" id="editModalMobile" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none transition-all">
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Modal (HPP) <i class="fa-solid fa-lock text-slate-400 ml-0.5"></i></label>
+                        <input type="number" id="editModalMobile" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none transition-all">
                     </div>
                     <div>
-                        <div class="flex justify-between items-center mb-1.5 pl-1">
-                            <label class="block text-[10px] font-bold text-corporate-600 uppercase tracking-wider">Harga Jual</label>
-                            <button type="button" id="btnUbahJualMobile" onclick="bukaKunciHargaJualMobile()" class="hidden text-[8px] bg-amber-100 text-amber-700 px-2 py-1 rounded font-bold shadow-sm"><i class="fa-solid fa-unlock"></i> Ubah</button>
-                        </div>
+                        <label class="block text-[10px] font-bold text-corporate-600 mb-1.5 uppercase tracking-wider pl-1">Harga Jual</label>
                         <input type="number" id="editJualMobile" class="w-full bg-corporate-50 border border-corporate-200 rounded-xl px-4 py-3 text-sm font-black text-corporate-700 focus:outline-none shadow-inner transition-all">
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3">
                     <div>
-                        <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Sisa Gudang</label>
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Sisa Stok <i class="fa-solid fa-lock text-slate-400"></i></label>
                         <input type="number" id="editStokMobile" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none transition-all">
                     </div>
                     <div>
@@ -1723,8 +1722,7 @@ tailwind.config = {
                                                 <div class="l-row l-total"><span class="l-lbl">Persediaan Siap Jual</span><span class="l-dots"></span><span class="l-val" id="p-rp-siap">Rp 0</span></div>
                         <div class="l-row mt-2"><span class="l-lbl">(-) Laku Terjual (HPP)</span><span class="l-dots"></span><span class="l-val" id="p-qty-jual">0 Pcs</span></div>
                         <div class="l-row"><span class="l-lbl"></span><span class="l-val" id="p-rp-jual">Rp 0</span></div>
-                        <div class="l-row mt-1"><span class="l-lbl">(-) Dihapus / Rusak</span><span class="l-dots"></span><span class="l-val" id="p-qty-hapus">0 Pcs</span></div>
-                        <div class="l-row"><span class="l-lbl"></span><span class="l-val" id="p-rp-hapus">Rp 0</span></div>
+                        <div class="l-row mt-1"><span class="l-lbl">(-) Rusak / Hilang / Exp</span><span class="l-dots"></span><span class="l-val" id="p-qty-hapus">0 Pcs</span></div>      <div class="l-row"><span class="l-lbl"></span><span class="l-val" id="p-rp-hapus">Rp 0</span></div>
                     </div>
                     <div>
                         <div class="l-divider"></div>
@@ -1741,13 +1739,13 @@ tailwind.config = {
                         <div class="l-row"><span class="l-lbl">Pendapatan Piutang</span><span class="l-dots"></span><span class="l-val" id="p-omzet-debt">Rp 0</span></div>
                         <div class="l-divider"></div>
                         <div class="l-row l-total"><span class="l-lbl">Total Omzet Penciptaan</span><span class="l-dots"></span><span class="l-val" id="p-omzet-total">Rp 0</span></div>
-                        <div class="l-row mt-2"><span class="l-lbl">(-) Modal Terjual (HPP)</span><span class="l-dots"></span><span class="l-val" id="p-beban-hpp">Rp 0</span></div>
+             <div class="l-row mt-2"><span class="l-lbl">(-) Modal Terjual (HPP)</span><span class="l-dots"></span><span class="l-val" id="p-beban-hpp">Rp 0</span></div>
                         <div class="l-row"><span class="l-lbl">(-) Biaya Toko & Opr.</span><span class="l-dots"></span><span class="l-val" id="p-beban-biaya">Rp 0</span></div>
+                        <div class="l-row"><span class="l-lbl">(-) Brg Rusak/Exp.</span><span class="l-dots"></span><span class="l-val" id="p-beban-rugi">Rp 0</span></div>
                     </div>
                     <div>
                         <div class="l-divider"></div>
-                        <div class="l-row l-total"><span class="l-lbl">LABA BERSIH OPR.</span><span class="l-dots"></span><span class="l-val" id="p-laba-bersih">Rp 0</span></div>
-                    </div>
+                        <div class="l-row l-total"><span class="l-lbl">LABA BERSIH OPR.</span><span class="l-dots"></span><span class="l-val" id="p-laba-bersih">Rp 0</span></div>      </div>
                 </div>
 
                 <!-- BLOK 3: NERACA KEKAYAAN -->
@@ -1773,7 +1771,92 @@ tailwind.config = {
             </div>
         </div>
     </div>
+    
+<!-- MODAL PENYUSUTAN / PEMUSNAHAN BARANG -->
+    <div id="modalPenyusutanMobile" class="absolute inset-0 z-[150] hidden flex items-end sm:items-center justify-center pointer-events-none">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity pointer-events-auto" onclick="tutupModalMobile('modalPenyusutanMobile')"></div>
+        <div class="bg-slate-50 w-full max-h-[90vh] rounded-t-3xl sm:rounded-3xl sm:w-[90%] sm:mb-10 shadow-2xl relative z-10 pointer-events-auto transform transition-transform translate-y-full flex flex-col overflow-hidden" id="panelPenyusutanMobile">
+            
+            <!-- Header -->
+            <div class="bg-white px-6 py-4 border-b border-slate-200 flex justify-between items-center shrink-0 relative z-20">
+                <div>
+                    <h3 class="font-black text-slate-800 text-lg flex items-center gap-2"><i class="fa-solid fa-dumpster-fire text-rose-500"></i> Catat Kerugian Stok</h3>
+                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Barang Rusak / Hilang / Expired</p>
+                </div>
+                <button onclick="tutupModalMobile('modalPenyusutanMobile')" class="w-8 h-8 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center hover:bg-slate-200 active:scale-90 transition-colors"><i class="fa-solid fa-times"></i></button>
+            </div>
 
+            <!-- Body / Konten -->
+            <div class="flex-1 overflow-y-auto hide-scrollbar p-5 pb-6">
+                
+                <!-- Pencarian -->
+                <div class="relative mb-4">
+                    <i class="fa-solid fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                    <input type="text" id="inputCariPenyusutan" onkeyup="cariObatPenyusutan()" placeholder="Ketik nama obat yg rusak..." class="w-full bg-white border border-slate-200 text-slate-800 text-sm rounded-2xl pl-11 pr-4 py-3.5 focus:outline-none shadow-sm placeholder:text-slate-400 font-bold transition-all">
+                </div>
+
+                <!-- Wadah Hasil Cari -->
+                <div id="wadahListPenyusutan" class="mb-4 space-y-2"></div>
+
+                <!-- AREA FORM BATCH (Tampil Setelah Obat Dipilih) -->
+                <div id="areaFormPenyusutan" class="hidden animate-fade-in-up">
+                    
+                    <div class="flex justify-between items-end mb-4 border-b border-slate-200 pb-3">
+                        <div class="flex-1 pr-3">
+                            <h4 id="penyu_nama_induk" class="font-black text-slate-800 text-lg leading-tight mb-1">Nama Obat</h4>
+                            <span id="penyu_kategori" class="text-[9px] font-black text-slate-500 bg-slate-200 px-2 py-0.5 rounded-md uppercase tracking-widest">Kategori</span>
+                        </div>
+                        <button onclick="batalPilihPenyusutan()" class="text-[10px] font-bold text-blue-600 bg-blue-50 border border-blue-100 px-3 py-1.5 rounded-lg active:scale-95 transition-all shadow-sm shrink-0"><i class="fa-solid fa-rotate-left"></i> Ganti</button>
+                    </div>
+
+                    <!-- Diagnosa Masalah -->
+                    <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2 pl-1">Pilih Masalah Utama</label>
+                    <div class="grid grid-cols-3 gap-2 mb-5">
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="penyu_jenis" value="Expired" class="peer hidden" checked onchange="kalkulasiRealTimePenyusutan()">
+                            <div class="peer-checked:bg-orange-500 peer-checked:text-white peer-checked:shadow-md bg-white border border-slate-200 text-slate-500 rounded-xl py-3 text-center transition-all active:scale-95"><i class="fa-solid fa-calendar-xmark mb-1.5 text-lg block"></i><span class="text-[9px] font-black tracking-wide">EXPIRED</span></div>
+                        </label>
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="penyu_jenis" value="Rusak" class="peer hidden" onchange="kalkulasiRealTimePenyusutan()">
+                            <div class="peer-checked:bg-rose-500 peer-checked:text-white peer-checked:shadow-md bg-white border border-slate-200 text-slate-500 rounded-xl py-3 text-center transition-all active:scale-95"><i class="fa-solid fa-heart-crack mb-1.5 text-lg block"></i><span class="text-[9px] font-black tracking-wide">RUSAK</span></div>
+                        </label>
+                        <label class="cursor-pointer group">
+                            <input type="radio" name="penyu_jenis" value="Hilang" class="peer hidden" onchange="kalkulasiRealTimePenyusutan()">
+                            <div class="peer-checked:bg-slate-700 peer-checked:text-white peer-checked:shadow-md bg-white border border-slate-200 text-slate-500 rounded-xl py-3 text-center transition-all active:scale-95"><i class="fa-solid fa-ghost mb-1.5 text-lg block"></i><span class="text-[9px] font-black tracking-wide">HILANG</span></div>
+                        </label>
+                    </div>
+
+                    <!-- Kumpulan Batch -->
+                    <div class="flex justify-between items-center mb-2 mt-5 pl-1">
+                        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest">Rincian Batch Fisik</label>
+                        <button onclick="ceklisSemuaExpiredPenyusutan()" class="text-[9px] font-bold text-orange-600 bg-orange-50 px-2.5 py-1.5 rounded-lg border border-orange-100 active:scale-95 transition-all shadow-sm"><i class="fa-solid fa-check-double"></i> Pilih Semua Expired</button>
+                    </div>
+                    
+                    <div id="wadahBatchPenyusutan" class="space-y-3 mb-5">
+                        <!-- Disuntik JS -->
+                    </div>
+
+                    <div class="mt-2">
+                        <label class="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1 pl-1">Catatan Tambahan (Opsional)</label>
+                        <input type="text" id="penyu_catatan" class="w-full bg-white border border-slate-200 text-slate-800 text-sm rounded-xl px-4 py-3.5 focus:outline-none focus:border-rose-400 transition-all placeholder:text-slate-300" placeholder="Cth: Pecah tersenggol di gudang...">
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Footer Eksekusi -->
+            <div id="footerPenyusutan" class="bg-white border-t border-slate-200 p-5 shadow-[0_-10px_20px_rgba(0,0,0,0.03)] relative z-20 hidden">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-[10px] font-black text-slate-500 uppercase tracking-widest">Est. Kerugian Modal:</span>
+                    <span class="text-xl font-black text-rose-600" id="penyu_totalKerugian">Rp 0</span>
+                </div>
+                <button onclick="eksekusiPenyusutanCerdas()" class="w-full bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-black py-4 rounded-2xl shadow-[0_5px_15px_rgba(225,29,72,0.3)] transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm uppercase tracking-wider border border-rose-500">
+                    <i class="fa-solid fa-fire-flame-curved text-lg"></i> Musnahkan & Catat
+                </button>
+            </div>
+
+        </div>
+    </div>
 
 </body>
 </html>
