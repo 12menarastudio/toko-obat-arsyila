@@ -90,20 +90,33 @@ tailwind.config = {
             </div>
             
                                     <div class="px-6 mt-4">
-                <div class="flex rounded-xl btn-gold-3d overflow-hidden border border-[#b45309] h-12 shadow-md">
-                                        <button onclick="bukaDetailTigaSerangkai('total')" class="flex-1 btn-gold-3d-active border-r border-[#b45309]/40 flex flex-col items-center justify-center transition-all">
-                        <span class="text-[8px] font-black uppercase tracking-widest opacity-80 leading-none mb-0.5 flex items-center gap-1"><i class="fa-solid fa-boxes-stacked"></i> Stok Modal </span>
-                        <span class="text-sm font-black leading-none" id="panelStokTotal">0</span>
-                    </button>
-                    <button onclick="bukaDetailTigaSerangkai('sisa')" class="flex-1 btn-gold-3d-active border-r border-[#b45309]/40 flex flex-col items-center justify-center transition-all">
-                        <span class="text-[8px] font-black uppercase tracking-widest opacity-80 leading-none mb-0.5">Sisa Stok</span>
-                        <span class="text-sm font-black leading-none" id="panelStokSisa">0</span>
-                    </button>
-
-                    <button onclick="bukaDetailTigaSerangkai('terjual')" class="flex-1 btn-gold-3d-active flex flex-col items-center justify-center transition-all">
-                        <span class="text-[8px] font-black uppercase tracking-widest opacity-80 leading-none mb-0.5">Terjual</span>
-                        <span class="text-sm font-black leading-none" id="panelStokTerjual">0</span>
-                    </button>
+                <div class="rounded-xl btn-gold-3d overflow-hidden border border-[#b45309] shadow-md flex flex-col">
+                    <!-- Lantai Atas (3 Kotak - Garis Bawah Tipis) -->
+                    <div class="flex border-b border-[#b45309]/40">
+                        <button onclick="bukaDetailTigaSerangkai('total')" class="flex-1 btn-gold-3d-active border-r border-[#b45309]/40 flex flex-col items-center justify-center py-1.5 transition-all">
+                            <span class="text-[7.5px] font-black uppercase tracking-widest opacity-80 leading-none mb-0.5 flex items-center gap-1"><i class="fa-solid fa-boxes-stacked"></i> Stok Modal</span>
+                            <span class="text-sm font-black leading-none" id="panelStokTotal">0</span>
+                        </button>
+                        <button onclick="bukaDetailTigaSerangkai('terjual')" class="flex-1 btn-gold-3d-active border-r border-[#b45309]/40 flex flex-col items-center justify-center py-1.5 transition-all">
+                            <span class="text-[7.5px] font-black uppercase tracking-widest opacity-80 leading-none mb-0.5 flex items-center gap-1"><i class="fa-solid fa-cart-arrow-down"></i> Terjual</span>
+                            <span class="text-sm font-black leading-none" id="panelStokTerjual">0</span>
+                        </button>
+                        <button onclick="bukaDetailTigaSerangkai('sisa')" class="flex-1 btn-gold-3d-active flex flex-col items-center justify-center py-1.5 transition-all">
+                            <span class="text-[7.5px] font-black uppercase tracking-widest opacity-80 leading-none mb-0.5 flex items-center gap-1"><i class="fa-solid fa-check-circle"></i> Sisa Stok</span>
+                            <span class="text-sm font-black leading-none" id="panelStokSisa">0</span>
+                        </button>
+                    </div>
+                    <!-- Lantai Bawah (2 Kotak - Proporsi Seimbang) -->
+                    <div class="flex">
+                        <button onclick="alert('Barang Rusak/Expired: ' + document.getElementById('panelStokRusak').textContent + ' Stok\n\nTotal barang yang dimusnahkan selama siklus/shift ini.')" class="flex-1 btn-gold-3d-active border-r border-[#b45309]/40 flex flex-col items-center justify-center py-1.5 transition-all">
+                            <span class="text-[7.5px] font-black uppercase tracking-widest opacity-80 leading-none mb-0.5 flex items-center gap-1"><i class="fa-solid fa-dumpster-fire"></i> Rusak/Hilang/Exp</span>
+                            <span class="text-sm font-black leading-none" id="panelStokRusak">0</span>
+                        </button>
+                        <button onclick="alert('Total Pembeli: ' + document.getElementById('panelPembeliSiklus').textContent + ' Orang\n\nTotal pelanggan/faktur yang berbelanja selama siklus/shift ini.')" class="flex-1 btn-gold-3d-active flex flex-col items-center justify-center py-1.5 transition-all">
+                            <span class="text-[7.5px] font-black uppercase tracking-widest opacity-80 leading-none mb-0.5 flex items-center gap-1"><i class="fa-solid fa-users"></i> Pembeli</span>
+                            <span class="text-sm font-black leading-none" id="panelPembeliSiklus">0</span>
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -286,12 +299,14 @@ tailwind.config = {
 </button>
                 </div>
                 <div class="flex gap-2">
+                    <button onclick="bukaModalBukuCatatan()" class="bg-amber-100 text-amber-700 w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm transition-transform active:scale-95 border border-amber-200">
+                        <i class="fa-solid fa-book text-lg"></i>
+                    </button>
                     <button onclick="bukaModalAntreanKulakan()" class="relative bg-white text-corporate-700 w-11 h-11 rounded-2xl flex items-center justify-center shadow-sm transition-transform active:scale-95 border border-slate-200">
                         <i class="fa-solid fa-cart-flatbed text-lg"></i>
                         <span id="badgeKeranjangKulakan" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border border-white shadow-sm">0</span>
                     </button>
-                    <button onclick="bukaModalTambahObatMobile()" class="bg-gradient-to-br from-corporate-500 to-corporate-700 hover:from-corporate-600 hover:to-corporate-800 text-white w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg shadow-corporate-500/30 transition-transform active:scale-95 border border-corporate-600">
-                        <i class="fa-solid fa-plus text-lg"></i>
+                    <button onclick="bukaModalTambahObatMobile()" class="bg-gradient-to-br from-corporate-500 to-corporate-700 hover:from-corporate-600 hover:to-corporate-800 text-white w-11 h-11 rounded-2xl flex items-center justify-center shadow-lg shadow-corporate-500/30 transition-transform active:scale-95 border border-corporate-600">      <i class="fa-solid fa-plus text-lg"></i>
                     </button>
                 </div>
             </div>
@@ -686,39 +701,8 @@ tailwind.config = {
                         <label id="labelModalKotorEdit" class="block text-[9px] font-bold text-slate-500 mb-1 uppercase tracking-wider text-center">Modal Beli (Kotor)</label>
                         <input type="text" inputmode="numeric" id="editModalKotor" oninput="formatAngkaRibuan(this); kalkulatorEditBatchMobile()" placeholder="Rp 0" class="w-full bg-white border border-blue-200 rounded-xl px-3 py-2 text-sm font-bold text-slate-800 focus:outline-none text-center shadow-inner">
                     </div>
-                    <p id="infoKalkulasiEdit" class="text-[9px] text-blue-600 font-medium text-center mt-2">Nyalakan saklar jika beli dlm bentuk Grosir (Box/Dos)</p>
-                                                                        <!-- SAKLAR HIBRIDA EDIT (SUMBER DANA KULAKAN) -->
-                <div class="mt-3">
-                    <label class="block text-[10px] font-black text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Sumber Dana Tambah Stok</label>
-                    <div class="grid grid-cols-3 gap-1.5" id="wadahSumberDanaEdit">
-                        <label class="cursor-pointer group relative">
-                            <input type="radio" name="sumberDanaKulakanEdit" value="Pribadi" class="peer sr-only" checked>
-                            <div class="bg-white border border-slate-200 rounded-lg p-2 text-center transition-all peer-checked:border-slate-800 peer-checked:bg-slate-100 shadow-sm flex flex-col items-center justify-center gap-1 h-full">
-                                <i class="fa-solid fa-user-tie text-slate-400 peer-checked:text-slate-800 text-sm"></i>
-                                <span class="text-[8px] font-black text-slate-500 peer-checked:text-slate-800 uppercase tracking-wider leading-tight">Uang<br>Pribadi</span>
-                            </div>
-                        </label>
-                        <label class="cursor-pointer group relative">
-                            <input type="radio" name="sumberDanaKulakanEdit" value="Tunai" class="peer sr-only">
-                            <div class="bg-white border border-slate-200 rounded-lg p-2 text-center transition-all peer-checked:border-orange-500 peer-checked:bg-orange-50 shadow-sm flex flex-col items-center justify-center gap-1 h-full">
-                                <i class="fa-solid fa-cash-register text-orange-400 peer-checked:text-orange-600 text-sm"></i>
-                                <span class="text-[8px] font-black text-slate-500 peer-checked:text-orange-700 uppercase tracking-wider leading-tight">Laci<br>Fisik</span>
-                            </div>
-                        </label>
-                        <label class="cursor-pointer group relative">
-                            <input type="radio" name="sumberDanaKulakanEdit" value="QRIS" class="peer sr-only">
-                            <div class="bg-white border border-slate-200 rounded-lg p-2 text-center transition-all peer-checked:border-blue-500 peer-checked:bg-blue-50 shadow-sm flex flex-col items-center justify-center gap-1 h-full">
-                                <i class="fa-solid fa-building-columns text-blue-400 peer-checked:text-blue-600 text-sm"></i>
-                                <span class="text-[8px] font-black text-slate-500 peer-checked:text-blue-700 uppercase tracking-wider leading-tight">Bank /<br>QRIS</span>
-                            </div>
-                        </label>
-                    </div>
+                    <p id="infoKalkulasiEdit" class="text-[9px] text-blue-600 font-medium text-center mt-2">Nyalakan saklar jika beli dlm bentuk Grosir (Box/Dos)</p>                                                      
                 </div>
-
-
-                </div>
-
-
                                 <div class="grid grid-cols-2 gap-3">
                     <div>
                         <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Modal (HPP) <i class="fa-solid fa-lock text-slate-400 ml-0.5"></i></label>
@@ -753,8 +737,11 @@ tailwind.config = {
         <div class="bg-[#f1f5f9] w-full max-w-[400px] h-[88vh] rounded-[24px] shadow-2xl relative z-10 pointer-events-auto transform transition-transform translate-y-full flex flex-col overflow-hidden border border-white/20" id="panelKasirMobile">
             
             <div class="bg-gradient-to-r from-corporate-800 to-corporate-900 px-5 py-4 flex items-center justify-between shadow-md relative z-20">
-                <h3 class="font-black text-white text-base tracking-tight flex items-center gap-2"><i class="fa-solid fa-cash-register text-emerald-400"></i> Mesin Kasir</h3>
-                <button onclick="tutupModalMobile('modalKasirMobile')" class="w-7 h-7 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors"><i class="fa-solid fa-xmark text-sm"></i></button>
+                <h3 class="font-black text-white text-base tracking-tight flex items-center gap-2 truncate pr-2"><i class="fa-solid fa-cash-register text-emerald-400"></i> Mesin Kasir</h3>
+                <div class="flex items-center gap-2 shrink-0">
+                    <button onclick="bukaModalBukuCatatan()" class="h-7 px-2.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white flex items-center justify-center gap-1.5 transition-colors shadow-sm text-[10px] font-black uppercase tracking-wider"><i class="fa-solid fa-book"></i> Catatan</button>
+                    <button onclick="tutupModalMobile('modalKasirMobile')" class="w-7 h-7 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors"><i class="fa-solid fa-xmark text-sm"></i></button>
+                </div>
             </div>
 
             <div class="flex-1 overflow-y-auto hide-scrollbar px-4 pt-4 pb-6 space-y-4">
@@ -905,14 +892,6 @@ tailwind.config = {
                                 <div>
                                     <p class="text-sm font-black text-slate-800 leading-tight">Prive / Pribadi</p>
                                     <p class="text-[9px] text-slate-500 font-medium mt-0.5">Uang diambil oleh Pemilik</p>
-                                </div>
-                            </div>
-                            <!-- Opsi 3 -->
-                            <div onclick="pilihKategoriPengeluaran('Kulakan', 'Beli Kulakan (Potong Uang Laci)')" class="p-3 hover:bg-blue-50 rounded-xl cursor-pointer flex items-center gap-3 transition-colors group border-t border-slate-50 mt-1 pt-3">
-                                <div class="w-9 h-9 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-110 transition-transform"><i class="fa-solid fa-boxes-packing text-sm"></i></div>
-                                <div>
-                                    <p class="text-sm font-black text-slate-800 leading-tight">Beli Kulakan</p>
-                                    <p class="text-[9px] text-slate-500 font-medium mt-0.5">Potong fisik uang laci</p>
                                 </div>
                             </div>
                         </div>
@@ -1141,35 +1120,7 @@ tailwind.config = {
                             <input type="text" inputmode="numeric" id="tambahJualEceran" oninput="formatAngkaRibuan(this); kalkulasiTambahObatCerdas()" placeholder="Rp 0" class="w-full bg-white border border-[#d97706]/40 rounded-2xl px-4 py-3 text-sm font-black text-slate-800 focus:outline-none shadow-inner">
                             <p id="teksEstimasiUntung" class="text-[9px] font-bold text-slate-500 mt-1.5 leading-tight">Est. Untung: Rp 0 / Pak</p>
                         </div>
-                    </div>
-                                        <!-- SAKLAR HIBRIDA (SUMBER DANA KULAKAN) -->
-                    <div class="mb-5">
-                        <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider pl-1">Sumber Dana Kulakan <span class="text-red-500">*</span></label>
-                        <div class="grid grid-cols-3 gap-1.5" id="wadahSumberDanaTambah">
-                            <label class="cursor-pointer group relative">
-                                <input type="radio" name="sumberDanaKulakanTambah" value="Pribadi" class="peer sr-only" checked>
-                                <div class="bg-white border border-slate-200 rounded-lg p-2 text-center transition-all peer-checked:border-slate-800 peer-checked:bg-slate-100 shadow-sm flex flex-col items-center justify-center gap-1 h-full">
-                                    <i class="fa-solid fa-user-tie text-slate-400 peer-checked:text-slate-800 text-sm"></i>
-                                    <span class="text-[8px] font-black text-slate-500 peer-checked:text-slate-800 uppercase tracking-wider leading-tight">Uang<br>Pribadi</span>
-                                </div>
-                            </label>
-                            <label class="cursor-pointer group relative">
-                                <input type="radio" name="sumberDanaKulakanTambah" value="Tunai" class="peer sr-only">
-                                <div class="bg-white border border-slate-200 rounded-lg p-2 text-center transition-all peer-checked:border-orange-500 peer-checked:bg-orange-50 shadow-sm flex flex-col items-center justify-center gap-1 h-full">
-                                    <i class="fa-solid fa-cash-register text-orange-400 peer-checked:text-orange-600 text-sm"></i>
-                                    <span class="text-[8px] font-black text-slate-500 peer-checked:text-orange-700 uppercase tracking-wider leading-tight">Laci<br>Fisik</span>
-                                </div>
-                            </label>
-                            <label class="cursor-pointer group relative">
-                                <input type="radio" name="sumberDanaKulakanTambah" value="QRIS" class="peer sr-only">
-                                <div class="bg-white border border-slate-200 rounded-lg p-2 text-center transition-all peer-checked:border-blue-500 peer-checked:bg-blue-50 shadow-sm flex flex-col items-center justify-center gap-1 h-full">
-                                    <i class="fa-solid fa-building-columns text-blue-400 peer-checked:text-blue-600 text-sm"></i>
-                                    <span class="text-[8px] font-black text-slate-500 peer-checked:text-blue-700 uppercase tracking-wider leading-tight">Bank /<br>QRIS</span>
-                                </div>
-                            </label>
-                        </div>
-                        <p class="text-[8.5px] text-slate-500 font-medium mt-1.5 px-1 leading-tight">Sistem akan mengunci opsi jika saldo toko (Laci/Bank) Rp 0.</p>
-                    </div>
+                    </div>                     
 
                     <div class="grid grid-cols-2 gap-4">
                         <div>
@@ -1857,6 +1808,99 @@ tailwind.config = {
 
         </div>
     </div>
+<!-- ==================================== -->
+    <!-- MODAL BUKU CATATAN DEFECTA (Z-160)   -->
+    <!-- ==================================== -->
+    <div id="modalBukuCatatan" class="absolute inset-0 z-[160] hidden flex items-end sm:items-center justify-center pointer-events-none">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity pointer-events-auto" onclick="tutupModalBukuCatatan()"></div>
+        <div class="bg-[#f8fafc] w-full h-[85vh] rounded-t-3xl sm:rounded-3xl sm:w-[90%] shadow-2xl relative z-10 pointer-events-auto transform transition-transform translate-y-full flex flex-col overflow-hidden" id="panelBukuCatatan">
+            
+            <div class="bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-4 flex items-center justify-between shadow-md relative z-20 shrink-0">
+                <div>
+                    <h3 class="font-black text-white text-lg tracking-tight flex items-center gap-2"><i class="fa-solid fa-book-journal-whills text-amber-200"></i> Buku Catatan</h3>
+                    <p class="text-[9px] text-amber-100 font-bold uppercase tracking-widest mt-0.5">Defecta / Lost Sales</p>
+                </div>
+                <button onclick="tutupModalBukuCatatan()" class="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+            </div>
 
+            <div class="p-5 bg-white border-b border-slate-200 shrink-0 relative z-10">
+                <div class="flex gap-2">
+                    <input type="text" id="inputBukuCatatan" placeholder="Ketik nama obat yang dicari pasien..." class="flex-1 bg-slate-50 border border-amber-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:border-amber-400 shadow-inner">
+                    <button onclick="simpanBukuCatatan()" class="w-12 h-12 bg-amber-500 hover:bg-amber-600 text-white rounded-xl flex flex-col items-center justify-center shrink-0 shadow-sm active:scale-95 transition-all"><i class="fa-solid fa-paper-plane"></i></button>
+                </div>
+            </div>
+
+            <div class="flex-1 overflow-y-auto hide-scrollbar p-5 bg-slate-50" id="wadahListBukuCatatan"></div>
+        </div>
+    </div>
+
+    <!-- ==================================== -->
+    <!-- SLIDE PANEL: ANALITIK TRAFIK (Z-270) -->
+    <!-- ==================================== -->
+    <div id="sidebarTrafikOverlay" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-[270] hidden opacity-0 transition-opacity duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)]" onclick="tutupSidebarTrafik()"></div>
+    <div id="sidebarTrafikMobile" class="absolute top-0 right-0 h-full w-full bg-[#f8fafc] z-[280] shadow-2xl transform translate-x-full transition-transform duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col overflow-hidden">     <div class="bg-gradient-to-br from-slate-800 to-slate-900 px-6 py-5 flex items-center justify-between border-b border-slate-700 shadow-md relative z-20 shrink-0">
+            <button onclick="tutupSidebarTrafik()" class="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors"><i class="fa-solid fa-chevron-right text-sm"></i></button>
+            <div class="text-right">
+                <h3 class="font-black text-white text-lg tracking-tight leading-none">Trafik Penjualan</h3>
+                <p class="text-[9px] text-emerald-400 font-bold uppercase tracking-widest mt-1">Smart Analytics</p>
+            </div>
+        </div>
+
+        <div class="px-5 py-4 bg-white border-b border-slate-200 shadow-sm shrink-0 relative z-30">
+            <button onclick="toggleDropdownTrafik()" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-3 py-2.5 text-xs font-black text-slate-700 shadow-inner focus:outline-none flex justify-between items-center transition-all">
+                <span class="flex items-center gap-2"><i class="fa-regular fa-calendar-days text-blue-500 text-sm"></i> <span id="teksFilterTrafikUi">Hari Ini</span></span>
+                <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-300" id="iconDropdownTrafik"></i>
+            </button>
+
+            <!-- Menu Dropdown Waktu -->
+            <div id="panelFilterTrafik" class="hidden absolute left-5 right-5 top-[60px] bg-white rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.3)] border border-slate-200 overflow-hidden transform origin-top transition-all z-50">
+                <div class="p-3 bg-slate-50 border-b border-slate-100 flex flex-col gap-1.5">
+                    <button onclick="setFilterTrafik('hari_ini')" class="text-left px-3 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 rounded-lg">📅 Hari Ini</button>
+                    <button onclick="setFilterTrafik('7_hari')" class="text-left px-3 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 rounded-lg">📊 7 Hari Terakhir</button>
+                    <button onclick="setFilterTrafik('30_hari')" class="text-left px-3 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 rounded-lg">🗓️ Bulan Ini (30 Hari)</button>
+                    <button onclick="setFilterTrafik('semua')" class="text-left px-3 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 rounded-lg">🕰️ Berlaku Umum (Semua Waktu)</button>
+                </div>
+                <div class="p-3">
+                    <div class="flex gap-2 mb-3">
+                        <div class="flex-1"><label class="block text-[8px] font-bold text-slate-500 mb-1">Dari</label><input type="date" id="filterTrafikAwal" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-[9px] font-bold text-slate-700 focus:outline-none"></div>
+                        <div class="flex-1"><label class="block text-[8px] font-bold text-slate-500 mb-1">Sampai</label><input type="date" id="filterTrafikAkhir" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-[9px] font-bold text-slate-700 focus:outline-none"></div>
+                    </div>
+                    <button onclick="setFilterTrafik('manual')" class="w-full bg-slate-800 text-white font-bold py-2 rounded-lg text-[10px] active:scale-95">Terapkan Rentang</button>
+                </div>
+            </div>
+
+            <!-- Mini Dashboard Ringkasan -->
+            <div class="grid grid-cols-3 gap-2 mt-4">
+                <div class="bg-blue-50/50 border border-blue-100 p-2 rounded-xl text-center">
+                    <p class="text-[8px] font-black text-blue-500 uppercase tracking-wider mb-0.5">Total Qty</p>
+                    <p class="text-sm font-black text-blue-700 leading-none" id="trafikTotJual">0</p>
+                </div>
+                <div class="bg-emerald-50/50 border border-emerald-100 p-2 rounded-xl text-center">
+                    <p class="text-[8px] font-black text-emerald-500 uppercase tracking-wider mb-0.5">Jenis Laku</p>
+                    <p class="text-sm font-black text-emerald-700 leading-none" id="trafikTotJenis">0</p>
+                </div>
+                <div class="bg-rose-50/50 border border-rose-100 p-2 rounded-xl text-center">
+                    <p class="text-[8px] font-black text-rose-500 uppercase tracking-wider mb-0.5">Jenis Mati</p>
+                    <p class="text-sm font-black text-rose-700 leading-none" id="trafikTotMati">0</p>
+                </div>
+            </div>
+            
+            <button onclick="bukaModalBukuCatatan(); tutupSidebarTrafik()" class="w-full mt-3 bg-amber-50 text-amber-600 border border-amber-200 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm active:scale-95 flex items-center justify-center gap-2"><i class="fa-solid fa-book-open"></i> Buka Buku Defecta / Catatan</button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto hide-scrollbar p-5 space-y-6">
+            <!-- Zona Laris / Bergerak -->
+            <div>
+                <h4 class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-3 flex items-center gap-1.5"><i class="fa-solid fa-fire text-orange-500"></i> Terlaris & Bergerak</h4>
+                <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm" id="wadahTrafikLaku"></div>
+            </div>
+
+            <!-- Zona Mati -->
+            <div class="pt-4 border-t border-dashed border-slate-300">
+                <h4 class="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-3 flex items-center gap-1.5"><i class="fa-solid fa-skull"></i> Barang Mati (Nol Terjual)</h4>
+                <div id="wadahTrafikMati"></div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
