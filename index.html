@@ -26,7 +26,44 @@ tailwind.config = {
 </script>
 
 <link rel="stylesheet" href="style.css">
+
+<!-- Efek Animasi Air Pipa Kasir & Kilauan Premium -->
+<style>
+    @keyframes riakGelombang {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+    }
+    .animasi-air-hidup {
+        background-size: 200% 200%;
+        animation: riakGelombang 3s ease infinite;
+    }
+
+    /* Efek Menyapu Kilauan Kaca Miring Mewah (Siklus 7 Detik) */
+    @keyframes sapuanKilauPremium {
+        0% { left: -150%; }
+        15% { left: 150%; } /* Menyapu kilat dalam 1 detik */
+        100% { left: 150%; } /* Diam/istirahat selama sisa waktu */
+    }
+    .efek-kilau-card {
+        position: relative;
+        overflow: hidden;
+    }
+    .efek-kilau-card::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        height: 100%;
+        width: 45px;
+        background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0) 100%);
+        transform: skewX(-25deg);
+        animation: sapuanKilauPremium 7s ease-in-out infinite;
+        pointer-events: none;
+    }
+</style>
+
 </head>
+
 <body class="text-slate-800">
 
 <div class="mobile-frame">
@@ -120,58 +157,69 @@ tailwind.config = {
                 </div>
             </div>
 
-           <div class="px-6 mt-8">
+       <!-- ================= PANEL SIKLUS PENJUALAN SLIM & SHIMMER (DIET VISUAL) ================= -->
+            <div class="px-6 mt-4">
+                <div class="bg-white rounded-[20px] p-3.5 shadow-[0_4px_15px_rgba(0,0,0,0.03)] border border-slate-200/80 flex flex-col relative efek-kilau-card select-none group">
+                    
+                    <!-- BARIS 1: HEADER (Bantalan margin dikurangi) -->
+                    <div class="flex justify-between items-center mb-2">
+                        <h4 class="text-[9.5px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-1">
+                            <i class="fa-solid fa-rotate text-blue-600"></i> Siklus Penjualan
+                        </h4>
+                        <span class="bg-slate-50 border border-slate-200 text-slate-600 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest shadow-sm">
+                            <span id="berandaStokModalSiklus">0</span> Stok Modal
+                        </span>
+                    </div>
+                    
+                    <!-- BARIS 2: PIPA AIR (Tinggi dipipihkan dari h-7 ke h-5.5) -->
+                    <div class="flex items-center gap-2 w-full">
+                        <div class="flex-1 h-[22px] bg-slate-100 rounded-full overflow-hidden shadow-inner relative border border-slate-200/70">
+                            <div id="berandaPipaAir" class="h-full w-[0%] transition-all duration-1000 ease-out animasi-air-hidup rounded-full"></div>
+                            <div class="absolute left-2.5 top-1/2 -translate-y-1/2 flex items-center pointer-events-none">
+                                <span id="berandaTeksOmzet" class="text-[9px] font-black text-slate-700 tracking-wide uppercase">Omzet: Rp 0</span>
+                            </div>
+                        </div>
+                        <div class="shrink-0 whitespace-nowrap">
+                            <span id="berandaTeksTarget" class="text-[9.5px] font-black text-slate-600 bg-slate-50 border border-slate-200 px-1.5 py-0.5 rounded-md tracking-tight">Rp 0</span>
+                        </div>
+                    </div>
+                    
+                    <!-- BARIS 3: REDAKSI STATUS (Margin dipangkas ketat agar tidak kegemukan) -->
+                    <div class="mt-1.5 mb-2 min-h-[14px] flex items-center justify-center">
+                        <p id="berandaTeksStatus" class="text-[9px] font-bold text-slate-500 text-center leading-none"></p>
+                    </div>
+
+                    <!-- BARIS 4: PONDASI MEKANIK (Tinggi tombol & wadah dipangkas dari py-3 ke py-2) -->
+                    <div class="border-t border-slate-100 pt-2.5 flex items-stretch gap-2.5">
+                        <div class="flex-1 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center gap-1.5 shadow-inner py-2">
+                            <i class="fa-solid fa-hourglass-half text-slate-400 animate-pulse text-[9.5px]"></i>
+                            <span id="berandaHariBerjalan" class="text-[9px] font-black text-slate-600 uppercase tracking-widest">Hari ke-1 Berjalan</span>
+                        </div>
+                        <button onclick="eksekusiTutupBukuMobile()" class="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white text-[9px] font-black py-2 rounded-xl flex items-center justify-center gap-1.5 shadow-sm transition-transform active:scale-95 border border-amber-400">
+                            <i class="fa-solid fa-lock text-[9.5px]"></i> Tutup Buku Siklus
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <!-- ======================================================================================= -->
+
+            <!-- LAYANAN UTAMA (4 KOLOM BERJAJAR RAPI) -->
+            <div class="px-6 mt-6">
                 <h3 class="text-xs font-bold text-slate-700 mb-4 uppercase tracking-wider">Layanan Utama</h3>
-                <div class="grid grid-cols-4 gap-y-6 gap-x-2">
+                <div class="grid grid-cols-4 gap-y-4 gap-x-2">
                     <div onclick="bukaLayar('piutang')" class="flex flex-col items-center gap-2 cursor-pointer group">
                         <div class="w-12 h-12 rounded-full bg-slate-100 text-corporate-600 flex items-center justify-center text-xl shadow-sm border border-slate-200 group-hover:bg-corporate-600 group-hover:text-white transition-colors"><i class="fa-solid fa-book-open"></i></div>
                         <span class="text-[9px] font-bold text-slate-600 text-center leading-tight">Buku<br>Piutang</span>
                     </div>
-
                     <div onclick="bukaLayar('karyawan')" class="flex flex-col items-center gap-2 cursor-pointer group">
                         <div class="w-12 h-12 rounded-full bg-slate-100 text-corporate-600 flex items-center justify-center text-xl shadow-sm border border-slate-200 group-hover:bg-corporate-600 group-hover:text-white transition-colors"><i class="fa-solid fa-users"></i></div>
                         <span class="text-[9px] font-bold text-slate-600 text-center leading-tight">Akses<br>Karyawan</span>
                     </div>
-
-                    <div class="col-span-2 row-span-2 bg-white rounded-2xl p-3 shadow-md border border-slate-200 flex flex-col justify-between relative overflow-hidden group">
-                        <div class="flex justify-between items-start mb-1">
-                            <div>
-                                <h4 class="text-[10px] font-black text-slate-800 uppercase tracking-widest flex items-center gap-1.5"><i class="fa-solid fa-boxes-packing text-corporate-600"></i> Modal Obat</h4>
-                                <p class="text-[9px] text-slate-500 font-bold mt-0.5" id="berandaTotalStokMasuk">0 Stok Modal</p>
-                            </div>
-                            <div id="indikatorCloudMobile" class="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-red-50 border border-red-100 text-red-500 text-[8px] font-black tracking-widest uppercase transition-colors duration-500">
-                                <i class="fa-solid fa-circle text-[5px] animate-pulse"></i> <span id="teksCloudMobile">Live</span>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-1 mb-2">
-                            <span class="text-sm font-bold text-corporate-700 tracking-tight block truncate" id="berandaAset">Rp 0</span>
-                        </div>
-                        
-                        <div class="mt-auto border-t border-slate-100 pt-2">
-                            <div class="flex justify-between items-center mb-1.5 min-h-[18px]">
-                                <span class="text-[9px] font-bold text-slate-600 flex items-center gap-1 w-full" id="berandaStatusSiklus">
-                                    Sisa Target balik Modal: <span class="text-red-500 font-black">Rp 0</span>
-                                </span>
-                            </div>
-                            <div class="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner mb-1">
-                                <div id="berandaProgressSiklus" class="h-full bg-gradient-to-r from-red-500 to-amber-400 w-[0%] rounded-full transition-all duration-1000"></div>
-                            </div>
-                        </div>
-
-                        <div class="border-t border-slate-100 pt-1.5 mt-1">
-                            <button onclick="eksekusiTutupBukuMobile()" class="w-full bg-amber-500 hover:bg-amber-600 text-white text-[9px] font-black py-1.5 rounded-lg flex items-center justify-center gap-1 shadow-sm transition-transform active:scale-95">
-                                <i class="fa-solid fa-lock text-[8px]"></i> Tutup Buku Siklus
-                            </button>
-                        </div>
-                    </div>
-
-                    <div onclick="bukaLayarRekapMobile('Tunai')" class="flex flex-col items-center gap-2 cursor-pointer group mt-2">
+                    <div onclick="bukaLayarRekapMobile('Tunai')" class="flex flex-col items-center gap-2 cursor-pointer group">
                         <div class="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl shadow-sm border border-emerald-200 group-hover:bg-emerald-600 group-hover:text-white transition-colors"><i class="fa-solid fa-money-bill-wave"></i></div>
                         <span class="text-[9px] font-bold text-slate-600 text-center leading-tight">Rekap<br>Tunai</span>
                     </div>
-
-                    <div onclick="bukaLayarRekapMobile('QRIS')" class="flex flex-col items-center gap-2 cursor-pointer group mt-2">
+                    <div onclick="bukaLayarRekapMobile('QRIS')" class="flex flex-col items-center gap-2 cursor-pointer group">
                         <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl shadow-sm border border-blue-200 group-hover:bg-blue-600 group-hover:text-white transition-colors"><i class="fa-solid fa-mobile-screen"></i></div>
                         <span class="text-[9px] font-bold text-slate-600 text-center leading-tight">Rekap<br>Digital</span>
                     </div>
@@ -1841,14 +1889,11 @@ tailwind.config = {
     <div id="sidebarTrafikMobile" class="absolute top-0 right-0 h-full w-full bg-[#f8fafc] z-[280] shadow-2xl transform translate-x-full transition-transform duration-[400ms] ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col overflow-hidden">     <div class="bg-gradient-to-br from-slate-800 to-slate-900 px-6 py-5 flex items-center justify-between border-b border-slate-700 shadow-md relative z-20 shrink-0">
             <button onclick="tutupSidebarTrafik()" class="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors"><i class="fa-solid fa-chevron-right text-sm"></i></button>
             <div class="text-right">
-                <h3 class="font-black text-white text-lg tracking-tight leading-none">Trafik Penjualan</h3>
-                <p class="text-[9px] text-emerald-400 font-bold uppercase tracking-widest mt-1">Smart Analytics</p>
-            </div>
+                <h3 class="font-black text-white text-lg tracking-tight leading-none">Radar Penjualan 📈</h3>
+            <p class="text-[9px] text-emerald-400 font-bold uppercase tracking-widest mt-1">Pantauan Barang & Jejak Laku</p>   </div>
         </div>
 
-        <div class="px-5 py-4 bg-white border-b border-slate-200 shadow-sm shrink-0 relative z-30">
-            <button onclick="toggleDropdownTrafik()" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-3 py-2.5 text-xs font-black text-slate-700 shadow-inner focus:outline-none flex justify-between items-center transition-all">
-                <span class="flex items-center gap-2"><i class="fa-regular fa-calendar-days text-blue-500 text-sm"></i> <span id="teksFilterTrafikUi">Hari Ini</span></span>
+        <div class="px-5 py-4 bg-white border-b border-slate-200 shadow-sm shrink-0 relative z-30">      <button onclick="toggleDropdownTrafik()" class="w-full bg-slate-50 border border-slate-200 rounded-xl pl-4 pr-3 py-2.5 text-xs font-black text-slate-700 shadow-inner focus:outline-none flex justify-between items-center transition-all">   <span class="flex items-center gap-2"><i class="fa-regular fa-calendar-days text-blue-500 text-sm"></i> <span id="teksFilterTrafikUi">Hari Ini</span></span>
                 <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-300" id="iconDropdownTrafik"></i>
             </button>
 
@@ -1869,19 +1914,13 @@ tailwind.config = {
                 </div>
             </div>
 
-            <!-- Mini Dashboard Ringkasan -->
-            <div class="grid grid-cols-3 gap-2 mt-4">
-                <div class="bg-blue-50/50 border border-blue-100 p-2 rounded-xl text-center">
-                    <p class="text-[8px] font-black text-blue-500 uppercase tracking-wider mb-0.5">Total Qty</p>
-                    <p class="text-sm font-black text-blue-700 leading-none" id="trafikTotJual">0</p>
-                </div>
-                <div class="bg-emerald-50/50 border border-emerald-100 p-2 rounded-xl text-center">
-                    <p class="text-[8px] font-black text-emerald-500 uppercase tracking-wider mb-0.5">Jenis Laku</p>
-                    <p class="text-sm font-black text-emerald-700 leading-none" id="trafikTotJenis">0</p>
-                </div>
-                <div class="bg-rose-50/50 border border-rose-100 p-2 rounded-xl text-center">
-                    <p class="text-[8px] font-black text-rose-500 uppercase tracking-wider mb-0.5">Jenis Mati</p>
-                    <p class="text-sm font-black text-rose-700 leading-none" id="trafikTotMati">0</p>
+            <!-- Tombol Pintas / Kapsul Urutan -->
+            <div class="mt-4">
+                <label class="block text-[9px] font-black text-slate-500 mb-2 uppercase tracking-widest pl-1">Urutkan Berdasarkan:</label>
+                <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
+                    <button id="btnUrutLaris" onclick="ubahUrutanRadar('laris')" class="shrink-0 bg-orange-500 text-white border border-orange-600 px-3 py-1.5 rounded-full text-[10px] font-black transition-all shadow-md active:scale-95">🔥 Paling Laris</button>
+                    <button id="btnUrutCuan" onclick="ubahUrutanRadar('cuan')" class="shrink-0 bg-slate-50 text-slate-500 border border-slate-200 px-3 py-1.5 rounded-full text-[10px] font-black transition-all active:scale-95">💰 Paling Cuan</button>
+                    <button id="btnUrutSisa" onclick="ubahUrutanRadar('sisa_dikit')" class="shrink-0 bg-slate-50 text-slate-500 border border-slate-200 px-3 py-1.5 rounded-full text-[10px] font-black transition-all active:scale-95">🚨 Sisa Dikit</button>
                 </div>
             </div>
             
@@ -1891,14 +1930,11 @@ tailwind.config = {
         <div class="flex-1 overflow-y-auto hide-scrollbar p-5 space-y-6">
             <!-- Zona Laris / Bergerak -->
             <div>
-                <h4 class="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-3 flex items-center gap-1.5"><i class="fa-solid fa-fire text-orange-500"></i> Terlaris & Bergerak</h4>
-                <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm" id="wadahTrafikLaku"></div>
+                <div class="bg-transparent" id="wadahTrafikLaku"></div>
             </div>
 
             <!-- Zona Mati -->
-            <div class="pt-4 border-t border-dashed border-slate-300">
-                <h4 class="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-3 flex items-center gap-1.5"><i class="fa-solid fa-skull"></i> Barang Mati (Nol Terjual)</h4>
-                <div id="wadahTrafikMati"></div>
+            <div class="pt-4 mt-2 border-t-2 border-dashed border-slate-300">       <h4 class="text-[11px] font-black text-rose-600 uppercase tracking-widest mb-3 flex items-center gap-1.5"><i class="fa-solid fa-spider"></i> Barang Tidur (Nol Penjualan)</h4>           <div id="wadahTrafikMati"></div>
             </div>
         </div>
     </div>
