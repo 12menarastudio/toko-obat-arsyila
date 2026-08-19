@@ -523,32 +523,26 @@ function renderBerandaMobile() {
         document.getElementById('wadahPelunasan').classList.toggle('hidden', totalPelunasan === 0);
     }
 
-    let countKritis = 0, countExpired = 0, stokGabungan = {};
-    let totalSisaStok = 0; 
+    // ⚡ KALKULASI PRESISI BERDASARKAN KALKULATOR MASTER (GUDANG + ETALASE)
+    let countKritis = 0, countExpired = 0;
+    let totalSisaStok = 0;
+    let tglSekarang = new Date(tglHariIni);
     
-    masterItems.forEach(b => {
-        if (b.nama !== '___SYSTEM_AUTH___') {
-            if (!stokGabungan[b.dnaInduk]) { stokGabungan[b.dnaInduk] = 0; }
-            stokGabungan[b.dnaInduk] += b.stok;
-            totalSisaStok += b.stok; 
-            
-            if (b.expired) {
-                let diffHari = Math.floor((new Date(b.expired) - new Date(tglHariIni)) / (1000 * 60 * 60 * 24));
-                if (diffHari <= 30 && diffHari >= 0) countExpired++;
-            }
-        }
-    });
-    Object.values(stokGabungan).forEach(totalStok => { if (totalStok <= 2) countKritis++; });
-    
-    etalaseItems.forEach(b => {
-        let dna = b.dnaInduk || b.nama;
-        if (!stokGabungan[dna]) { stokGabungan[dna] = 0; }
-        stokGabungan[dna] += (b.stok || 0);
-        totalSisaStok += (b.stok || 0); 
-    });
+    let masterDataMap = KalkulatorMasterObat();
+    let totalJenisObat = Object.keys(masterDataMap).length;
 
-    let totalJenisObat = Object.keys(stokGabungan).length;
-    let topQtyMurni = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
+    Object.values(masterDataMap).forEach(item => {
+        totalSisaStok += item.sisaFisikTotal;
+        if (item.sisaFisikTotal <= 2) {
+            countKritis++;
+        }
+        if (item.expTerdekat !== '2099-12-31' && item.sisaFisikTotal > 0) {
+            let diffHari = Math.floor((new Date(item.expTerdekat) - tglSekarang) / (1000 * 60 * 60 * 24));
+            if (diffHari <= 30 && diffHari >= 0) countExpired++;
+        }
+    });    
+
+let topQtyMurni = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
     let tercapai = siklusAktif.uangMasuk || 0;
     let targetHutang = (siklusAktif.hutangAwal !== undefined ? siklusAktif.hutangAwal : (siklusAktif.modalAwal || 0)) + (siklusAktif.modalTambahan || 0);
     
@@ -602,7 +596,7 @@ function renderBerandaMobile() {
         
         // Beri warna peringatan jika lebih dari 1 hari belum ditutup
         if (diffDays > 1) {
-            badgeHari.innerHTML = `<span class="text-red-500">HARI KE-${diffDays} (BELUM DITUTUP)</span>`;
+            badgeHari.innerHTML = `<span class="text-rose-600 font-black">HARI KE-${diffDays} (AKTIF)</span>`;
         } else {
             badgeHari.textContent = `HARI KE-${diffDays} BERJALAN`;
         }
@@ -626,11 +620,21 @@ function renderBerandaMobile() {
     if (document.getElementById('berandaKritis')) document.getElementById('berandaKritis').textContent = countKritis;
     if (document.getElementById('berandaKasbon')) document.getElementById('berandaKasbon').textContent = totalKasbonBelumLunas;
     if (document.getElementById('berandaKedaluwarsa')) document.getElementById('berandaKedaluwarsa').textContent = countExpired;
-    if (document.getElementById('berandaSisaStok')) document.getElementById('berandaSisaStok').textContent = totalSisaStok;
-    if (document.getElementById('berandaObatTerjual')) document.getElementById('berandaObatTerjual').textContent = totalItemTerjualHariIni;
-    if (document.getElementById('berandaPembeli')) document.getElementById('berandaPembeli').textContent = totalPembeliHariIni;
-    if (document.getElementById('berandaJenis')) document.getElementById('berandaJenis').textContent = totalJenisObat;
-    
+                if (document.getElementById('berandaSisaStok')) document.getElementById('berandaSisaStok').textContent = totalSisaStok;
+                
+                // KALKULASI MURNI HARI INI (KALENDER 00:00) UNTUK PANTUAN SISTEM
+                let lakuMurniHariIni = 0;
+                let pembeliMurniHariIni = new Set();
+                cashierHistory.forEach(t => {
+                    if (t.tanggal === tglHariIni && !t.isPelunasan) {
+                        lakuMurniHariIni += (t.item || 0);
+                        pembeliMurniHariIni.add(t.waktu + "_" + (t.pelanggan || "UMUM"));
+                    }
+                });
+
+                if (document.getElementById('berandaObatTerjual')) document.getElementById('berandaObatTerjual').textContent = lakuMurniHariIni;
+                if (document.getElementById('berandaPembeli')) document.getElementById('berandaPembeli').textContent = pembeliMurniHariIni.size;
+                if (document.getElementById('berandaJenis')) document.getElementById('berandaJenis').textContent = totalJenisObat;
     let terjualSiklusIni = 0;
     cashierHistory.forEach(t => {
         if (t.id >= waktuMulai && !t.isPelunasan) {
@@ -651,75 +655,52 @@ function renderBerandaMobile() {
 }
 
 // ==========================================
-// 4. MESIN RENDER: GUDANG & ETALASE
+// 4. MESIN RENDER: GUDANG & ETALASE (DIPERBARUI)
 // ==========================================
 function renderGudangMobile(filter = '') {
     const wadah = document.getElementById('daftarGudangMobile');
     const f = filter.toLowerCase().trim();
     
-    let dataTampil = masterItems.filter(i => i.nama !== '___SYSTEM_AUTH___' && i.kategori !== '⚠️ Barang Retur' && (
-        i.nama.toLowerCase().includes(f) || (i.kategori && i.kategori.toLowerCase().includes(f)) || (i.varian && i.varian.toLowerCase().includes(f))
-    ));
+    // ⚡ KABEL BARU: PANGGIL POHON DATA DARI SATPAM ARSIP
+    let pohonData = KalkulatorMasterObat();
+    
+    // FILTER: Hanya ambil barang yang memiliki Batch (Sah di Gudang) dan sesuai pencarian
+    let dataTampil = Object.values(pohonData).filter(i => {
+        if (i.kategori === '⚠️ Barang Retur' || i.kategori === 'Barang Dihapus' || i.kategori === 'Data Lama') return false;
+        if (i.batches.length === 0) return false; 
+        
+        return i.namaLengkap.toLowerCase().includes(f) || (i.kategori && i.kategori.toLowerCase().includes(f));
+    });
     
     if (dataTampil.length === 0) {
         wadah.innerHTML = `<div class="bg-white border border-slate-200 rounded-3xl p-8 text-center shadow-sm mt-4"><i class="fa-solid fa-box-open text-4xl text-slate-300 mb-3 block"></i><p class="text-sm font-bold text-slate-500">Tidak ada obat ditemukan.</p></div>`;
         return;
     }
 
-    // --- LOGIKA MESIN: PENGUMPUL DATA TERJUAL & ETALASE ---
-    let terjualGlobal = {};
-    let waktuMulai = siklusAktif.waktuStart || 0;
-    
-        cashierHistory.filter(t => !t.isPelunasan && t.id >= waktuMulai).forEach(trx => {
-        if(trx.detailKeranjang) {
-            trx.detailKeranjang.forEach(item => { 
-                let kunci = item.dnaInduk || item.nama;
-                terjualGlobal[kunci] = (terjualGlobal[kunci] || 0) + item.qty; 
-            });
-        } else {
-            terjualGlobal[trx.obat] = (terjualGlobal[trx.obat] || 0) + (trx.item || 1);
-        }
-    });
-    
-    let stokEtalaseGlobal = {};
-    etalaseItems.forEach(e => { 
-        let kunci = e.dnaInduk || e.nama;
-        stokEtalaseGlobal[kunci] = (stokEtalaseGlobal[kunci] || 0) + e.stok; 
-    });
-
-    let grouped = {};
-    dataTampil.forEach(i => {
-        if(!grouped[i.dnaInduk]) {
-            grouped[i.dnaInduk] = { dnaInduk: i.dnaInduk, nama: i.nama, varian: i.varian, kategori: i.kategori, jual: i.jual, totalStok: 0, totalRusak: 0, batches: [] };
-        }
-        grouped[i.dnaInduk].batches.push(i);
-        grouped[i.dnaInduk].totalStok += i.stok;
-        grouped[i.dnaInduk].totalRusak += (i.stokRusak || 0); // [PERBAIKAN] Tarik jejak barang rusak
-    });
-
-    wadah.innerHTML = Object.values(grouped).map(g => {
-        g.batches.sort((a, b) => new Date(a.expired || '2099-12-31') - new Date(b.expired || '2099-12-31'));
+    // RAKIT UI BERDASARKAN POHON DATA LEVEL 1 DAN LEVEL 2 (BATCH)
+    wadah.innerHTML = dataTampil.map(g => {
+        let batches = g.batches.sort((a, b) => new Date(a.expired || '2099-12-31') - new Date(b.expired || '2099-12-31'));
         
-        let subTeks = g.varian ? `<span class="text-[9px] text-slate-400 font-medium ml-1.5 border-l border-slate-300 pl-1.5">${g.varian}</span>` : '';
+        let refBatch = batches[0];
+        let namaAsli = refBatch.nama;
+        let subTeks = refBatch.varian ? `<span class="text-[9px] text-slate-400 font-medium ml-1.5 border-l border-slate-300 pl-1.5">${refBatch.varian}</span>` : '';
         
-                // --- KALKULASI TIGA SERANGKAI STOK ---
-        let qtyTerjual = terjualGlobal[g.dnaInduk] || terjualGlobal[g.nama] || 0;
-        let qtyEtalase = stokEtalaseGlobal[g.dnaInduk] || stokEtalaseGlobal[g.nama] || 0;
-  let sisaFisik = g.totalStok + qtyEtalase;
+        // AMBIL ANGKA MATANG DARI KALKULATOR MASTER
+        let qtyTerjual = g.lakuShiftIni;
+        let sisaFisik = g.sisaFisikTotal;
+        let totalRusak = g.rusakExpTotal;
         
+        // RUMUS STOK MODAL AWAL
         let qtyAwal = 0;
         if (siklusAktif.isLikuidasi) {
-            // SURPLUS (LIKUIDASI): Potong dengan foto lama, kembalikan ke 0 (kecuali ada kulakan baru)
             let snap = (siklusAktif.snapshotStok && siklusAktif.snapshotStok[g.dnaInduk]) ? siklusAktif.snapshotStok[g.dnaInduk] : 0;
-            qtyAwal = (sisaFisik + qtyTerjual + g.totalRusak) - snap; // [PERBAIKAN] Tambahkan totalRusak agar Stok Modal tak menyusut
+            qtyAwal = (sisaFisik + qtyTerjual + totalRusak) - snap; 
             if (qtyAwal < 0) qtyAwal = 0;
         } else {
-            // DEFISIT & NORMAL: Jangan potong! Akumulasikan sisa fisik murni + terjual
-            qtyAwal = sisaFisik + qtyTerjual + g.totalRusak; // [PERBAIKAN] Lindungi Stok Modal
+            qtyAwal = sisaFisik + qtyTerjual + totalRusak; 
         }
         
-        // Cetakan Daftar Batch (Dibuat lebih langsing dan transparan)
-        let batchHtml = g.batches.map((b, idx) => {
+        let batchHtml = batches.map((b, idx) => {
             let expTeks = b.expired ? b.expired : 'Tanpa Exp';
             let expColor = b.expired ? 'text-red-500 font-bold' : 'text-slate-400';
             return `
@@ -737,7 +718,7 @@ function renderGudangMobile(filter = '') {
         <div class="bg-white border border-slate-200 rounded-2xl p-4 mb-4 shadow-sm relative overflow-hidden group">
             <div class="flex justify-between items-start mb-3 border-b border-slate-100 pb-3">
                             <div class="flex-1 pr-2">
-                <h3 class="font-black text-slate-800 text-lg leading-tight flex items-center gap-2">${g.nama} ${subTeks}</h3>
+                <h3 class="font-black text-slate-800 text-lg leading-tight flex items-center gap-2">${namaAsli} ${subTeks}</h3>
                 <div class="flex items-center gap-2 mt-1.5">
                     <span class="text-[9px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md font-bold uppercase tracking-widest border border-slate-200">${g.kategori || 'Tanpa Kategori'}</span>
                     <button onclick="bukaDetailObatMobile('${g.dnaInduk}')" class="text-[9px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md font-bold uppercase tracking-widest border border-blue-200 active:scale-95 transition shadow-sm"><i class="fa-solid fa-circle-info"></i> Cek Detail</button>
@@ -745,7 +726,7 @@ function renderGudangMobile(filter = '') {
             </div>
                 <div class="text-right shrink-0">
                     <p class="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Harga Jual</p>
-                    <p class="font-black text-corporate-700 text-base leading-none">${rupiah(g.jual)}</p>
+                    <p class="font-black text-corporate-700 text-base leading-none">${rupiah(g.hargaJual)}</p>
                 </div>
             </div>
             
@@ -772,15 +753,15 @@ function renderGudangMobile(filter = '') {
                 <button onclick="bukaModalTransferMobile('${g.dnaInduk}')" class="flex-1 h-10 bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-500 hover:text-white text-[10px] font-black uppercase tracking-wider rounded-xl flex items-center justify-center gap-2 transition-all active:scale-95 shadow-sm">
                     <i class="fa-solid fa-truck-fast text-sm"></i> Ke Etalase
                 </button>
-                <button onclick="bukaModalEditMobile('${g.batches[0].idBatch}')" class="w-12 h-10 bg-white text-corporate-600 hover:bg-corporate-50 border border-slate-200 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm">
+                <button onclick="bukaModalEditMobile('${batches[0].idBatch}')" class="w-12 h-10 bg-white text-corporate-600 hover:bg-corporate-50 border border-slate-200 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm">
                     <i class="fa-solid fa-pen"></i>
                 </button>
-                ${( (sisaFisik > 0 && qtyTerjual > 0) || (sisaFisik > 0 && g.batches.some(b => b.idBatch.includes('ZOMBIE'))) ) ? 
+                ${( (sisaFisik > 0 && qtyTerjual > 0) || (sisaFisik > 0 && batches.some(b => b.idBatch.includes('ZOMBIE'))) ) ? 
                 `<button onclick="alert('⚠️ AKSES DIBLOKIR!\\n\\nObat ini sedang beredar, memiliki transaksi, atau merupakan barang retur (Zombie).\\n\\nUntuk menjaga rekam jejak audit keuangan, silakan gunakan fitur PENYUSUTAN di menu atas Gudang jika Anda ingin mengurangi/membuang sisa stok fisiknya.')" class="w-12 h-10 bg-slate-50 text-slate-300 border border-slate-200 rounded-xl flex items-center justify-center transition-all shadow-sm">
                     <i class="fa-solid fa-trash-can-arrow-up"></i>
                 </button>` 
                 : 
-                `<button onclick="bukaModalHapusCerdas('${g.dnaInduk}', '${g.nama}')" class="w-12 h-10 bg-white text-red-500 hover:bg-red-50 border border-slate-200 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm">
+                `<button onclick="bukaModalHapusCerdas('${g.dnaInduk}', '${namaAsli}')" class="w-12 h-10 bg-white text-red-500 hover:bg-red-50 border border-slate-200 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm">
                     <i class="fa-solid fa-trash"></i>
                 </button>`}
             </div>
@@ -2240,115 +2221,64 @@ function renderLaporanMobile() {
     </div>`;
 
     // ======================================================================
-    // INJEKSI JS: MERAKIT DATA TABEL OBAT BATANG KE-8 (SANGAT AMAN)
+    // INJEKSI JS: MERAKIT DATA TABEL OBAT BATANG 11 (VIA SATPAM ARSIP)
     // ======================================================================
     setTimeout(function() {
-        var tabelPerforma = {};
+        // ⚡ KABEL BARU: PANGGIL POHON DATA SECARA INSTAN
+        let pohonData = KalkulatorMasterObat();
+        let htmlTabelObat = '';
+        let jumlahJenisObat = 0; 
         
-        // 1. Ambil Sisa & Harga dari Etalase & Gudang (Satu Jalur Pemrosesan)
-        masterItems.filter(function(i) { return i.nama !== '___SYSTEM_AUTH___' && i.kategori !== '⚠️ Barang Retur'; }).forEach(function(m) {
-            var key = m.dnaInduk;
-            if(!tabelPerforma[key]) {
-                tabelPerforma[key] = { 
-                    namaUtama: m.nama, 
-                    varian: m.varian || '', 
-                    kategori: m.kategori || 'Umum', 
-                    sisa: 0, laku: 0, hpp: m.modal || 0, jual: m.jual || 0 
-                };
-            }
-            tabelPerforma[key].sisa += (m.stok || 0);
-        });
-
-        etalaseItems.forEach(function(e) {
-            var key = e.dnaInduk || e.nama;
-            var hppAman = (e.antreanFIFO && e.antreanFIFO.length > 0 && e.antreanFIFO[0].modal) ? e.antreanFIFO[0].modal : 0;
-            if(!tabelPerforma[key]) {
-                tabelPerforma[key] = { 
-                    namaUtama: e.nama, 
-                    varian: e.varian || '', 
-                    kategori: e.kategori || 'Umum', 
-                    sisa: 0, laku: 0, hpp: hppAman, jual: e.jual || 0 
-                };
-            }
-            tabelPerforma[key].sisa += (e.stok || 0);
-        });
-
-        // 2. Ambil Data Terjual dari Riwayat Kasir
-        var wMulai = siklusAktif.waktuStart || 0;
-        cashierHistory.filter(function(t) { return (wMulai ? t.id >= wMulai : t.tanggal >= siklusAktif.tanggalStart) && !t.isPelunasan; }).forEach(function(trx) {
-            if(trx.detailKeranjang) {
-                trx.detailKeranjang.forEach(function(item) {
-                    var key = item.dnaInduk || item.nama;
-                    if(tabelPerforma[key]) {
-                        tabelPerforma[key].laku += (item.qty || 0);
-                    } else {
-                        tabelPerforma[key] = { 
-                            namaUtama: item.nama, varian: item.varian || '', kategori: item.kategori || 'Dihapus', 
-                            sisa: 0, laku: (item.qty || 0), hpp: item.hppSatuan || 0, jual: item.jual || 0 
-                        };
-                    }
-                });
-            } else {
-                var keyLama = trx.obat;
-                if(tabelPerforma[keyLama]) {
-                    tabelPerforma[keyLama].laku += (trx.item || 1);
-                } else {
-                    tabelPerforma[keyLama] = { 
-                        namaUtama: trx.obat, varian: '', kategori: 'Lama', 
-                        sisa: 0, laku: (trx.item || 1), hpp: 0, jual: 0 
-                    };
-                }
-            }
-        });
-
-        // 3. Rakit HTML Baris Tabel & Hitung Jumlah Macam Obat
-        var htmlTabelObat = '';
-        var jumlahJenisObat = 0; 
-        
-        Object.values(tabelPerforma).sort(function(a,b) { return b.laku - a.laku; }).forEach(function(obat) {
-            var awal = obat.sisa + obat.laku;
+        // Urutkan dari yang paling laris di shift ini
+        Object.values(pohonData).sort((a,b) => b.lakuShiftIni - a.lakuShiftIni).forEach(obat => {
+            
+            // RUMUS PATEN AWAL (Sisa Fisik + Terjual Shift + Rusak/Exp)
+            let awal = obat.sisaFisikTotal + obat.lakuShiftIni + obat.rusakExpTotal;
+            
             if (awal > 0) {
                 jumlahJenisObat++;
                 
-                // Desain Bersusun: Nama Utama Besar, Varian & Kategori di Bawahnya
-                var subInfo = '';
-                if(obat.varian) subInfo += obat.varian;
-                if(obat.kategori) subInfo += (subInfo ? ' • ' : '') + obat.kategori;
+                // Desain Kolom Nama & Kategori
+                let kolomNamaHtml = `
+                <div class="flex flex-col py-1">
+                    <span class="font-black text-slate-900 text-[11px] leading-tight">${obat.namaLengkap}</span>
+                    <span class="text-[8.5px] font-bold text-corporate-600 mt-0.5 uppercase tracking-wide">${obat.kategori}</span>
+                </div>`;
 
-                var kolomNamaHtml = '<div class="flex flex-col py-1">' +
-                    '<span class="font-black text-slate-900 text-[11px] leading-tight">' + (obat.namaUtama || 'Barang Dihapus') + '</span>' +
-                    (subInfo ? '<span class="text-[8.5px] font-bold text-corporate-600 mt-0.5 uppercase tracking-wide">' + subInfo + '</span>' : '') +
-                '</div>';
+                // Kalkulasi Rata-rata HPP Presisi Tinggi (Berdasarkan Sisa Aset Aktual)
+                let hppRataRata = (obat.sisaFisikTotal > 0 && obat.modalAsetTersisa > 0) 
+                    ? Math.round(obat.modalAsetTersisa / obat.sisaFisikTotal) 
+                    : 0;
 
-                // DESAIN PENYEMPURNAAN TABEL (RP DI KIRI, ANGKA DI KANAN - MISTAR PRESISI)
-                htmlTabelObat += '<tr class="hover:bg-amber-50/50 transition-colors">' +
-                    '<td class="py-1.5 px-2 sticky left-0 bg-white z-10 border-r border-slate-100 max-w-[140px]">' + kolomNamaHtml + '</td>' +
-                    '<td class="py-1.5 px-2 border-r border-slate-100 text-right font-mono text-[10px]">' + awal + '</td>' +
-                    '<td class="py-1.5 px-2 border-r border-slate-100 text-right text-amber-600 font-bold font-mono text-[10px]">' + obat.laku + '</td>' +
-                    '<td class="py-1.5 px-2 border-r border-slate-100 text-right text-emerald-600 font-bold font-mono text-[10px]">' + obat.sisa + '</td>' +
-                    '<td class="py-1.5 px-2 border-r border-slate-100">' +
-                        '<div class="grid grid-cols-[15px_1fr] items-center w-full min-w-[55px]"><span class="text-[8px] text-slate-400 font-sans text-left">Rp</span><span class="text-right font-mono text-[10px]">' + (obat.hpp || 0).toLocaleString('id-ID') + '</span></div>' +
-                    '</td>' +
-                    '<td class="py-1.5 px-2">' +
-                        '<div class="grid grid-cols-[15px_1fr] items-center w-full min-w-[55px]"><span class="text-[8px] text-slate-400 font-sans text-left">Rp</span><span class="text-right font-mono text-[10px]">' + (obat.jual || 0).toLocaleString('id-ID') + '</span></div>' +
-                    '</td>' +
-                '</tr>';
+                // RAKIT BARIS TABEL (MISTAR PRESISI KIRI-KANAN)
+                htmlTabelObat += `
+                <tr class="hover:bg-amber-50/50 transition-colors">
+                    <td class="py-1.5 px-2 sticky left-0 bg-white z-10 border-r border-slate-100 max-w-[140px]">${kolomNamaHtml}</td>
+                    <td class="py-1.5 px-2 border-r border-slate-100 text-right font-mono text-[10px]">${awal}</td>
+                    <td class="py-1.5 px-2 border-r border-slate-100 text-right text-amber-600 font-bold font-mono text-[10px]">${obat.lakuShiftIni}</td>
+                    <td class="py-1.5 px-2 border-r border-slate-100 text-right text-emerald-600 font-bold font-mono text-[10px]">${obat.sisaFisikTotal}</td>
+                    <td class="py-1.5 px-2 border-r border-slate-100">
+                        <div class="grid grid-cols-[15px_1fr] items-center w-full min-w-[55px]"><span class="text-[8px] text-slate-400 font-sans text-left">Rp</span><span class="text-right font-mono text-[10px]">${hppRataRata.toLocaleString('id-ID')}</span></div>
+                    </td>
+                    <td class="py-1.5 px-2">
+                        <div class="grid grid-cols-[15px_1fr] items-center w-full min-w-[55px]"><span class="text-[8px] text-slate-400 font-sans text-left">Rp</span><span class="text-right font-mono text-[10px]">${(obat.hargaJual || 0).toLocaleString('id-ID')}</span></div>
+                    </td>
+                </tr>`;
             }
         });
 
-        var elemenBody = document.getElementById('body-tabel-performa');
+        let elemenBody = document.getElementById('body-tabel-performa');
         if (elemenBody) {
             elemenBody.innerHTML = htmlTabelObat || '<tr><td colspan="6" class="py-4 text-center text-slate-400">Belum ada data barang.</td></tr>';
         }
 
-        // Tembakkan angka ke lencana/badge di Header Batang 11
-        var badgeObat = document.getElementById('badge-jenis-obat');
+        let badgeObat = document.getElementById('badge-jenis-obat');
         if (badgeObat) {
             badgeObat.textContent = jumlahJenisObat + ' Jenis';
             badgeObat.classList.remove('hidden');
         }
 
-    }, 100);
+    }, 50); // Waktu muat dipercepat dari 100ms menjadi 50ms karena data sudah matang
 }
 
 
@@ -6946,3 +6876,401 @@ document.addEventListener('touchend', (e) => {
         }
     }
 });
+
+// ===================================================================
+// MESIN DRILL-DOWN ANALYTICS (DIPERBARUI DENGAN KALKULATOR MASTER & OPSI B)
+// ===================================================================
+function bukaRincianPantauan(jenisKartu) {
+    let judul = document.getElementById('judulDetailStok');
+    let subJudul = document.getElementById('subJudulDetailStok');
+    if(judul) judul.innerText = "Audit: " + jenisKartu;
+    if(subJudul) subJudul.innerText = "Rincian Data Aktual & Finansial";
+
+    let modal = document.getElementById('modalDetailStokMobile');
+    let panel = document.getElementById('panelDetailStokMobile');
+    if(modal && panel) {
+        modal.classList.remove('hidden');
+        setTimeout(() => { panel.classList.remove('translate-y-full'); }, 10);
+    }
+
+    // PANGGIL POHON DATA DARI SATPAM ARSIP
+    let pohonData = KalkulatorMasterObat();
+    let dataArray = Object.values(pohonData);
+
+    const buatKartuBarang = (kategori, nama, awal, laku, sisa, jual, tglExp = "") => {
+        let badgeExpired = tglExp ? `<span class="bg-red-50 text-red-600 text-[10px] font-black px-2 py-0.5 rounded-md ml-2 border border-red-200 shadow-sm"><i class="fa-solid fa-triangle-exclamation"></i> EXP: ${tglExp}</span>` : '';
+
+        return `
+        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-3 relative overflow-hidden">
+            <div class="absolute top-0 right-0 bg-blue-50 text-blue-600 text-[9px] font-black px-3 py-1 rounded-bl-xl border-b border-l border-blue-100 uppercase tracking-widest shadow-sm">
+                ${kategori}
+            </div>
+            <div class="pr-20 mb-3 flex items-center flex-wrap gap-y-1">
+                <h4 class="font-black text-slate-800 text-[15px] leading-tight mr-1">${nama}</h4>
+                ${badgeExpired}
+            </div>
+            <div class="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
+                <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-200/60 shadow-inner">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[9px] font-bold text-slate-500 uppercase">Stok Awal Pagi</span>
+                        <span class="text-[10px] font-black text-slate-700">${awal}</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[9px] font-bold text-slate-500 uppercase">Terjual H.Ini</span>
+                        <span class="text-[10px] font-black text-rose-600">- ${laku}</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-1.5 mt-1 border-t border-slate-200">
+                        <span class="text-[9px] font-black text-slate-700 uppercase">Sisa Fisik</span>
+                        <span class="text-[12px] font-black text-emerald-600">${sisa}</span>
+                    </div>
+                </div>
+                <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-2.5 border border-amber-200/60 flex flex-col justify-center items-center shadow-inner h-full">
+                    <span class="text-[10px] font-black text-orange-800 uppercase mb-1">Harga Jual</span>
+                    <span class="text-[16px] sm:text-lg font-black text-orange-600 drop-shadow-sm">${jual}</span>
+                </div>
+            </div>
+        </div>
+        `;
+    };
+
+    let htmlList = '';
+    let totalQty = 0;
+    let totalNominal = 0;
+    let formatRp = (angka) => "Rp " + Number(angka || 0).toLocaleString('id-ID');
+    let batas30Hari = new Date();
+    batas30Hari.setDate(new Date().getDate() + 30);
+    
+    let dataDifilter = dataArray.filter(obj => {
+        // KUNCI FILTER: OPSI B (MURNI HARI INI & KALENDER)
+        if (jenisKartu === 'Obat Terjual') return obj.lakuHariIni > 0; 
+        if (jenisKartu === 'Stok Kritis') return obj.sisaFisikTotal <= 2;
+        if (jenisKartu === 'Kedaluwarsa') {
+            if (obj.expTerdekat === '2099-12-31' || obj.sisaFisikTotal <= 0) return false;
+            let tglExp = new Date(obj.expTerdekat);
+            return tglExp <= batas30Hari;
+        }
+        return true; // Mode 'Jenis Obat'
+    });
+
+    if (jenisKartu === 'Obat Terjual') {
+        dataDifilter.sort((a,b) => b.lakuHariIni - a.lakuHariIni);
+    } else {
+        dataDifilter.sort((a,b) => a.namaLengkap.localeCompare(b.namaLengkap));
+    }
+
+    dataDifilter.forEach(obj => {
+        let lakuTampil = obj.lakuHariIni;
+        // RUMUS PATEN PAGI HARI
+        let awalTampil = obj.sisaFisikTotal + lakuTampil; 
+
+        let stringTgl = "";
+        if (jenisKartu === 'Kedaluwarsa' && obj.expTerdekat !== '2099-12-31') {
+            let d = new Date(obj.expTerdekat);
+            stringTgl = d.toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'});
+        }
+
+        htmlList += buatKartuBarang(
+            obj.kategori, obj.namaLengkap, awalTampil, lakuTampil, 
+            obj.sisaFisikTotal, formatRp(obj.hargaJual), stringTgl
+        );
+        
+        if (jenisKartu === 'Obat Terjual') {
+            totalQty += lakuTampil;
+            totalNominal += (lakuTampil * obj.hargaJual);
+        } else {
+            totalQty += obj.sisaFisikTotal;
+            totalNominal += (obj.sisaFisikTotal * obj.hargaJual);
+        }
+    });
+
+    if(htmlList === '') {
+        htmlList = `
+        <div class="p-6 text-center bg-white rounded-2xl border border-slate-200 shadow-sm mt-4">
+            <div class="w-16 h-16 mx-auto bg-slate-50 rounded-full flex items-center justify-center text-slate-400 text-3xl mb-3"><i class="fa-solid fa-box-open"></i></div>
+            <p class="text-sm font-black text-slate-700 mb-1">Aman & Terkendali</p>
+            <p class="text-[10px] font-bold text-slate-500 leading-tight">Belum ada data barang yang masuk dalam kriteria ini.</p>
+        </div>`;
+    }
+
+    let wadah = document.getElementById('wadahListDetailStok');
+    if(wadah) wadah.innerHTML = htmlList;
+
+    let headerQty = document.getElementById('rekapQtyDetailStok');
+    let headerNominal = document.getElementById('rekapNominalDetailStok');
+    if(headerQty) headerQty.innerText = totalQty + " Pcs";
+    if(headerNominal) headerNominal.innerText = formatRp(totalNominal);
+}
+
+// ============================================================================
+// 28. THE MASTER ENGINE (SATPAM ARSIP) - ARSITEKTUR "SATU PINTU" POHON DATA
+// ============================================================================
+function KalkulatorMasterObat() {
+    let pohonData = {};
+    let tglHariIni = getTanggalLokal();
+    let waktuMulai = siklusAktif.waktuStart || 0; // Tunduk mutlak pada waktu Shift (Satpam Brankas)
+
+    // ---------------------------------------------------------
+    // FASE 1: TANAM AKAR DARI GUDANG MASTER (Level 1, 2, 3)
+    // ---------------------------------------------------------
+    masterItems.forEach(m => {
+        if (m.nama === '___SYSTEM_AUTH___' || m.kategori === '⚠️ Barang Retur') return;
+        
+        let kunci = m.dnaInduk;
+        if (!pohonData[kunci]) {
+            pohonData[kunci] = {
+                dnaInduk: kunci,
+                namaLengkap: m.nama + (m.varian ? ` ${m.varian}` : ''),
+                kategori: m.kategori || 'Umum',
+                hargaJual: m.jual || 0,
+                
+                // LEVEL 1: HELIKOPTER VIEW (MAKRO)
+                sisaGudang: 0,
+                sisaEtalase: 0,
+                sisaFisikTotal: 0,
+                
+                lakuShiftIni: 0,
+                lakuHariIni: 0,
+                lakuGlobal: 0, // Semua waktu (mendeteksi barang mati)
+                
+                omzetShiftIni: 0,
+                labaShiftIni: 0,
+                
+                rusakExpTotal: 0,
+                modalAsetTersisa: 0,
+                
+                // LEVEL 2: RINCIAN BATCH (MENENGAH)
+                batches: [],
+                expTerdekat: '2099-12-31'
+            };
+        }
+
+        // Kalkulasi Fisik & Rusak per Batch
+        let sisaGudangBatch = m.stok || 0;
+        let rusakBatch = m.stokRusak || 0;
+        
+        pohonData[kunci].sisaGudang += sisaGudangBatch;
+        pohonData[kunci].rusakExpTotal += rusakBatch;
+        
+        // Pelacakan Expired Terdekat
+        if (m.expired && sisaGudangBatch > 0 && m.expired < pohonData[kunci].expTerdekat) {
+            pohonData[kunci].expTerdekat = m.expired;
+        }
+
+        // Kalkulasi Aset Modal (Presisi Tinggi dari Kulakan)
+        let modalBatchIni = 0;
+        if (m.kulakan_keuangan) {
+            m.kulakan_keuangan.forEach(f => {
+                modalBatchIni += ((f.sisaGudang || 0) + (f.sisaEtalase || 0)) * (f.hpp || m.modal || 0);
+            });
+        } else {
+            modalBatchIni = sisaGudangBatch * (m.modal || 0); // Fallback data lama
+        }
+        pohonData[kunci].modalAsetTersisa += modalBatchIni;
+
+        // Tanam Dahan Batch
+        pohonData[kunci].batches.push(m);
+    });
+
+    // ---------------------------------------------------------
+    // FASE 2: TANAM RANTING DARI ETALASE FISIK
+    // ---------------------------------------------------------
+    etalaseItems.forEach(e => {
+        let kunci = e.dnaInduk || e.nama;
+        
+        // PENCEGATAN ZOMBIE: Jika ada di etalase tapi induknya terhapus di gudang
+        if (!pohonData[kunci]) {
+            let hppAman = (e.antreanFIFO && e.antreanFIFO.length > 0 && e.antreanFIFO[0].modal) ? e.antreanFIFO[0].modal : 0;
+            pohonData[kunci] = {
+                dnaInduk: kunci,
+                namaLengkap: e.nama + (e.varian ? ` ${e.varian}` : ''),
+                kategori: e.kategori || 'Umum',
+                hargaJual: e.jual || 0,
+                sisaGudang: 0, sisaEtalase: 0, sisaFisikTotal: 0,
+                lakuShiftIni: 0, lakuHariIni: 0, lakuGlobal: 0,
+                omzetShiftIni: 0, labaShiftIni: 0,
+                rusakExpTotal: 0, modalAsetTersisa: 0,
+                batches: [], expTerdekat: '2099-12-31'
+            };
+        }
+        
+        let sisaEtalaseBiji = e.stok || 0;
+        pohonData[kunci].sisaEtalase += sisaEtalaseBiji;
+        
+        // Akumulasi modal zombie dari kantung FIFO
+        if (pohonData[kunci].batches.length === 0 && e.antreanFIFO) {
+            e.antreanFIFO.forEach(f => {
+                 pohonData[kunci].modalAsetTersisa += (f.stok * (f.modal || 0));
+            });
+        }
+    });
+
+    // Sinkronisasi Sisa Total Mutlak
+    Object.values(pohonData).forEach(item => {
+        item.sisaFisikTotal = item.sisaGudang + item.sisaEtalase;
+    });
+
+    // ---------------------------------------------------------
+    // FASE 3: PANEN BUAH TERJUAL DARI RIWAYAT (SISTEM KASIR)
+    // ---------------------------------------------------------
+    cashierHistory.forEach(trx => {
+        
+        // SENSOR SILUMAN 1: Abaikan mutlak Pelunasan Kasbon agar stok tidak terhitung ganda!
+        if (trx.isPelunasan) return;
+
+        let isShiftIni = (trx.id >= waktuMulai);
+        let isHariIni = (trx.tanggal === tglHariIni);
+
+        if (trx.detailKeranjang && trx.detailKeranjang.length > 0) {
+            trx.detailKeranjang.forEach(item => {
+                let kunci = item.dnaInduk || item.nama;
+                
+                // PENCEGATAN BARANG HANTU: Barang yang laku tapi induknya sudah dihapus
+                if (!pohonData[kunci]) {
+                    pohonData[kunci] = {
+                        dnaInduk: kunci, namaLengkap: item.nama + (item.varian ? ` ${item.varian}` : ''),
+                        kategori: item.kategori || 'Barang Dihapus', hargaJual: item.jual || 0,
+                        sisaGudang: 0, sisaEtalase: 0, sisaFisikTotal: 0,
+                        lakuShiftIni: 0, lakuHariIni: 0, lakuGlobal: 0,
+                        omzetShiftIni: 0, labaShiftIni: 0,
+                        rusakExpTotal: 0, modalAsetTersisa: 0,
+                        batches: [], expTerdekat: '2099-12-31'
+                    };
+                }
+
+                let qtyLaku = item.qty || 0;
+                pohonData[kunci].lakuGlobal += qtyLaku;
+
+                if (isShiftIni) {
+                    pohonData[kunci].lakuShiftIni += qtyLaku;
+                    
+                    // SENSOR SILUMAN 3: Anti-Distorsi Waktu. Hitung HPP dan Harga Jual dari Kertas Struk, bukan dari Master saat ini!
+                    let omzetAkurat = qtyLaku * (item.jual || 0);
+                    let hppAkurat = qtyLaku * (item.hppSatuan || (item.jual * 0.8));
+                    
+                    pohonData[kunci].omzetShiftIni += omzetAkurat;
+                    pohonData[kunci].labaShiftIni += (omzetAkurat - hppAkurat);
+                }
+                
+                if (isHariIni) {
+                    pohonData[kunci].lakuHariIni += qtyLaku;
+                }
+            });
+        } else {
+            // Fallback Cerdas untuk Riwayat Aplikasi Versi Lama
+            let kunci = trx.obat;
+            if (!pohonData[kunci]) {
+                pohonData[kunci] = {
+                    dnaInduk: kunci, namaLengkap: kunci, kategori: 'Data Lama', hargaJual: 0,
+                    sisaGudang: 0, sisaEtalase: 0, sisaFisikTotal: 0,
+                    lakuShiftIni: 0, lakuHariIni: 0, lakuGlobal: 0,
+                    omzetShiftIni: 0, labaShiftIni: 0,
+                    rusakExpTotal: 0, modalAsetTersisa: 0,
+                    batches: [], expTerdekat: '2099-12-31'
+                };
+            }
+            
+            let qtyLaku = trx.item || 1;
+            pohonData[kunci].lakuGlobal += qtyLaku;
+
+            if (isShiftIni) {
+                pohonData[kunci].lakuShiftIni += qtyLaku;
+                pohonData[kunci].omzetShiftIni += (trx.total || 0);
+                pohonData[kunci].labaShiftIni += (trx.laba || 0);
+            }
+            if (isHariIni) {
+                pohonData[kunci].lakuHariIni += qtyLaku;
+            }
+        }
+    });
+
+    // FASE 4: SENSOR SILUMAN 2 (Abaikan antreanKulakan - Murni tidak dibaca!)
+    // Mesin selesai bekerja dan mengembalikan Pohon Data Emas.
+    return pohonData;
+}
+
+// ============================================================================
+// 28. THE MASTER ENGINE (SATPAM ARSIP) - ARSITEKTUR "SATU PINTU" POHON DATA
+// ============================================================================
+function KalkulatorMasterObat() {
+    let pohonData = {};
+    let tglHariIni = getTanggalLokal();
+    let waktuMulai = siklusAktif.waktuStart || 0; 
+
+    // FASE 1: TANAM AKAR DARI GUDANG MASTER
+    masterItems.forEach(m => {
+        if (m.nama === '___SYSTEM_AUTH___' || m.kategori === '⚠️ Barang Retur') return;
+        let kunci = m.dnaInduk;
+        if (!pohonData[kunci]) {
+            pohonData[kunci] = {
+                dnaInduk: kunci, namaLengkap: m.nama + (m.varian ? ` ${m.varian}` : ''),
+                kategori: m.kategori || 'Umum', hargaJual: m.jual || 0,
+                sisaGudang: 0, sisaEtalase: 0, sisaFisikTotal: 0,
+                lakuShiftIni: 0, lakuHariIni: 0, lakuGlobal: 0, 
+                omzetShiftIni: 0, labaShiftIni: 0,
+                rusakExpTotal: 0, modalAsetTersisa: 0,
+                batches: [], expTerdekat: '2099-12-31'
+            };
+        }
+        let sisaGudangBatch = m.stok || 0; let rusakBatch = m.stokRusak || 0;
+        pohonData[kunci].sisaGudang += sisaGudangBatch; pohonData[kunci].rusakExpTotal += rusakBatch;
+        if (m.expired && sisaGudangBatch > 0 && m.expired < pohonData[kunci].expTerdekat) pohonData[kunci].expTerdekat = m.expired;
+        
+        let modalBatchIni = 0;
+        if (m.kulakan_keuangan) { m.kulakan_keuangan.forEach(f => { modalBatchIni += ((f.sisaGudang || 0) + (f.sisaEtalase || 0)) * (f.hpp || m.modal || 0); }); } 
+        else { modalBatchIni = sisaGudangBatch * (m.modal || 0); }
+        pohonData[kunci].modalAsetTersisa += modalBatchIni;
+        pohonData[kunci].batches.push(m);
+    });
+
+    // FASE 2: TANAM RANTING DARI ETALASE FISIK
+    etalaseItems.forEach(e => {
+        let kunci = e.dnaInduk || e.nama;
+        if (!pohonData[kunci]) {
+            pohonData[kunci] = {
+                dnaInduk: kunci, namaLengkap: e.nama + (e.varian ? ` ${e.varian}` : ''), kategori: e.kategori || 'Umum', hargaJual: e.jual || 0,
+                sisaGudang: 0, sisaEtalase: 0, sisaFisikTotal: 0, lakuShiftIni: 0, lakuHariIni: 0, lakuGlobal: 0, omzetShiftIni: 0, labaShiftIni: 0,
+                rusakExpTotal: 0, modalAsetTersisa: 0, batches: [], expTerdekat: '2099-12-31'
+            };
+        }
+        pohonData[kunci].sisaEtalase += (e.stok || 0);
+        if (pohonData[kunci].batches.length === 0 && e.antreanFIFO) { e.antreanFIFO.forEach(f => { pohonData[kunci].modalAsetTersisa += (f.stok * (f.modal || 0)); }); }
+    });
+
+    Object.values(pohonData).forEach(item => { item.sisaFisikTotal = item.sisaGudang + item.sisaEtalase; });
+
+    // FASE 3: PANEN BUAH TERJUAL DARI RIWAYAT 
+    cashierHistory.forEach(trx => {
+        if (trx.isPelunasan) return; // SENSOR SILUMAN: Utang tidak boleh merusak fisik
+
+        let isShiftIni = (trx.id >= waktuMulai);
+        let isHariIni = (trx.tanggal === tglHariIni);
+
+        if (trx.detailKeranjang && trx.detailKeranjang.length > 0) {
+            trx.detailKeranjang.forEach(item => {
+                let kunci = item.dnaInduk || item.nama;
+                if (!pohonData[kunci]) {
+                    pohonData[kunci] = {
+                        dnaInduk: kunci, namaLengkap: item.nama + (item.varian ? ` ${item.varian}` : ''), kategori: item.kategori || 'Barang Dihapus', hargaJual: item.jual || 0,
+                        sisaGudang: 0, sisaEtalase: 0, sisaFisikTotal: 0, lakuShiftIni: 0, lakuHariIni: 0, lakuGlobal: 0, omzetShiftIni: 0, labaShiftIni: 0,
+                        rusakExpTotal: 0, modalAsetTersisa: 0, batches: [], expTerdekat: '2099-12-31'
+                    };
+                }
+                let qtyLaku = item.qty || 0; pohonData[kunci].lakuGlobal += qtyLaku;
+                if (isShiftIni) { pohonData[kunci].lakuShiftIni += qtyLaku; pohonData[kunci].omzetShiftIni += (qtyLaku * (item.jual || 0)); pohonData[kunci].labaShiftIni += ((qtyLaku * (item.jual || 0)) - (qtyLaku * (item.hppSatuan || (item.jual * 0.8)))); }
+                if (isHariIni) { pohonData[kunci].lakuHariIni += qtyLaku; }
+            });
+        } else {
+            let kunci = trx.obat;
+            if (!pohonData[kunci]) {
+                pohonData[kunci] = {
+                    dnaInduk: kunci, namaLengkap: kunci, kategori: 'Data Lama', hargaJual: 0, sisaGudang: 0, sisaEtalase: 0, sisaFisikTotal: 0,
+                    lakuShiftIni: 0, lakuHariIni: 0, lakuGlobal: 0, omzetShiftIni: 0, labaShiftIni: 0, rusakExpTotal: 0, modalAsetTersisa: 0, batches: [], expTerdekat: '2099-12-31'
+                };
+            }
+            let qtyLaku = trx.item || 1; pohonData[kunci].lakuGlobal += qtyLaku;
+            if (isShiftIni) { pohonData[kunci].lakuShiftIni += qtyLaku; pohonData[kunci].omzetShiftIni += (trx.total || 0); pohonData[kunci].labaShiftIni += (trx.laba || 0); }
+            if (isHariIni) { pohonData[kunci].lakuHariIni += qtyLaku; }
+        }
+    });
+    return pohonData;
+}

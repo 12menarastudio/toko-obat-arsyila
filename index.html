@@ -233,39 +233,32 @@ tailwind.config = {
 
            <div class="px-6 mt-8 mb-4">
                 <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">Pantauan Sistem</h3>
-                <div id="wadahPantauanSistem" class="flex gap-3 overflow-x-auto pb-6 hide-scrollbar snap-x scroll-smooth">
+                      <div id="wadahPantauanSistem" class="flex gap-3 overflow-x-auto pb-6 hide-scrollbar snap-x scroll-smooth">
                     
-                    <div class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden">
-                        <div class="absolute right-[-10px] top-0 bottom-0 w-20 bg-blue-50/60 rounded-l-full -z-0"></div>
-                        <div class="flex justify-between items-start mb-4 relative z-10">
-                            <div class="h-9 w-9 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center text-lg"><i class="fa-solid fa-boxes-stacked"></i></div>
-                            <span class="text-3xl font-black text-blue-600" id="berandaSisaStok">0</span>
-                        </div>
-                        <span class="text-[11px] font-black text-slate-800 uppercase mt-auto relative z-10 leading-tight">Sisa Stok</span>
-                        <span class="text-[10px] font-medium text-slate-500 relative z-10 mt-0.5">Gudang & Etalase</span>
-                    </div>
-
-                    <div class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden">
+                    <!-- 1. KARTU: OBAT TERJUAL (Klik -> Buka Pop Up Data Hari Ini) -->
+                    <div onclick="bukaRincianPantauan('Obat Terjual')" class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden cursor-pointer hover:border-emerald-300 active:scale-95 transition-all">
                         <div class="absolute right-[-10px] top-0 bottom-0 w-20 bg-emerald-50/60 rounded-l-full -z-0"></div>
                         <div class="flex justify-between items-start mb-4 relative z-10">
                             <div class="h-9 w-9 rounded-full bg-emerald-50 text-emerald-500 flex items-center justify-center text-lg"><i class="fa-solid fa-pills"></i></div>
                             <span class="text-3xl font-black text-emerald-600" id="berandaObatTerjual">0</span>
                         </div>
                         <span class="text-[11px] font-black text-slate-800 uppercase mt-auto relative z-10 leading-tight">Obat Terjual</span>
-                        <span class="text-[10px] font-medium text-slate-500 relative z-10 mt-0.5">Hari Ini</span>
+                        <span class="text-[10px] font-medium text-slate-500 relative z-10 mt-0.5">Laku Hari Ini</span>
                     </div>
 
-                    <div class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden">
+                    <!-- 2. KARTU: PEMBELI (Klik -> Lompat ke Riwayat Transaksi) -->
+                    <div onclick="bukaLayar('riwayat')" class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden cursor-pointer hover:border-indigo-300 active:scale-95 transition-all">
                         <div class="absolute right-[-10px] top-0 bottom-0 w-20 bg-indigo-50/60 rounded-l-full -z-0"></div>
                         <div class="flex justify-between items-start mb-4 relative z-10">
                             <div class="h-9 w-9 rounded-full bg-indigo-50 text-indigo-500 flex items-center justify-center text-lg"><i class="fa-solid fa-users"></i></div>
                             <span class="text-3xl font-black text-indigo-600" id="berandaPembeli">0</span>
                         </div>
-                        <span class="text-[11px] font-black text-slate-800 uppercase mt-auto relative z-10 leading-tight">Pembeli</span>
-                        <span class="text-[10px] font-medium text-slate-500 relative z-10 mt-0.5">Hari Ini</span>
+                        <span class="text-[11px] font-black text-slate-800 uppercase mt-auto relative z-10 leading-tight">Jejak Pembeli</span>
+                        <span class="text-[10px] font-medium text-slate-500 relative z-10 mt-0.5">Transaksi Hari Ini</span>
                     </div>
 
-                    <div class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden">
+                    <!-- 3. KARTU: JENIS OBAT (Klik -> Buka Pop Up Data Master) -->
+                    <div onclick="bukaRincianPantauan('Jenis Obat')" class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden cursor-pointer hover:border-teal-300 active:scale-95 transition-all">
                         <div class="absolute right-[-10px] top-0 bottom-0 w-20 bg-teal-50/60 rounded-l-full -z-0"></div>
                         <div class="flex justify-between items-start mb-4 relative z-10">
                             <div class="h-9 w-9 rounded-full bg-teal-50 text-teal-500 flex items-center justify-center text-lg"><i class="fa-solid fa-tags"></i></div>
@@ -275,27 +268,38 @@ tailwind.config = {
                         <span class="text-[10px] font-medium text-slate-500 relative z-10 mt-0.5">Total Terdaftar</span>
                     </div>
 
-                    <div class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden">
+                    <!-- 4. KARTU: STOK KRITIS (Klik -> Buka Pop Up Stok Menipis) -->
+                    <div onclick="bukaRincianPantauan('Stok Kritis')" class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden cursor-pointer hover:border-red-300 active:scale-95 transition-all">
                         <div class="absolute right-[-10px] top-0 bottom-0 w-20 bg-red-50/60 rounded-l-full -z-0"></div>
                         <div class="flex justify-between items-start mb-4 relative z-10">
                             <div class="h-9 w-9 rounded-full bg-red-50 text-red-500 flex items-center justify-center text-lg"><i class="fa-solid fa-triangle-exclamation"></i></div>
                             <span class="text-3xl font-black text-red-600" id="berandaKritis">0</span>
                         </div>
                         <span class="text-[11px] font-black text-slate-800 uppercase mt-auto relative z-10 leading-tight">Stok Kritis</span>
-                        <span class="text-[10px] font-medium text-slate-500 relative z-10 mt-0.5">Butuh dipesan</span>
+                        <span class="text-[10px] font-medium text-slate-500 relative z-10 mt-0.5">Butuh Dipesan</span>
                     </div>
 
-                    <div class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden">
+                    <!-- 5. KARTU: KASBON AKTIF (Klik -> Lompat ke Buku Piutang) -->
+                    <div onclick="bukaLayar('piutang')" class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden cursor-pointer hover:border-amber-300 active:scale-95 transition-all">
                         <div class="absolute right-[-10px] top-0 bottom-0 w-20 bg-amber-50/60 rounded-l-full -z-0"></div>
                         <div class="flex justify-between items-start mb-4 relative z-10">
                             <div class="h-9 w-9 rounded-full bg-amber-50 text-amber-500 flex items-center justify-center text-lg"><i class="fa-solid fa-hand-holding-dollar"></i></div>
                             <span class="text-3xl font-black text-amber-600" id="berandaKasbon">0</span>
                         </div>
                         <span class="text-[11px] font-black text-slate-800 uppercase mt-auto relative z-10 leading-tight">Kasbon Aktif</span>
-                        <span class="text-[10px] font-medium text-slate-500 relative z-10 mt-0.5">Belum dilunasi</span>
+                        
+                        <!-- LABEL LIVE ELEGAN (BUNDAR MERAH KEDIP) -->
+                        <div class="flex items-center gap-1.5 mt-1 relative z-10 bg-red-50 w-max px-1.5 py-0.5 rounded border border-red-100 shadow-sm">
+                            <span class="relative flex h-1.5 w-1.5">
+                                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                <span class="relative inline-flex rounded-full h-1.5 w-1.5 bg-red-600"></span>
+                            </span>
+                            <span class="text-[8px] font-black text-red-600 uppercase tracking-widest">Live Total</span>
+                        </div>
                     </div>
 
-                    <div class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden">
+                    <!-- 6. KARTU: KEDALUWARSA (Klik -> Buka Pop Up Data Expired) -->
+                    <div onclick="bukaRincianPantauan('Kedaluwarsa')" class="min-w-[140px] bg-white border border-slate-200 rounded-2xl p-4 flex flex-col shadow-sm snap-start relative overflow-hidden cursor-pointer hover:border-purple-300 active:scale-95 transition-all">
                         <div class="absolute right-[-10px] top-0 bottom-0 w-20 bg-purple-50/60 rounded-l-full -z-0"></div>
                         <div class="flex justify-between items-start mb-4 relative z-10">
                             <div class="h-9 w-9 rounded-full bg-purple-50 text-purple-500 flex items-center justify-center text-lg"><i class="fa-solid fa-calendar-xmark"></i></div>
@@ -305,6 +309,7 @@ tailwind.config = {
                         <span class="text-[10px] font-medium text-slate-500 relative z-10 mt-0.5">Dalam 30 Hari</span>
                     </div>
                 </div>
+
             </div>
         </div>
                 <div id="layar-rekap" class="layar-app hidden pb-6">
