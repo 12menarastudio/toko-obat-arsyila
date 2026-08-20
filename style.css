@@ -14,7 +14,7 @@ html, body {
 }
 
 body { 
-    background-color: #f1f5f9; 
+    background-color: #e0f2f1; /* Soft teal background */
     display: flex; 
     justify-content: center; 
     align-items: center; 
@@ -27,7 +27,7 @@ body {
     max-width: 414px; 
     height: 100vh; 
     max-height: 896px;
-    background-color: #f8fafc; 
+    background-color: #ffffff; /* Clean white frame background */
     position: relative; 
     overflow: hidden;
     display: flex; 
