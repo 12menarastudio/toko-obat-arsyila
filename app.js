@@ -1808,7 +1808,7 @@ function renderLaporanMobile() {
             else if(t.metode === 'QRIS') omzetQRIS += t.total;
             else if(t.metode === 'Debt') omzetDebt += t.total;
             
-            setPembeliUnikLaporan.add(t.waktu + "_" + (t.pelanggan || "UMUM"));
+            let kunciPelacak = (t.metode === 'Debt') ? 'DEBT_'+t.tanggal+'_'+t.waktu+'_'+t.pelanggan : 'TRX_'+t.id; setPembeliUnikLaporan.add(kunciPelacak);
             totalPembeli = setPembeliUnikLaporan.size;
             totalBiji += (t.item || 1);
         } else {
@@ -6668,11 +6668,12 @@ function setFilterTrafik(tipe) {
 function renderTrafikAnalitik() {
     let dataGabungan = {};
     let tglHariIni = new Date(getTanggalLokal());
+    let tglBatas30 = new Date(); tglBatas30.setDate(tglBatas30.getDate() - 30); let strBatas30 = getTanggalLokal(tglBatas30);
     
     masterItems.forEach(m => {
         if(m.nama !== '___SYSTEM_AUTH___' && m.kategori !== '⚠️ Barang Retur') {
             if(!dataGabungan[m.dnaInduk]) {
-                dataGabungan[m.dnaInduk] = { dnaInduk: m.dnaInduk, nama: m.nama + (m.varian ? ` ${m.varian}` : ''), stokRak: 0, qtyJualGlobal: 0, qtyJualFiltered: 0, labaKotor: 0, modal: 0, expTerdekat: '2099-12-31' };
+                dataGabungan[m.dnaInduk] = { dnaInduk: m.dnaInduk, nama: m.nama + (m.varian ? ` ${m.varian}` : ''), stokRak: 0, qtyJualGlobal: 0, qtyJualFiltered: 0, qtyJual30Hari: 0, labaKotor: 0, modal: 0, expTerdekat: '2099-12-31' };
             }
             dataGabungan[m.dnaInduk].stokRak += m.stok;
             dataGabungan[m.dnaInduk].modal = m.modal || 0;
@@ -6692,9 +6693,10 @@ function renderTrafikAnalitik() {
         if(trx.detailKeranjang) {
             trx.detailKeranjang.forEach(item => {
                 let dna = item.dnaInduk || item.nama;
-                if(!dataGabungan[dna]) dataGabungan[dna] = { dnaInduk: dna, nama: item.nama + (item.varian ? ` ${item.varian}` : ''), stokRak: 0, qtyJualGlobal: 0, qtyJualFiltered: 0, labaKotor: 0, modal: 0, expTerdekat: '2099-12-31' };
+                if(!dataGabungan[dna]) dataGabungan[dna] = { dnaInduk: dna, nama: item.nama + (item.varian ? ` ${item.varian}` : ''), stokRak: 0, qtyJualGlobal: 0, qtyJualFiltered: 0, qtyJual30Hari: 0, labaKotor: 0, modal: 0, expTerdekat: '2099-12-31' };
                 
-                dataGabungan[dna].qtyJualGlobal += item.qty; 
+                dataGabungan[dna].qtyJualGlobal += item.qty;
+                if (trx.tanggal >= strBatas30) dataGabungan[dna].qtyJual30Hari += item.qty;
 
                 if (isDalamFilter) {
                     let labaItem = (item.jual * item.qty) - ((item.hppSatuan || (item.jual * 0.8)) * item.qty);
@@ -6704,10 +6706,12 @@ function renderTrafikAnalitik() {
             });
         } else {
             let dna = trx.obat;
-            if(!dataGabungan[dna]) dataGabungan[dna] = { dnaInduk: dna, nama: trx.obat, stokRak: 0, qtyJualGlobal: 0, qtyJualFiltered: 0, labaKotor: 0, modal: 0, expTerdekat: '2099-12-31' };
+            if(!dataGabungan[dna]) dataGabungan[dna] = { dnaInduk: dna, nama: trx.obat, stokRak: 0, qtyJualGlobal: 0, qtyJualFiltered: 0, qtyJual30Hari: 0, labaKotor: 0, modal: 0, expTerdekat: '2099-12-31' };
             
+
             let qtyTrx = trx.item || 1;
-            dataGabungan[dna].qtyJualGlobal += qtyTrx; 
+            dataGabungan[dna].qtyJualGlobal += qtyTrx;
+            if (trx.tanggal >= strBatas30) dataGabungan[dna].qtyJual30Hari += qtyTrx;
             
             if (isDalamFilter) {
                 let lItem = trx.laba || (trx.total * 0.2);
@@ -6720,7 +6724,7 @@ function renderTrafikAnalitik() {
     let arrLaku = []; let arrMati = [];
     Object.values(dataGabungan).forEach(item => {
         if(item.qtyJualFiltered > 0) arrLaku.push(item);
-        else if (item.stokRak > 0 && item.qtyJualGlobal === 0) arrMati.push(item);
+        else if (item.stokRak > 0 && item.qtyJualFiltered === 0) arrMati.push(item);
     });
 
     if (modeUrutRadar === 'laris') {
@@ -6768,12 +6772,21 @@ function renderTrafikAnalitik() {
             let diffDays = Math.ceil((new Date(item.expTerdekat) - tglHariIni) / (1000 * 60 * 60 * 24));
             if (diffDays <= 30) stikerExp = `<span class="bg-amber-50 text-amber-600 border border-amber-200 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest mt-1 inline-block"><i class="fa-solid fa-skull"></i> Dekat Expired</span>`;
         }
+
+        let badgeKonteks = '';
+        if (item.qtyJual30Hari > 0) {
+            badgeKonteks = `<span class="bg-amber-50 text-amber-600 border border-amber-200 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest mt-1.5 inline-block shadow-sm"><i class="fa-solid fa-fire-flame-curved"></i> Laku ${item.qtyJual30Hari}x Bulan Ini</span>`;
+        } else {
+            badgeKonteks = `<span class="bg-slate-100 text-slate-500 border border-slate-200 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest mt-1.5 inline-block"><i class="fa-solid fa-snowflake"></i> Beku (0 Laku Sebulan)</span>`;
+        }
+
         return `
         <div class="anim-stagger-item opacity-0 translate-y-8 transition-all duration-700 ease-out bg-white border border-rose-200 rounded-xl p-3 flex justify-between items-center mb-2 shadow-sm relative overflow-hidden">    
             <div class="absolute left-0 top-0 bottom-0 w-1 bg-rose-400"></div>   
             <div class="pl-2 flex-1">
                 <h4 class="text-xs font-bold text-slate-700 leading-tight mb-0.5 truncate">${item.nama}</h4>
                 <p class="text-[9px] font-black text-rose-500">Modal Nyangkut: ${rupiah(uangMati)}</p>
+                ${badgeKonteks}
                 ${stikerExp}
             </div>
             <div class="text-right shrink-0 bg-slate-50 p-1.5 rounded-lg border border-slate-100">
