@@ -109,8 +109,20 @@ function catatMutasiSiklus(jenis, nominalRp, jumlahQty = 0) {
         case 'KULAKAN_BATAL':
             siklusAktif.modalTambahan = (siklusAktif.modalTambahan || 0) - nominalRp;
             siklusAktif.qtyTambahan = (siklusAktif.qtyTambahan || 0) - jumlahQty;
-            if (siklusAktif.modalTambahan < 0) siklusAktif.modalTambahan = 0;
-            if (siklusAktif.qtyTambahan < 0) siklusAktif.qtyTambahan = 0;
+            
+            // LOMPATAN CERDAS: Jika stok yg dihapus ternyata berasal dari Modal Awal
+            if (siklusAktif.modalTambahan < 0) {
+                siklusAktif.modalAwal = (siklusAktif.modalAwal || 0) + siklusAktif.modalTambahan;
+                siklusAktif.modalTambahan = 0;
+            }
+            if (siklusAktif.qtyTambahan < 0) {
+                siklusAktif.qtyAwal = (siklusAktif.qtyAwal || 0) + siklusAktif.qtyTambahan;
+                siklusAktif.qtyTambahan = 0;
+            }
+            
+            // Jaring Pengaman Akhir
+            if (siklusAktif.modalAwal < 0) siklusAktif.modalAwal = 0;
+            if (siklusAktif.qtyAwal < 0) siklusAktif.qtyAwal = 0;
             break;
         case 'PENYUSUTAN_TAMBAH':
             siklusAktif.modalDihapus = (siklusAktif.modalDihapus || 0) + nominalRp;
@@ -497,7 +509,8 @@ function renderBerandaMobile() {
                 omzet += t.total || 0; laba += t.laba || 0; hpp += ((t.total || 0) - (t.laba || 0));
                 totalItemTerjualHariIni += (t.item || 0); 
                 
-                setPembeliUnikBeranda.add(t.waktu + "_" + (t.pelanggan || "UMUM"));
+                let kunciPelacak = (t.metode === 'Debt') ? `DEBT_${t.tanggal}_${t.waktu}_${t.pelanggan}` : `TRX_${t.id}`;
+                setPembeliUnikBeranda.add(kunciPelacak);
                 totalPembeliHariIni = setPembeliUnikBeranda.size;
                 
                 if (daftarTerlaris[t.obat]) {       
@@ -538,7 +551,7 @@ function renderBerandaMobile() {
         }
         if (item.expTerdekat !== '2099-12-31' && item.sisaFisikTotal > 0) {
             let diffHari = Math.floor((new Date(item.expTerdekat) - tglSekarang) / (1000 * 60 * 60 * 24));
-            if (diffHari <= 30 && diffHari >= 0) countExpired++;
+            if (diffHari <= 30) countExpired++; // Batas >= 0 dicabut agar barang expired tetap terhitung
         }
     });    
 
@@ -562,21 +575,21 @@ let topQtyMurni = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
     if (pipaAir && teksOmzet && teksStatus) {
         let persen = targetHutang === 0 ? 0 : Math.max(0, Math.min(100, (tercapai / targetHutang) * 100));
         pipaAir.style.width = persen + '%';
-        teksOmzet.textContent = "Omzet: " + rupiah(tercapai);
+        teksOmzet.textContent = "Kas Masuk: " + rupiah(tercapai);
         
         if (tercapai < targetHutang) {
             pipaAir.className = "h-full transition-all duration-1000 ease-out animasi-air-hidup rounded-full bg-gradient-to-r from-red-500 via-orange-400 to-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]";
             teksOmzet.className = "text-[9px] font-black text-slate-800 tracking-wide uppercase";
-            teksStatus.innerHTML = `Status: Omset lebih kecil dari Stok modal`;
+            teksStatus.innerHTML = `Status: Kas masuk lebih kecil dari Stok modal`;
         } else if (tercapai === targetHutang && targetHutang > 0) {
             pipaAir.className = "h-full transition-all duration-1000 ease-out animasi-air-hidup rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.6)]";
             teksOmzet.className = "text-[9px] font-black text-amber-950 tracking-wide uppercase";
-            teksStatus.innerHTML = `<span class="text-amber-600 font-black"><i class="fa-solid fa-scale-balanced"></i> Omset mencapai Stok modal</span>`;
+            teksStatus.innerHTML = `<span class="text-amber-600 font-black"><i class="fa-solid fa-scale-balanced"></i> Kas masuk mencapai Stok modal</span>`;
         } else {
             let surplus = tercapai - targetHutang;
             pipaAir.className = "h-full transition-all duration-1000 ease-out animasi-air-hidup rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.6)]";
             teksOmzet.className = "text-[9px] font-black text-white tracking-wide uppercase drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]";
-            teksStatus.innerHTML = `<span class="text-emerald-600 font-black"><i class="fa-solid fa-crown"></i> Omset melebihi stok modal: <span class="text-emerald-500 font-extrabold">+ ${rupiah(surplus)}</span></span>`;
+            teksStatus.innerHTML = `<span class="text-emerald-600 font-black"><i class="fa-solid fa-crown"></i> Kas masuk melebihi stok modal: <span class="text-emerald-500 font-extrabold">+ ${rupiah(surplus)}</span></span>`;
         }
     }
     // ======================================================================
@@ -628,7 +641,8 @@ let topQtyMurni = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
                 cashierHistory.forEach(t => {
                     if (t.tanggal === tglHariIni && !t.isPelunasan) {
                         lakuMurniHariIni += (t.item || 0);
-                        pembeliMurniHariIni.add(t.waktu + "_" + (t.pelanggan || "UMUM"));
+                        let kunciMurni = (t.metode === 'Debt') ? `DEBT_${t.tanggal}_${t.waktu}_${t.pelanggan}` : `TRX_${t.id}`;
+                        pembeliMurniHariIni.add(kunciMurni);
                     }
                 });
 
@@ -756,8 +770,8 @@ function renderGudangMobile(filter = '') {
                 <button onclick="bukaModalEditMobile('${batches[0].idBatch}')" class="w-12 h-10 bg-white text-corporate-600 hover:bg-corporate-50 border border-slate-200 rounded-xl flex items-center justify-center transition-all active:scale-95 shadow-sm">
                     <i class="fa-solid fa-pen"></i>
                 </button>
-                ${( (sisaFisik > 0 && qtyTerjual > 0) || (sisaFisik > 0 && batches.some(b => b.idBatch.includes('ZOMBIE'))) ) ? 
-                `<button onclick="alert('⚠️ AKSES DIBLOKIR!\\n\\nObat ini sedang beredar, memiliki transaksi, atau merupakan barang retur (Zombie).\\n\\nUntuk menjaga rekam jejak audit keuangan, silakan gunakan fitur PENYUSUTAN di menu atas Gudang jika Anda ingin mengurangi/membuang sisa stok fisiknya.')" class="w-12 h-10 bg-slate-50 text-slate-300 border border-slate-200 rounded-xl flex items-center justify-center transition-all shadow-sm">
+                ${( (sisaFisik > 0 && qtyTerjual > 0) || (sisaFisik > 0 && batches.some(b => b.idBatch.includes('ZOMBIE') || b.idBatch.includes('RETUR') || b.isPernahBatal)) ) ? 
+                `<button onclick="alert('⚠️ AKSES DIBLOKIR!\\n\\nObat ini sedang beredar, memiliki transaksi, atau pernah dibatalkan/diretur.\\n\\nUntuk menjaga rekam jejak audit keuangan, silakan gunakan fitur PENYUSUTAN di menu atas Gudang jika Anda ingin mengurangi/membuang sisa stok fisiknya.')" class="w-12 h-10 bg-slate-50 text-slate-300 border border-slate-200 rounded-xl flex items-center justify-center transition-all shadow-sm">
                     <i class="fa-solid fa-trash-can-arrow-up"></i>
                 </button>` 
                 : 
@@ -1084,7 +1098,8 @@ function renderRiwayatMobile() {
         // Jangan render kuitansi anak borongan, biar riwayat tetap bersih
         if (t.isBorongan) return; 
         
-        let key = t.isPelunasan ? `PELUNASAN_${t.id}` : `${t.waktu}_${t.pelanggan || 'UMUM'}_${t.metode}`;
+        // [LOGIKA BARU] Tunai/QRIS dipisah mutlak pakai ID. Kasbon disatukan pakai Nama+Waktu.
+        let key = t.isPelunasan ? `PELUNASAN_${t.id}` : (t.metode === 'Debt' ? `DEBT_${t.tanggal}_${t.waktu}_${t.pelanggan}` : `TRX_${t.id}`);
                                             if (!grupRiwayat[key]) {
                 grupRiwayat[key] = {
                     idGabungan: t.id, tanggal: t.tanggal, waktu: t.waktu, metode: t.metode, pelanggan: t.pelanggan, kasir: t.kasir,
@@ -3068,24 +3083,28 @@ function prosesHapusBatchSpesifikMobile(idBatch, urutanBatch) {
             let qtyBatal = barangYgDihapus.stok || 0;
             let nilaiSuntikan = barangYgDihapus.totalModal !== undefined ? barangYgDihapus.totalModal : ((barangYgDihapus.modal || 0) * qtyBatal);
             
-            if (qtyBatal > 0) {
-                // LOGIKA BARU: Batal Beli (Mengurangi Modal Tambahan, BUKAN menambah kerugian)
-                catatMutasiSiklus('KULAKAN_BATAL', nilaiSuntikan, qtyBatal);
-                saveApotekDB('apotek_siklusAktif', siklusAktif);
-            }
-
-            // PEMBASMIAN ZOMBIE DI ETALASE
+            // PEMBASMIAN ZOMBIE DI ETALASE & TARIK UANGNYA
             let bEtalase = etalaseItems.find(e => e.dnaInduk === dnaIndukHapusAktif);
             if (bEtalase && bEtalase.antreanFIFO) {
+                let fifoTarget = bEtalase.antreanFIFO.find(x => x.idBatch === idBatch);
+                if(fifoTarget) {
+                    qtyBatal += fifoTarget.stok;
+                    nilaiSuntikan += fifoTarget.totalModal !== undefined ? fifoTarget.totalModal : (fifoTarget.stok * fifoTarget.modal);
+                }
                 bEtalase.antreanFIFO = bEtalase.antreanFIFO.filter(x => x.idBatch !== idBatch);
                 bEtalase.stok = bEtalase.antreanFIFO.reduce((sum, x) => sum + x.stok, 0);
                 if (bEtalase.stok <= 0) etalaseItems = etalaseItems.filter(e => e.dnaInduk !== dnaIndukHapusAktif);
+            }
+
+            if (qtyBatal > 0) {
+                catatMutasiSiklus('KULAKAN_BATAL', nilaiSuntikan, qtyBatal);
             }
         }
         masterItems = masterItems.filter(i => i.idBatch !== idBatch);
         
         saveApotekDB('apotek_masterItems', masterItems);
         saveApotekDB('apotek_etalaseItems', etalaseItems);
+        saveApotekDB('apotek_siklusAktif', siklusAktif);
         
         let sisaBatches = masterItems.filter(i => i.dnaInduk === dnaIndukHapusAktif);
         if (sisaBatches.length === 0) {
@@ -3094,8 +3113,13 @@ function prosesHapusBatchSpesifikMobile(idBatch, urutanBatch) {
             renderListHapusBatchMobile(); 
         }
         
-        renderGudangMobile(document.getElementById('cariGudangMobile').value); 
-        renderBerandaMobile();
+        // KABEL PELAPOR UPDATE LAYAR REAL-TIME
+        let inputCari = document.getElementById('cariGudangMobile');
+        renderGudangMobile(inputCari ? inputCari.value : ''); 
+        if (typeof renderBerandaMobile === 'function') renderBerandaMobile();
+        if (typeof renderEtalaseMobile === 'function') renderEtalaseMobile();
+        if (typeof renderLaporanMobile === 'function') renderLaporanMobile();
+        
         alert(`✅ Batch ${urutanBatch} berhasil dihapus dari sistem tanpa mencatat kerugian.`);
     });
 }
@@ -3112,17 +3136,29 @@ function prosesHapusObatMobile(dnaInduk, namaObat) {
         
         let qtyTotalHapus = 0;
         let modalTotalHapus = 0;
-        let batchesYgDihapus = masterItems.filter(i => i.dnaInduk === dnaInduk);
         
+        // 1. Hitung kerugian dari Gudang
+        let batchesYgDihapus = masterItems.filter(i => i.dnaInduk === dnaInduk);
         batchesYgDihapus.forEach(b => {
             qtyTotalHapus += (b.stok || 0);
             modalTotalHapus += b.totalModal !== undefined ? b.totalModal : ((b.modal || 0) * (b.stok || 0));
         });
 
+        // 2. Hitung kerugian dari Etalase (Tarik uang yang menyangkut di etalase)
+        let etalaseYgDihapus = etalaseItems.find(i => i.dnaInduk === dnaInduk);
+        if (etalaseYgDihapus) {
+            qtyTotalHapus += (etalaseYgDihapus.stok || 0);
+            if (etalaseYgDihapus.antreanFIFO) {
+                etalaseYgDihapus.antreanFIFO.forEach(f => {
+                    modalTotalHapus += (f.totalModal !== undefined ? f.totalModal : ((f.modal || 0) * (f.stok || 0)));
+                });
+            } else {
+                modalTotalHapus += ((batchesYgDihapus[0]?.modal || 0) * (etalaseYgDihapus.stok || 0));
+            }
+        }
+
         if (qtyTotalHapus > 0) {
-            // LOGIKA BARU: Batal Beli (Mengurangi Modal Tambahan, BUKAN menambah kerugian)
             catatMutasiSiklus('KULAKAN_BATAL', modalTotalHapus, qtyTotalHapus);
-            saveApotekDB('apotek_siklusAktif', siklusAktif);
         }
 
         // PEMBASMIAN TOTAL (GUDANG & ZOMBIE ETALASE)
@@ -3131,9 +3167,20 @@ function prosesHapusObatMobile(dnaInduk, namaObat) {
         
         saveApotekDB('apotek_masterItems', masterItems);
         saveApotekDB('apotek_etalaseItems', etalaseItems);
+        saveApotekDB('apotek_siklusAktif', siklusAktif);
         
-        renderGudangMobile(document.getElementById('cariGudangMobile').value); 
-        renderBerandaMobile();
+        // ==========================================================
+        // KABEL PELAPOR (MEMAKSA SELURUH PANEL MERESET ANGKA)
+        // ==========================================================
+        let inputCari = document.getElementById('cariGudangMobile');
+        renderGudangMobile(inputCari ? inputCari.value : ''); 
+        
+        if (typeof renderBerandaMobile === 'function') renderBerandaMobile();
+        if (typeof renderEtalaseMobile === 'function') renderEtalaseMobile();
+        if (typeof renderLaporanMobile === 'function') renderLaporanMobile(); 
+        if (typeof renderPantauanSistem === 'function') renderPantauanSistem();
+        // ==========================================================
+        
         alert(`✅ Obat ${namaObat} berhasil dibersihkan dari sistem.`);
     });
 }
@@ -3965,9 +4012,14 @@ function prosesBatalTransaksiMobile(idTransaksiInput) {
             // Kembalikan Stok ke Etalase Menggunakan Mesin Sentral
             kumpulanItemRetur.forEach(itemRetur => {
                 pulihkanStokBatal(itemRetur);
+                // [MODIFIKASI] Tanam stempel gaib agar tombol hapus tetap terkunci abu-abu
+                masterItems.forEach(m => {
+                    if (m.dnaInduk === itemRetur.dnaInduk) {
+                        m.isPernahBatal = true;
+                    }
+                });
             });
         } // <--- INI ADALAH KURUNG KURAWAL YANG HILANG!
-        
         // Eksekusi Pemusnahan ID dari History
         cashierHistory = cashierHistory.filter(t => !arrIds.includes(t.id));
         // SIMPAN SEMUA MEMORI TERMASUK MASTER ITEMS
@@ -6477,7 +6529,7 @@ function tutupSidebarTrafik() {
 }
 
 // ----------------------------------------------------------------------------
-// SENSOR TOUCH REAL-TIME PIXEL-PER-PIXEL
+// SENSOR TOUCH REAL-TIME (HANYA AKTIF UNTUK MENUTUP PANEL)
 // ----------------------------------------------------------------------------
 const gPanel = document.getElementById('sidebarTrafikMobile');
 const gOverlay = document.getElementById('sidebarTrafikOverlay');
@@ -6486,38 +6538,25 @@ let sX = 0, sY = 0, cX = 0, cY = 0;
 let isPanelTerbuka = false;
 
 document.addEventListener('touchstart', (e) => {
-    if (e.touches.length > 1) return; // Abaikan multi-touch (zoom)
-    
+    if (e.touches.length > 1) return;
     sX = e.touches[0].clientX;
     sY = e.touches[0].clientY;
-    
-    // Pastikan elemen panel ditemukan
     if (!gPanel || !gOverlay) return; 
-
+    
     isPanelTerbuka = !gPanel.classList.contains('translate-x-full');
     
-    // Area sensitif ditarik: 40px dari ujung kanan layar
-    if (!isPanelTerbuka && sX > window.innerWidth - 40) {
-        isDragging = true;
-        gOverlay.classList.remove('hidden');
-        gPanel.style.transition = 'none'; // Matikan animasi CSS, beralih ke kendali Jari
-        gOverlay.style.transition = 'none';
-    } else if (isPanelTerbuka) {
-        // Jika sudah terbuka, siapkan mode dorong tutup
+    if (isPanelTerbuka) {
         isDragging = true; 
     }
 }, { passive: true });
 
 document.addEventListener('touchmove', (e) => {
     if (!isDragging || !gPanel) return;
-    
     cX = e.touches[0].clientX;
     cY = e.touches[0].clientY;
     let dX = cX - sX;
     let dY = cY - sY;
 
-    // SENSOR ANTI-BENTROK: 
-    // Jika user scroll daftar obat ke bawah (Vertikal > Horizontal), batalkan geser layar
     if (isPanelTerbuka && Math.abs(dY) > Math.abs(dX)) {
         isDragging = false; 
         gPanel.style.transition = '';
@@ -6527,20 +6566,8 @@ document.addEventListener('touchmove', (e) => {
 
     let pWidth = gPanel.offsetWidth;
 
-    if (!isPanelTerbuka) {
-        // SEDANG MENARIK BUKA (Ke arah Kiri)
-        if (dX < 0) {
-            // Cegah tarik tembus batas kiri
-            let movePx = pWidth + dX; 
-            if (movePx < 0) movePx = 0; 
-            
-            gPanel.style.transform = `translateX(${movePx}px)`;
-            gOverlay.style.opacity = Math.min(Math.abs(dX) / pWidth, 1).toString();
-        }
-    } else {
-        // SEDANG MENDORONG TUTUP (Ke arah Kanan)
+    if (isPanelTerbuka) {
         if (dX > 0) {
-            // Cabut animasi CSS saat jari mulai mendorong
             if (gPanel.style.transition !== 'none') {
                 gPanel.style.transition = 'none';
                 gOverlay.style.transition = 'none';
@@ -6555,42 +6582,48 @@ document.addEventListener('touchend', (e) => {
     if (!isDragging || !gPanel) return;
     isDragging = false;
     
-    // Kembalikan kemudi ke class Tailwind (Animasi CSS)
     gPanel.style.transition = ''; 
     gOverlay.style.transition = '';
     gPanel.style.transform = '';
     gOverlay.style.opacity = '';
 
-    // Jika cX masih 0 (hanya di-tap, tidak digeser), jangan lakukan perhitungan
     if (cX === 0) return; 
-
     let dX = cX - sX;
 
-    if (!isPanelTerbuka) {
-        // LOGIKA SNAP-BACK BUKA
-        // Jika berhasil ditarik lebih dari 60px ke kiri, BUKA PENUH
-        if (dX < -60) {
-            bukaSidebarTrafik();
-        } else {
-            // Tarikan nanggung, PANTULKAN TUTUP
-            gPanel.classList.add('translate-x-full');
-            gOverlay.classList.add('opacity-0');
-            setTimeout(() => { gOverlay.classList.add('hidden'); }, 300);
-        }
-    } else {
-        // LOGIKA SNAP-BACK TUTUP
-        // Jika berhasil didorong lebih dari 60px ke kanan, TUTUP PENUH
+    if (isPanelTerbuka) {
         if (dX > 60) {
             tutupSidebarTrafik();
         } else {
-            // Dorongan nanggung, PANTULKAN BUKA
             gPanel.classList.remove('translate-x-full');
             gOverlay.classList.remove('opacity-0');
         }
     }
-    
-    // Reset Koordinat Jari
     sX = 0; sY = 0; cX = 0; cY = 0;
+});
+
+// MENDENGARKAN GESTURE SWIPE GLOBAL & PERISAI (HANYA UNTUK TUTUP)
+let swipeGlobalStartX = 0;
+let swipeGlobalStartY = 0;
+
+document.addEventListener('touchstart', (e) => {
+    swipeGlobalStartX = e.touches[0].clientX;
+    swipeGlobalStartY = e.touches[0].clientY;
+}, { passive: true });
+
+document.addEventListener('touchend', (e) => {
+    let deltaX = swipeGlobalStartX - e.changedTouches[0].clientX;
+    let deltaY = Math.abs(swipeGlobalStartY - e.changedTouches[0].clientY);
+    
+    if (deltaY > 40) return; 
+
+    let panelTrafik = document.getElementById('sidebarTrafikOverlay');
+    let isTrafikTerbuka = panelTrafik && !panelTrafik.classList.contains('hidden');
+
+    if (isTrafikTerbuka) {
+        if (deltaX < -60) {
+            tutupSidebarTrafik();
+        }
+    }
 });
 
 function toggleDropdownTrafik() {
@@ -6636,7 +6669,6 @@ function renderTrafikAnalitik() {
     let dataGabungan = {};
     let tglHariIni = new Date(getTanggalLokal());
     
-    // 1. Kloning Induk Barang (Stok & Peringatan Expired)
     masterItems.forEach(m => {
         if(m.nama !== '___SYSTEM_AUTH___' && m.kategori !== '⚠️ Barang Retur') {
             if(!dataGabungan[m.dnaInduk]) {
@@ -6654,7 +6686,6 @@ function renderTrafikAnalitik() {
         if(dataGabungan[dna]) { dataGabungan[dna].stokRak += e.stok; }
     });
 
-    // 2. Kalkulasi Data Transaksi Cerdas (Membunuh Cacat "Ilusi Barang Mati")
     cashierHistory.filter(t => !t.isPelunasan).forEach(trx => {
         let isDalamFilter = trx.tanggal >= trafikTglAwal && trx.tanggal <= trafikTglAkhir;
 
@@ -6663,7 +6694,7 @@ function renderTrafikAnalitik() {
                 let dna = item.dnaInduk || item.nama;
                 if(!dataGabungan[dna]) dataGabungan[dna] = { dnaInduk: dna, nama: item.nama + (item.varian ? ` ${item.varian}` : ''), stokRak: 0, qtyJualGlobal: 0, qtyJualFiltered: 0, labaKotor: 0, modal: 0, expTerdekat: '2099-12-31' };
                 
-                dataGabungan[dna].qtyJualGlobal += item.qty; // Acuan murni barang mati
+                dataGabungan[dna].qtyJualGlobal += item.qty; 
 
                 if (isDalamFilter) {
                     let labaItem = (item.jual * item.qty) - ((item.hppSatuan || (item.jual * 0.8)) * item.qty);
@@ -6676,7 +6707,7 @@ function renderTrafikAnalitik() {
             if(!dataGabungan[dna]) dataGabungan[dna] = { dnaInduk: dna, nama: trx.obat, stokRak: 0, qtyJualGlobal: 0, qtyJualFiltered: 0, labaKotor: 0, modal: 0, expTerdekat: '2099-12-31' };
             
             let qtyTrx = trx.item || 1;
-            dataGabungan[dna].qtyJualGlobal += qtyTrx; // Acuan murni barang mati
+            dataGabungan[dna].qtyJualGlobal += qtyTrx; 
             
             if (isDalamFilter) {
                 let lItem = trx.laba || (trx.total * 0.2);
@@ -6686,11 +6717,9 @@ function renderTrafikAnalitik() {
         }
     });
 
-    // 3. Pisahkan ke 2 Zona & Terapkan Kapsul Urut
     let arrLaku = []; let arrMati = [];
     Object.values(dataGabungan).forEach(item => {
         if(item.qtyJualFiltered > 0) arrLaku.push(item);
-        // Barang Mati HANYA valid jika benar-benar tidak laku selamanya, BUKAN akibat filter tanggal!
         else if (item.stokRak > 0 && item.qtyJualGlobal === 0) arrMati.push(item);
     });
 
@@ -6705,7 +6734,6 @@ function renderTrafikAnalitik() {
     
     arrMati.sort((a, b) => (b.stokRak * b.modal) - (a.stokRak * a.modal));
 
-    // 4. Render Zona Laku (Desain Kartu Actionable)
     let htmlLaku = arrLaku.map((item) => {
         let stikerKulakan = item.stokRak <= 2 ? `<span class="bg-red-50 text-red-600 border border-red-200 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest"><i class="fa-solid fa-cart-arrow-down"></i> Waktunya Kulakan</span>` : '';
         let stikerExp = '';
@@ -6717,7 +6745,9 @@ function renderTrafikAnalitik() {
         let isExpanded = kalenderTerbuka === item.dnaInduk;
 
         return `
-        <div class="bg-white border ${isExpanded ? 'border-corporate-400 shadow-md' : 'border-slate-200 shadow-sm'} rounded-2xl mb-2.5 overflow-hidden transition-all duration-300">     <div onclick="toggleKalenderTermal('${item.dnaInduk}')" class="p-3 flex justify-between items-center cursor-pointer active:bg-slate-50">              <div class="flex-1 pr-2">
+        <div class="bg-white border ${isExpanded ? 'border-corporate-400 shadow-md' : 'border-slate-200 shadow-sm'} rounded-2xl mb-2.5 overflow-hidden transition-all duration-300">     
+            <div onclick="toggleKalenderTermal('${item.dnaInduk}')" class="p-3 flex justify-between items-center cursor-pointer active:bg-slate-50">              
+                <div class="flex-1 pr-2">
                     <h4 class="text-xs font-black text-slate-800 leading-tight">${item.nama}</h4>
                     ${stikerGabung}
                 </div>
@@ -6727,12 +6757,10 @@ function renderTrafikAnalitik() {
                 </div>
                 <i class="fa-solid fa-chevron-${isExpanded ? 'up text-corporate-500' : 'down text-slate-300'} ml-2 text-[10px] transition-transform"></i>
             </div>
-            <!-- Wadah HTML untuk Injeksi Lazy Loading Kalender -->
             <div id="wadahKalender-${item.dnaInduk}" class="${isExpanded ? 'block' : 'hidden'} bg-slate-50 border-t border-slate-100 p-3"></div>
         </div>`;
     }).join('');
 
-    // 5. Render Zona Mati
     let htmlMati = arrMati.map(item => {
         let uangMati = item.stokRak * item.modal;
         let stikerExp = '';
@@ -6741,7 +6769,9 @@ function renderTrafikAnalitik() {
             if (diffDays <= 30) stikerExp = `<span class="bg-amber-50 text-amber-600 border border-amber-200 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-widest mt-1 inline-block"><i class="fa-solid fa-skull"></i> Dekat Expired</span>`;
         }
         return `
-        <div class="anim-stagger-item opacity-0 translate-y-8 transition-all duration-700 ease-out bg-white border border-rose-200 rounded-xl p-3 flex justify-between items-center mb-2 shadow-sm relative overflow-hidden">    <div class="absolute left-0 top-0 bottom-0 w-1 bg-rose-400"></div>   <div class="pl-2 flex-1">
+        <div class="anim-stagger-item opacity-0 translate-y-8 transition-all duration-700 ease-out bg-white border border-rose-200 rounded-xl p-3 flex justify-between items-center mb-2 shadow-sm relative overflow-hidden">    
+            <div class="absolute left-0 top-0 bottom-0 w-1 bg-rose-400"></div>   
+            <div class="pl-2 flex-1">
                 <h4 class="text-xs font-bold text-slate-700 leading-tight mb-0.5 truncate">${item.nama}</h4>
                 <p class="text-[9px] font-black text-rose-500">Modal Nyangkut: ${rupiah(uangMati)}</p>
                 ${stikerExp}
@@ -6757,17 +6787,16 @@ function renderTrafikAnalitik() {
     document.getElementById('wadahTrafikLaku').innerHTML = htmlLaku || `<div class="text-center p-4 text-slate-400 text-xs font-bold border border-dashed border-slate-200 rounded-2xl">${teksKosongLaku}</div>`;
     document.getElementById('wadahTrafikMati').innerHTML = htmlMati || `<div class="text-center p-4 text-emerald-400 text-xs font-bold bg-emerald-50 rounded-2xl border border-emerald-100">Bagus! Tidak ada barang tidur.</div>`;
     
-// Auto-buka kalender jika kondisinya sedang tertekan (State Persistence)
     if (kalenderTerbuka) renderIsiKalenderTermal(kalenderTerbuka);
 
-    // Memicu efek lompat jika filter/kapsul diubah SAAT panel sedang terbuka
     let panelTrafik = document.getElementById('sidebarTrafikMobile');
     if (panelTrafik && !panelTrafik.classList.contains('translate-x-full')) {
-        jalankanAnimasiStagger(10); 
+        if(typeof jalankanAnimasiStagger === 'function') jalankanAnimasiStagger(10); 
     }
 }
 
-function toggleKalenderTermal(dnaInduk) {  if (kalenderTerbuka === dnaInduk) { kalenderTerbuka = null; } 
+function toggleKalenderTermal(dnaInduk) {  
+    if (kalenderTerbuka === dnaInduk) { kalenderTerbuka = null; } 
     else { kalenderTerbuka = dnaInduk; }
     renderTrafikAnalitik(); 
 }
@@ -6776,7 +6805,6 @@ function renderIsiKalenderTermal(dnaInduk) {
     let wadah = document.getElementById('wadahKalender-' + dnaInduk);
     if (!wadah) return;
 
-    // 1. Array Tanggal Dinamis (Kebal Tahun Kabisat & Perbedaan Bulan)
     let jejak30Hari = [];
     let hariIni = new Date();
     hariIni.setHours(0, 0, 0, 0); 
@@ -6788,7 +6816,6 @@ function renderIsiKalenderTermal(dnaInduk) {
         jejak30Hari.push({ tglStr: strTanggal, dateNum: tglMundur.getDate(), qtyLaku: 0 });
     }
 
-    // 2. Ekstraksi Data Spesifik (Hanya 1 Obat & Independen dari Filter Atas)
     let tglBatasBawah = jejak30Hari[0].tglStr;
     let tglBatasAtas = jejak30Hari[29].tglStr;
     
@@ -6813,15 +6840,13 @@ function renderIsiKalenderTermal(dnaInduk) {
         }
     });
 
-    // 3. Merakit Grid 7 Kolom & Termometer Suhu (Heatmap)
     let htmlKotak = jejak30Hari.map(h => {
-        let bgWarna = 'bg-slate-200/60'; // Kosong
+        let bgWarna = 'bg-slate-200/60';
         let teksWarna = 'text-transparent';
         if (h.qtyLaku >= 6) { bgWarna = 'bg-emerald-600 shadow-sm border-emerald-700'; teksWarna = 'text-white'; }
         else if (h.qtyLaku >= 3) { bgWarna = 'bg-emerald-400 shadow-sm border-emerald-500'; teksWarna = 'text-white'; }
         else if (h.qtyLaku >= 1) { bgWarna = 'bg-emerald-200 border-emerald-300'; teksWarna = 'text-emerald-800'; }
 
-        // Aksi Sentuh Detail Info
         let funcKlik = `document.getElementById('tooltipKalender-${dnaInduk}').innerHTML = '📅 <b>Tanggal ${h.tglStr}:</b> Laku <b class=\\'text-emerald-600\\'>${h.qtyLaku} Pcs</b>'`;
 
         return `
@@ -6839,43 +6864,6 @@ function renderIsiKalenderTermal(dnaInduk) {
         <p id="tooltipKalender-${dnaInduk}" class="text-[9px] text-slate-600 bg-white border border-slate-200 rounded-lg p-2 text-center shadow-sm">Ketuk kotak warna di atas untuk melihat detail per hari.</p>
     `;
 }
-
-// MENDENGARKAN GESTURE SWIPE GLOBAL & PERISAI
-let swipeGlobalStartX = 0;
-let swipeGlobalStartY = 0;
-
-document.addEventListener('touchstart', (e) => {
-    swipeGlobalStartX = e.touches[0].clientX;
-    swipeGlobalStartY = e.touches[0].clientY;
-}, { passive: true });
-
-document.addEventListener('touchend', (e) => {
-    let deltaX = swipeGlobalStartX - e.changedTouches[0].clientX;
-    let deltaY = Math.abs(swipeGlobalStartY - e.changedTouches[0].clientY);
-    
-    // Perisai: Abaikan jika geseran lebih banyak vertikal (scroll layar)
-    if (deltaY > 40) return; 
-
-    let panelTrafik = document.getElementById('sidebarTrafikOverlay');
-    let isTrafikTerbuka = panelTrafik && !panelTrafik.classList.contains('hidden');
-
-    if (!isTrafikTerbuka) {
-        // PERINTAH BUKA (Swipe Kiri): Hanya diizinkan jika menarik dari tepi kanan ekstrem (30px)
-        if (deltaX > 60 && swipeGlobalStartX > window.innerWidth - 30) {
-            
-            // Perisai Modal: Jangan munculkan jika ada pop-up / kasir / sidebar lain yang terbuka
-            let adaModalTerbuka = Array.from(document.querySelectorAll('[id^="modal"], [id^="sidebarKiri"], [id^="sidebarKanan"]')).some(el => !el.classList.contains('hidden'));
-            if (adaModalTerbuka) return;
-
-            bukaSidebarTrafik();
-        }
-    } else {
-        // PERINTAH TUTUP (Swipe Kanan): Bekerja di mana saja di dalam panel
-        if (deltaX < -60) {
-            tutupSidebarTrafik();
-        }
-    }
-});
 
 // ===================================================================
 // MESIN DRILL-DOWN ANALYTICS (DIPERBARUI DENGAN KALKULATOR MASTER & OPSI B)
@@ -6897,36 +6885,55 @@ function bukaRincianPantauan(jenisKartu) {
     let pohonData = KalkulatorMasterObat();
     let dataArray = Object.values(pohonData);
 
-    const buatKartuBarang = (kategori, nama, awal, laku, sisa, jual, tglExp = "") => {
-        let badgeExpired = tglExp ? `<span class="bg-red-50 text-red-600 text-[10px] font-black px-2 py-0.5 rounded-md ml-2 border border-red-200 shadow-sm"><i class="fa-solid fa-triangle-exclamation"></i> EXP: ${tglExp}</span>` : '';
+    
+    const buatKartuBarang = (kategori, nama, awal, laku, sisa, jual, tglExp = "", isSudahExpired = false) => {
+        let badgeExpired = '';
+        if (tglExp) {
+            if (isSudahExpired) {
+                badgeExpired = `<span class="bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-md ml-2 border border-red-700 shadow-md animate-pulse"><i class="fa-solid fa-skull"></i> TELAH EXPIRED: ${tglExp}</span>`;
+            } else {
+                badgeExpired = `<span class="bg-red-50 text-red-600 text-[10px] font-black px-2 py-0.5 rounded-md ml-2 border border-red-200 shadow-sm"><i class="fa-solid fa-triangle-exclamation"></i> EXP: ${tglExp}</span>`;
+            }
+        }
+
+        let bgCard = isSudahExpired ? 'bg-red-50 border-red-500 animate-[pulse_2s_ease-in-out_infinite] shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'bg-white border-slate-200 shadow-sm';
+        let txtNama = isSudahExpired ? 'text-red-700' : 'text-slate-800';
+        let txtKat = isSudahExpired ? 'bg-red-100 text-red-700 border-red-200' : 'bg-blue-50 text-blue-600 border-blue-100';
+        let bgBox1 = isSudahExpired ? 'bg-white/60 border-red-200/60' : 'bg-slate-50 border-slate-200/60';
+        let txtLabel1 = isSudahExpired ? 'text-red-500' : 'text-slate-500';
+        let txtVal1 = isSudahExpired ? 'text-red-800' : 'text-slate-700';
+        let txtValSisa = isSudahExpired ? 'text-red-700' : 'text-emerald-600';
+        let bgBox2 = isSudahExpired ? 'bg-red-100/50 border-red-300/60' : 'bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200/60';
+        let txtLabel2 = isSudahExpired ? 'text-red-600' : 'text-orange-800';
+        let txtVal2 = isSudahExpired ? 'text-red-700' : 'text-orange-600';
 
         return `
-        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-3 relative overflow-hidden">
-            <div class="absolute top-0 right-0 bg-blue-50 text-blue-600 text-[9px] font-black px-3 py-1 rounded-bl-xl border-b border-l border-blue-100 uppercase tracking-widest shadow-sm">
+        <div class="${bgCard} p-4 rounded-2xl border mb-3 relative overflow-hidden transition-all duration-300">
+            <div class="absolute top-0 right-0 ${txtKat} text-[9px] font-black px-3 py-1 rounded-bl-xl border-b border-l uppercase tracking-widest shadow-sm">
                 ${kategori}
             </div>
             <div class="pr-20 mb-3 flex items-center flex-wrap gap-y-1">
-                <h4 class="font-black text-slate-800 text-[15px] leading-tight mr-1">${nama}</h4>
+                <h4 class="font-black ${txtNama} text-[15px] leading-tight mr-1">${nama}</h4>
                 ${badgeExpired}
             </div>
-            <div class="grid grid-cols-2 gap-3 border-t border-slate-100 pt-3">
-                <div class="bg-slate-50 rounded-xl p-2.5 border border-slate-200/60 shadow-inner">
+            <div class="grid grid-cols-2 gap-3 border-t ${isSudahExpired ? 'border-red-200' : 'border-slate-100'} pt-3">
+                <div class="${bgBox1} rounded-xl p-2.5 border shadow-inner">
                     <div class="flex justify-between items-center mb-1">
-                        <span class="text-[9px] font-bold text-slate-500 uppercase">Stok Awal Pagi</span>
-                        <span class="text-[10px] font-black text-slate-700">${awal}</span>
+                        <span class="text-[9px] font-bold ${txtLabel1} uppercase">Stok Awal Pagi</span>
+                        <span class="text-[10px] font-black ${txtVal1}">${awal}</span>
                     </div>
                     <div class="flex justify-between items-center mb-1">
-                        <span class="text-[9px] font-bold text-slate-500 uppercase">Terjual H.Ini</span>
+                        <span class="text-[9px] font-bold ${txtLabel1} uppercase">Terjual H.Ini</span>
                         <span class="text-[10px] font-black text-rose-600">- ${laku}</span>
                     </div>
-                    <div class="flex justify-between items-center pt-1.5 mt-1 border-t border-slate-200">
-                        <span class="text-[9px] font-black text-slate-700 uppercase">Sisa Fisik</span>
-                        <span class="text-[12px] font-black text-emerald-600">${sisa}</span>
+                    <div class="flex justify-between items-center pt-1.5 mt-1 border-t ${isSudahExpired ? 'border-red-200' : 'border-slate-200'}">
+                        <span class="text-[9px] font-black ${isSudahExpired ? 'text-red-700' : 'text-slate-700'} uppercase">Sisa Fisik</span>
+                        <span class="text-[12px] font-black ${txtValSisa}">${sisa}</span>
                     </div>
                 </div>
-                <div class="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl p-2.5 border border-amber-200/60 flex flex-col justify-center items-center shadow-inner h-full">
-                    <span class="text-[10px] font-black text-orange-800 uppercase mb-1">Harga Jual</span>
-                    <span class="text-[16px] sm:text-lg font-black text-orange-600 drop-shadow-sm">${jual}</span>
+                <div class="${bgBox2} rounded-xl p-2.5 border flex flex-col justify-center items-center shadow-inner h-full">
+                    <span class="text-[10px] font-black ${txtLabel2} uppercase mb-1">Harga Jual</span>
+                    <span class="text-[16px] sm:text-lg font-black ${txtVal2} drop-shadow-sm">${jual}</span>
                 </div>
             </div>
         </div>
@@ -6964,14 +6971,22 @@ function bukaRincianPantauan(jenisKartu) {
         let awalTampil = obj.sisaFisikTotal + lakuTampil; 
 
         let stringTgl = "";
+        let isSudahExpired = false;
+        
         if (jenisKartu === 'Kedaluwarsa' && obj.expTerdekat !== '2099-12-31') {
             let d = new Date(obj.expTerdekat);
             stringTgl = d.toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'});
+            
+            // Sensor penentu warna merah berdenyut
+            let diffHari = Math.floor((d - new Date()) / (1000 * 60 * 60 * 24));
+            if (diffHari <= 0) {
+                isSudahExpired = true;
+            }
         }
 
         htmlList += buatKartuBarang(
             obj.kategori, obj.namaLengkap, awalTampil, lakuTampil, 
-            obj.sisaFisikTotal, formatRp(obj.hargaJual), stringTgl
+            obj.sisaFisikTotal, formatRp(obj.hargaJual), stringTgl, isSudahExpired
         );
         
         if (jenisKartu === 'Obat Terjual') {
@@ -7195,7 +7210,7 @@ function KalkulatorMasterObat() {
     let pohonData = {};
     let tglHariIni = getTanggalLokal();
     let waktuMulai = siklusAktif.waktuStart || 0; 
-
+    
     // FASE 1: TANAM AKAR DARI GUDANG MASTER
     masterItems.forEach(m => {
         if (m.nama === '___SYSTEM_AUTH___' || m.kategori === '⚠️ Barang Retur') return;
@@ -7213,7 +7228,19 @@ function KalkulatorMasterObat() {
         }
         let sisaGudangBatch = m.stok || 0; let rusakBatch = m.stokRusak || 0;
         pohonData[kunci].sisaGudang += sisaGudangBatch; pohonData[kunci].rusakExpTotal += rusakBatch;
-        if (m.expired && sisaGudangBatch > 0 && m.expired < pohonData[kunci].expTerdekat) pohonData[kunci].expTerdekat = m.expired;
+        
+        // SENSOR GABUNGAN: Membaca total fisik Gudang + Etalase untuk Expired
+        let bEtalase = etalaseItems.find(e => e.dnaInduk === m.dnaInduk);
+        let stokEtalaseFisik = 0;
+        if (bEtalase && bEtalase.antreanFIFO) {
+            let f = bEtalase.antreanFIFO.find(x => x.idBatch === m.idBatch);
+            if (f) stokEtalaseFisik = f.stok;
+        }
+        let totalFisikValid = sisaGudangBatch + stokEtalaseFisik;
+        
+        if (m.expired && totalFisikValid > 0 && m.expired < pohonData[kunci].expTerdekat) {
+            pohonData[kunci].expTerdekat = m.expired;
+        }
         
         let modalBatchIni = 0;
         if (m.kulakan_keuangan) { m.kulakan_keuangan.forEach(f => { modalBatchIni += ((f.sisaGudang || 0) + (f.sisaEtalase || 0)) * (f.hpp || m.modal || 0); }); } 

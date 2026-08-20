@@ -1,5 +1,10 @@
 /* style.css - Apotek Arsyila Mobile Frame & Print Config */
 
+html, body {
+    overflow-x: hidden;
+    overscroll-behavior-x: none;
+}
+
 .hide-scrollbar::-webkit-scrollbar { 
     display: none; 
 }
