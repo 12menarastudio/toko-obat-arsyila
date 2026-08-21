@@ -97,3 +97,15 @@ body {
     text-shadow: none;
     color: #fffbeb;
 }
+.ruled-paper {
+    background-color: #fdfbf7; /* Slight off-white paper color */
+    background-image: repeating-linear-gradient(transparent, transparent 31px, #cbd5e1 31px, #cbd5e1 32px);
+    border-left: 2px solid #fca5a5;
+    margin-left: 1.5rem; /* 24px */
+    padding-left: 1rem; /* 16px */
+    min-height: 100%;
+}
+.bg-leather-dark {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px), linear-gradient(135deg, #1f2937 0%, #111827 100%);
+    background-size: 8px 8px, auto auto;
+}
