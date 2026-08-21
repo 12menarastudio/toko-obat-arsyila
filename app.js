@@ -625,21 +625,21 @@ let topQtyMurni = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
     if (pipaAir && teksOmzet && teksStatus) {
         let persen = topQtyMurni === 0 ? 0 : Math.max(0, Math.min(100, (terjualSiklusIni / topQtyMurni) * 100));
         pipaAir.style.width = persen + '%';
-        teksOmzet.textContent = "Terjual: " + terjualSiklusIni + " dari " + topQtyMurni + " Stok";
+        teksOmzet.textContent = "Kas Masuk: " + rupiah(tercapai);
 
-        if (terjualSiklusIni < topQtyMurni) {
+        if (tercapai < targetHutang) {
             pipaAir.className = "h-full transition-all duration-1000 ease-out animasi-air-hidup rounded-full bg-gradient-to-r from-red-500 via-orange-400 to-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]";
             teksOmzet.className = "text-[9px] font-black text-slate-800 tracking-wide uppercase";
-            teksStatus.innerHTML = "Status: Sisa " + (topQtyMurni - terjualSiklusIni) + " stok di rak";
-        } else if (terjualSiklusIni === topQtyMurni && topQtyMurni > 0) {
+            teksStatus.innerHTML = `Status: Kas masuk lebih kecil dari Stok modal`;
+        } else if (tercapai === targetHutang && targetHutang > 0) {
             pipaAir.className = "h-full transition-all duration-1000 ease-out animasi-air-hidup rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.6)]";
             teksOmzet.className = "text-[9px] font-black text-amber-950 tracking-wide uppercase";
-            teksStatus.innerHTML = "<span class='text-amber-600 font-black'><i class='fa-solid fa-boxes-stacked'></i> SOLD OUT! Seluruh stok ludes.</span>";
+            teksStatus.innerHTML = `<span class="text-amber-600 font-black"><i class="fa-solid fa-scale-balanced"></i> Kas masuk mencapai Stok modal</span>`;
         } else {
-            let surplusStok = terjualSiklusIni - topQtyMurni;
+            let surplus = tercapai - targetHutang;
             pipaAir.className = "h-full transition-all duration-1000 ease-out animasi-air-hidup rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.6)]";
             teksOmzet.className = "text-[9px] font-black text-white tracking-wide uppercase drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]";
-            teksStatus.innerHTML = "<span class='text-emerald-600 font-black'><i class='fa-solid fa-fire'></i> OVER-SOLD! Melebihi stok awal: <span class='text-emerald-500 font-extrabold'>+ " + surplusStok + "</span></span>";
+            teksStatus.innerHTML = `<span class="text-emerald-600 font-black"><i class="fa-solid fa-crown"></i> Kas masuk melebihi stok modal: <span class="text-emerald-500 font-extrabold">+ ${rupiah(surplus)}</span></span>`;
         }
     }
     // ======================================================================
