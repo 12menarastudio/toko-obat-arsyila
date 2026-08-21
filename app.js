@@ -1813,15 +1813,35 @@ function setFilterLaporan(tipe) {
         laporanTglAkhir = getTanggalLokal(tglSkrg);
         laporanLabelVisual = "Hari Ini";
     } else if (tipe === '7_hari') {
+        let dateNow = getTanggalLokal(tglSkrg);
+        let d1 = new Date(siklusAktif.tanggalStart);
+        let d2 = new Date(dateNow);
+        let diffTime = Math.abs(d2 - d1);
+        let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays < 7) {
+            return alert("⚠️ Maaf, siklus buku saat ini masih terlalu baru (belum mencapai 7 hari). Silakan gunakan filter Hari Ini atau Buku Baru.");
+        }
         let tglLalu = new Date();
         tglLalu.setDate(tglLalu.getDate() - 6); // Mundur 7 hari
         laporanTglAwal = getTanggalLokal(tglLalu);
         laporanTglAkhir = getTanggalLokal(tglSkrg);
         laporanLabelVisual = "7 Hari Terakhir";
-    } else if (tipe === 'semua') {
-        laporanTglAwal = "2000-01-01";
-        laporanTglAkhir = "2099-12-31";
-        laporanLabelVisual = "Semua Waktu";
+    } else if (tipe === '30_hari') {
+        let dateNow = getTanggalLokal(tglSkrg);
+        let d1 = new Date(siklusAktif.tanggalStart);
+        let d2 = new Date(dateNow);
+        let diffTime = Math.abs(d2 - d1);
+        let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays < 30) {
+            return alert("⚠️ Maaf, siklus buku saat ini masih terlalu baru (belum mencapai 30 hari). Silakan gunakan filter Hari Ini atau Buku Baru.");
+        }
+        let tglLalu = new Date(); tglLalu.setDate(tglLalu.getDate() - 29);
+        laporanTglAwal = getTanggalLokal(tglLalu); laporanTglAkhir = getTanggalLokal(tglSkrg);
+        laporanLabelVisual = "Bulan Ini (30 Hari)";
+    } else if (tipe === 'buku_baru' || tipe === 'semua') {
+        laporanTglAwal = siklusAktif.tanggalStart;
+        laporanTglAkhir = getTanggalLokal(tglSkrg);
+        laporanLabelVisual = "Buku Baru";
     } else if (tipe === 'manual') {
         let awal = document.getElementById('filterTglAwal').value;
         let akhir = document.getElementById('filterTglAkhir').value;
@@ -1849,8 +1869,8 @@ function renderLaporanMobile() {
     // =======================================================
     // MESIN 1: KALKULASI RENTANG WAKTU (LABA/RUGI, ARUS KAS, TRAFIK)
     // =======================================================
-    let dataPeriode = cashierHistory.filter(t => t.tanggal >= laporanTglAwal && t.tanggal <= laporanTglAkhir);
-    let dataKeluar = pengeluaranHistory.filter(p => p.tanggal >= laporanTglAwal && p.tanggal <= laporanTglAkhir);
+    let dataPeriode = cashierHistory.filter(t => t.tanggal >= laporanTglAwal && t.tanggal <= laporanTglAkhir && t.tanggal !== '2000-01-01');
+    let dataKeluar = pengeluaranHistory.filter(p => p.tanggal >= laporanTglAwal && p.tanggal <= laporanTglAkhir && p.tanggal !== '2000-01-01');
 
     let lOmset = 0, lHPP = 0, omzetTunai = 0, omzetQRIS = 0, omzetDebt = 0;
     let inLunas = 0, totalPembeli = 0, totalBiji = 0;
@@ -4732,6 +4752,132 @@ function prosesKonfirmasiTutupBuku() {
 // ==========================================
 // MESIN KAS KELUAR (BIAYA OPERASIONAL & PRIVE)
 // ==========================================
+function toggleRiwayatPengeluaranMobile() {
+    let containerRiwayat = document.getElementById('containerRiwayatPengeluaran');
+    let containerInput = document.getElementById('containerInputPengeluaran');
+    let footerInput = document.getElementById('footerInputPengeluaran');
+    let btnToggle = document.getElementById('btnToggleRiwayatPengeluaran');
+
+    if (containerRiwayat.classList.contains('hidden')) {
+        // Show Riwayat
+        containerRiwayat.classList.remove('hidden');
+        containerInput.classList.add('hidden');
+        if (footerInput) footerInput.classList.add('hidden');
+        btnToggle.innerHTML = '<i class="fa-solid fa-plus"></i> Tambah Baru';
+        btnToggle.classList.replace('bg-white/20', 'bg-emerald-500/80');
+        btnToggle.classList.replace('hover:bg-white/30', 'hover:bg-emerald-600/80');
+        renderRiwayatPengeluaranMobile();
+    } else {
+        // Show Input Form
+        containerRiwayat.classList.add('hidden');
+        containerInput.classList.remove('hidden');
+        if (footerInput) footerInput.classList.remove('hidden');
+        btnToggle.innerHTML = '<i class="fa-solid fa-clock-rotate-left"></i> Riwayat & Edit';
+        btnToggle.classList.replace('bg-emerald-500/80', 'bg-white/20');
+        btnToggle.classList.replace('hover:bg-emerald-600/80', 'hover:bg-white/30');
+    }
+}
+
+function renderRiwayatPengeluaranMobile() {
+    let container = document.getElementById('containerRiwayatPengeluaran');
+    let html = '';
+
+    if (pengeluaranHistory.length === 0) {
+        container.innerHTML = '<p class="text-center text-slate-400 text-xs mt-10">Belum ada riwayat pengeluaran.</p>';
+        return;
+    }
+
+    pengeluaranHistory.forEach((p, idx) => {
+        let isSistem = p.kasir === 'Sistem';
+        let badgeSistem = isSistem ? '<span class="px-2 py-0.5 bg-slate-200 text-slate-500 rounded-full text-[9px] font-bold uppercase tracking-wider flex items-center gap-1 w-max"><i class="fa-solid fa-lock"></i> Auto-Sistem</span>' : '';
+        let btnAksi = '';
+
+        if (!isSistem) {
+            btnAksi = `
+                <div class="flex gap-2 mt-3 pt-3 border-t border-slate-100">
+                    <button onclick="editPengeluaranMobile('${p.id}')" class="flex-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[10px] font-bold py-2 rounded-xl transition-colors">
+                        <i class="fa-solid fa-pen-to-square"></i> Edit
+                    </button>
+                    <button onclick="hapusPengeluaranMobile('${p.id}')" class="flex-1 bg-rose-50 hover:bg-rose-100 text-rose-600 text-[10px] font-bold py-2 rounded-xl transition-colors">
+                        <i class="fa-solid fa-trash"></i> Hapus
+                    </button>
+                </div>
+            `;
+        }
+
+        html += `
+            <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-200 mb-3 flex flex-col gap-1 relative overflow-hidden group">
+                <div class="flex justify-between items-start mb-1">
+                    <div>
+                        <p class="text-xs font-black text-slate-800">${p.kategori}</p>
+                        <p class="text-[9px] font-bold text-slate-400">${p.tanggal} • ${p.waktu}</p>
+                    </div>
+                    <p class="text-sm font-black text-rose-600">-${rupiah(p.nominal)}</p>
+                </div>
+                <p class="text-[10px] text-slate-500 leading-tight">${p.keterangan || '-'}</p>
+                ${badgeSistem}
+                ${btnAksi}
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+function editPengeluaranMobile(id) {
+    let p = pengeluaranHistory.find(x => x.id === id);
+    if (!p) return;
+
+    let newNominalRaw = prompt(`Edit Nominal Pengeluaran (Saat ini: ${rupiah(p.nominal)}):`, p.nominal);
+    if (newNominalRaw === null) return;
+    let newNominal = parseFloat(newNominalRaw.replace(/[^0-9]/g, ''));
+
+    if (isNaN(newNominal) || newNominal <= 0) {
+        return alert('⚠️ Nominal tidak valid.');
+    }
+
+    let delta = newNominal - p.nominal;
+
+    if (delta > 0) {
+        if (p.sumberDana === 'Tunai') {
+            let saldoFisik = hitungSaldoLaciFisik();
+            if (delta > saldoFisik) {
+                return alert(`⚠️ AKSES DITOLAK!
+
+Uang fisik di laci tidak cukup untuk menambah pengeluaran ini.
+Sisa Laci: ${rupiah(saldoFisik)}
+Kekurangan: ${rupiah(delta - saldoFisik)}`);
+            }
+        } else if (p.sumberDana === 'QRIS') {
+            let saldoQRIS = hitungSaldoQRIS();
+            if (delta > saldoQRIS) {
+                return alert(`⚠️ AKSES DITOLAK!
+
+Saldo Bank (QRIS) tidak cukup untuk menambah pengeluaran ini.
+Sisa Bank: ${rupiah(saldoQRIS)}
+Kekurangan: ${rupiah(delta - saldoQRIS)}`);
+            }
+        }
+    }
+
+    p.nominal = newNominal;
+    saveApotekDB('apotek_pengeluaranHistory', pengeluaranHistory);
+    renderRiwayatPengeluaranMobile();
+    renderLaporanMobile();
+    alert('✅ Pengeluaran berhasil diperbarui.');
+}
+
+function hapusPengeluaranMobile(id) {
+    if (!confirm('Apakah Anda yakin ingin menghapus catatan pengeluaran ini? Uang akan kembali ke saldo.')) return;
+
+    pengeluaranHistory = pengeluaranHistory.filter(x => x.id !== id);
+    saveApotekDB('apotek_pengeluaranHistory', pengeluaranHistory);
+    renderRiwayatPengeluaranMobile();
+    renderLaporanMobile();
+    alert('✅ Pengeluaran berhasil dihapus.');
+}
+
+
 function prosesSimpanPengeluaranMobile() {
     let kategori = document.getElementById('inputKategoriPengeluaran').value;
     let nominalRaw = document.getElementById('inputNominalPengeluaran').value.replace(/\./g, '');
@@ -5498,12 +5644,35 @@ function exportLaporanKeWord() {
     alert("✅ File Laporan Word berhasil diunduh ke perangkat Anda!");
 }
 
+function toggleDropdownExportPDF() {
+    const panel = document.getElementById('panelExportPDF');
+    if (panel.classList.contains('hidden')) {
+        panel.classList.remove('hidden');
+    } else {
+        panel.classList.add('hidden');
+    }
+}
+
+function exportPDFHarian() {
+    let tglHariIni = getTanggalLokal(new Date());
+    exportLaporanKePDFInternal(tglHariIni, tglHariIni, "Laporan Harian", false);
+}
+
+function exportPDFBulanan() {
+    let tglHariIni = getTanggalLokal(new Date());
+    exportLaporanKePDFInternal(siklusAktif.tanggalStart, tglHariIni, "Laporan Bulanan/Siklus", false);
+}
+
+function exportPDFArsip() {
+    exportLaporanKePDFInternal('2000-01-01', '2000-01-01', "LAPORAN ARSIP AKUMULASI MASA LALU", true);
+}
+
 // ==========================================
 // MESIN CETAK LAPORAN KE PDF (A4 LANDSCAPE STRICT LEDGER)
 // ==========================================
-function exportLaporanKePDF() {
-    let dataPeriode = cashierHistory.filter(t => t.tanggal >= laporanTglAwal && t.tanggal <= laporanTglAkhir);
-    let dataKeluar = pengeluaranHistory.filter(p => p.tanggal >= laporanTglAwal && p.tanggal <= laporanTglAkhir);
+function exportLaporanKePDFInternal(tglAwal, tglAkhir, judulPDF, isArsip) {
+    let dataPeriode = cashierHistory.filter(t => t.tanggal >= tglAwal && t.tanggal <= tglAkhir && (isArsip ? t.tanggal === '2000-01-01' : t.tanggal !== '2000-01-01'));
+    let dataKeluar = pengeluaranHistory.filter(p => p.tanggal >= tglAwal && p.tanggal <= tglAkhir && (isArsip ? p.tanggal === '2000-01-01' : p.tanggal !== '2000-01-01'));
 
     if(dataPeriode.length === 0 && dataKeluar.length === 0) return alert("Data kosong! Belum ada transaksi pada rentang tanggal ini.");
 
@@ -5584,8 +5753,19 @@ function exportLaporanKePDF() {
     document.getElementById('p-waktu-cetak').innerText = dNow.toLocaleDateString('id-ID') + " " + dNow.toLocaleTimeString('id-ID');
     document.getElementById('p-nama-apotek').innerText = profilApotek.nama.toUpperCase();
     document.getElementById('p-owner').innerText = profilApotek.nama;
-    document.getElementById('p-tgl').innerText = laporanLabelVisual;
+    document.getElementById('p-tgl').innerText = judulPDF;
     document.getElementById('p-trx').innerText = (urut - 1) + " Nota";
+
+    // Ubah main title jika ada
+    let titleEl = document.querySelector('.brand-text h1');
+    if (titleEl) {
+        if (isArsip) {
+            titleEl.dataset.originalTitle = titleEl.innerText;
+            titleEl.innerText = "LAPORAN ARSIP AKUMULASI MASA LALU";
+        } else if (titleEl.dataset.originalTitle) {
+            titleEl.innerText = titleEl.dataset.originalTitle;
+        }
+    }
 
     // Tabel Trx
     document.getElementById('p-tabel-body').innerHTML = isiTabelHTML;
