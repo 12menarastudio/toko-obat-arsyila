@@ -959,10 +959,14 @@ function setFilterRiwayat(tipe) {
         riwayatTglAwal = getTanggalLokal(tglLalu);
         riwayatTglAkhir = getTanggalLokal(tglSkrg);
         riwayatLabelVisual = "7 Hari Terakhir";
-    } else if (tipe === 'semua') {
+    } else if (tipe === 'siklus') {
+        riwayatTglAwal = siklusAktif.tanggalStart;
+        riwayatTglAkhir = getTanggalLokal(tglSkrg);
+        riwayatLabelVisual = "Siklus Saat Ini";
+    } else if (tipe === 'arsip') {
         riwayatTglAwal = "2000-01-01";
         riwayatTglAkhir = "2099-12-31";
-        riwayatLabelVisual = "Semua Waktu";
+        riwayatLabelVisual = "Arsip Total";
     } else if (tipe === 'manual') {
         let awal = document.getElementById('filterRiwayatTglAwal').value;
         let akhir = document.getElementById('filterRiwayatTglAkhir').value;
@@ -1839,10 +1843,14 @@ function setFilterLaporan(tipe) {
         let tglLalu = new Date(); tglLalu.setDate(tglLalu.getDate() - 29);
         laporanTglAwal = getTanggalLokal(tglLalu); laporanTglAkhir = getTanggalLokal(tglSkrg);
         laporanLabelVisual = "Bulan Ini (30 Hari)";
-    } else if (tipe === 'buku_baru' || tipe === 'semua') {
+    } else if (tipe === 'siklus') {
         laporanTglAwal = siklusAktif.tanggalStart;
         laporanTglAkhir = getTanggalLokal(tglSkrg);
-        laporanLabelVisual = "Buku Baru";
+        laporanLabelVisual = "Siklus Saat Ini";
+    } else if (tipe === 'arsip') {
+        laporanTglAwal = "2000-01-01";
+        laporanTglAkhir = "2099-12-31";
+        laporanLabelVisual = "Arsip Total";
     } else if (tipe === 'manual') {
         let awal = document.getElementById('filterTglAwal').value;
         let akhir = document.getElementById('filterTglAkhir').value;
@@ -1870,8 +1878,8 @@ function renderLaporanMobile() {
     // =======================================================
     // MESIN 1: KALKULASI RENTANG WAKTU (LABA/RUGI, ARUS KAS, TRAFIK)
     // =======================================================
-    let dataPeriode = cashierHistory.filter(t => t.tanggal >= laporanTglAwal && t.tanggal <= laporanTglAkhir && t.tanggal !== '2000-01-01');
-    let dataKeluar = pengeluaranHistory.filter(p => p.tanggal >= laporanTglAwal && p.tanggal <= laporanTglAkhir && p.tanggal !== '2000-01-01');
+    let dataPeriode = cashierHistory.filter(t => t.tanggal >= laporanTglAwal && t.tanggal <= laporanTglAkhir && (laporanTglAwal === '2000-01-01' ? true : t.tanggal !== '2000-01-01'));
+    let dataKeluar = pengeluaranHistory.filter(p => p.tanggal >= laporanTglAwal && p.tanggal <= laporanTglAkhir && (laporanTglAwal === '2000-01-01' ? true : p.tanggal !== '2000-01-01'));
 
     let lOmset = 0, lHPP = 0, omzetTunai = 0, omzetQRIS = 0, omzetDebt = 0;
     let inLunas = 0, totalPembeli = 0, totalBiji = 0;
@@ -3693,6 +3701,7 @@ function renderListAntreanKulakan() {
 
 function hapusItemAntrean(idx) {
     antreanKulakan.splice(idx, 1);
+    modeEditKeranjangIndex = null;
     saveApotekDB('apotek_antreanKulakan', antreanKulakan);
     renderListAntreanKulakan();
     renderBadgeAntreanKulakan();
@@ -5469,8 +5478,8 @@ function prosesRenderDetailTigaSerangkai(jenis) {
 // MESIN EXPORT LAPORAN KE MICROSOFT WORD (A4 LANDSCAPE)
 // ==========================================
 function exportLaporanKeWord() {
-    let dataPeriode = cashierHistory.filter(t => t.tanggal >= laporanTglAwal && t.tanggal <= laporanTglAkhir);
-    let dataKeluar = pengeluaranHistory.filter(p => p.tanggal >= laporanTglAwal && p.tanggal <= laporanTglAkhir);
+    let dataPeriode = cashierHistory.filter(t => t.tanggal >= laporanTglAwal && t.tanggal <= laporanTglAkhir && t.tanggal !== '2000-01-01');
+    let dataKeluar = pengeluaranHistory.filter(p => p.tanggal >= laporanTglAwal && p.tanggal <= laporanTglAkhir && p.tanggal !== '2000-01-01');
 
     if(dataPeriode.length === 0 && dataKeluar.length === 0) return alert("Data kosong! Belum ada transaksi pada rentang tanggal ini.");
 
@@ -6476,6 +6485,7 @@ function batalPilihPenyusutan() {
     document.getElementById('areaFormPenyusutan').classList.add('hidden');
     document.getElementById('footerPenyusutan').classList.add('hidden');
     document.getElementById('penyu_catatan').value = '';
+    let expRadio = document.querySelector('input[name="penyu_jenis"][value="Expired"]'); if(expRadio) expRadio.checked = true;
     document.getElementById('inputCariPenyusutan').focus();
 }
 
