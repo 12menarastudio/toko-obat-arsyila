@@ -24,7 +24,8 @@ let modeEditKeranjangIndex = null; // SAKLAR CERDAS EDIT DI PENAMPUNGAN
 let pengeluaranHistory = []; // MESIN BARU: DATABASE KAS KELUAR & BIAYA
 let antreanKulakan = []; // PENAMPUNGAN FAKTUR KULAKAN SEMENTARA
 let bukuCatatan = []; // DATABASE CATATAN DEFECTA (LOST SALES)
-// --- DATABASE KHUSUS PENYUSUTAN (BARANG RUSAK/HILANG/EXPIRED) ---let historiPenyusutan = [];
+// --- DATABASE KHUSUS PENYUSUTAN (BARANG RUSAK/HILANG/EXPIRED) ---
+let historiPenyusutan = [];
 let penyusutanObatTerpilih = null; // Variabel penyimpan sementara di modal
 // TUGAS QW-1: SENTRALISASI PENYIMPANAN LOCAL STORAGE (ANTI-CRASH & DRY)
 function saveApotekDB(key, data) {
@@ -1050,11 +1051,13 @@ function prosesHapusMasalRiwayat() {
         // 4. MESIN AKUMULASI (Mencegah Saldo Laci Minus)
         let totalTunaiHangus = 0;
         let totalQRISHangus = 0;
+        let totalLabaHangusTunai = 0;
+        let totalLabaHangusQRIS = 0;
 
         idHangus.forEach(id => {
             let t = cashierHistory.find(x => x.id === id);
-            if (t.metode === 'Tunai') totalTunaiHangus += (t.total || 0);
-            else if (t.metode === 'QRIS') totalQRISHangus += (t.total || 0);
+            if (t.metode === 'Tunai') { totalTunaiHangus += (t.total || 0); totalLabaHangusTunai += (t.laba || 0); }
+            else if (t.metode === 'QRIS') { totalQRISHangus += (t.total || 0); totalLabaHangusQRIS += (t.laba || 0); }
         });
 
         // Buang riwayat yang hangus dari memori
@@ -1066,14 +1069,14 @@ function prosesHapusMasalRiwayat() {
         if (totalTunaiHangus > 0) {
             cashierHistory.push({
                 id: idUnik + 1, tanggal: '2000-01-01', waktu: '00:00',
-                obat: '📦 AKUMULASI ARSIP LAMA (TUNAI)',     kasir: 'Sistem Cleaner', item: 0, total: totalTunaiHangus, metode: 'Tunai', laba: 0, isPelunasan: false
+                obat: '📦 AKUMULASI ARSIP LAMA (TUNAI)',     kasir: 'Sistem Cleaner', item: 0, total: totalTunaiHangus, metode: 'Tunai', laba: totalLabaHangusTunai, isPelunasan: false
             });
         }
         if (totalQRISHangus > 0) {
             cashierHistory.push({
                 id: idUnik + 2, tanggal: '2000-01-01', waktu: '00:00',
                 obat: '📦 AKUMULASI ARSIP LAMA (QRIS)',
-                kasir: 'Sistem Cleaner', item: 0, total: totalQRISHangus, metode: 'QRIS', laba: 0, isPelunasan: false
+                kasir: 'Sistem Cleaner', item: 0, total: totalQRISHangus, metode: 'QRIS', laba: totalLabaHangusQRIS, isPelunasan: false
             });
         }
 
@@ -1879,7 +1882,12 @@ function renderLaporanMobile() {
     });
 
     let labaKotor = lOmset - lHPP;
-    let kerugianPenyusutan = siklusAktif.modalDihapus || 0; // Tarik kerugian penyusutan
+    let kerugianPenyusutan = 0;
+    historiPenyusutan.forEach(susut => {
+        if (susut.tanggal >= laporanTglAwal && susut.tanggal <= laporanTglAkhir) {
+            kerugianPenyusutan += (susut.totalKerugian || 0);
+        }
+    });
     let labaBersihSejati = labaKotor - bBiayaToko - kerugianPenyusutan; // Rumus Baru
     let labaDitahan = labaBersihSejati - bPrive;
     let aov = totalPembeli > 0 ? (lOmset / totalPembeli) : 0;
@@ -2122,7 +2130,7 @@ function renderLaporanMobile() {
 
         <!-- BLOK IV: NERACA KEKAYAAN (GOLD CARD) -->
         <div class="bg-gradient-to-br from-[#cfa950] to-[#997321] border border-[#ebd088] rounded-xl shadow-md text-[#332508] mt-1 select-none">
-            <div class="flex justify-between items-center px-4 py-2.5 cursor-pointer" onclick="toggleAkordeonLaporan('blok-neraca')">        <h3 class="font-black text-[10px] uppercase tracking-widest"><i class="fa-solid fa-vault mr-1"></i> 5. Total Milik Toko (Sekarang)</h3>
+            <div class="flex justify-between items-center px-4 py-2.5 cursor-pointer" onclick="toggleAkordeonLaporan('blok-neraca')">        <h3 class="font-black text-[10px] uppercase tracking-widest"><i class="fa-solid fa-vault mr-1"></i> 5. Total Milik Toko (Sekarang)<span class="bg-emerald-100 text-emerald-700 text-[9px] px-1.5 py-0.5 rounded-full font-bold ml-2 inline-flex items-center gap-1">🔴 LIVE</span></h3>
                 <i class="fa-solid fa-chevron-down text-[#6b4e12] text-[10px] transition-transform duration-300" id="icon-blok-neraca"></i>
             </div>
 
@@ -7108,193 +7116,6 @@ function bukaRincianPantauan(jenisKartu) {
     let headerNominal = document.getElementById('rekapNominalDetailStok');
     if(headerQty) headerQty.innerText = totalQty + " Pcs";
     if(headerNominal) headerNominal.innerText = formatRp(totalNominal);
-}
-
-// ============================================================================
-// 28. THE MASTER ENGINE (SATPAM ARSIP) - ARSITEKTUR "SATU PINTU" POHON DATA
-// ============================================================================
-function KalkulatorMasterObat() {
-    let pohonData = {};
-    let tglHariIni = getTanggalLokal();
-    let waktuMulai = siklusAktif.waktuStart || 0; // Tunduk mutlak pada waktu Shift (Satpam Brankas)
-
-    // ---------------------------------------------------------
-    // FASE 1: TANAM AKAR DARI GUDANG MASTER (Level 1, 2, 3)
-    // ---------------------------------------------------------
-    masterItems.forEach(m => {
-        if (m.nama === '___SYSTEM_AUTH___' || m.kategori === '⚠️ Barang Retur') return;
-
-        let kunci = m.dnaInduk;
-        if (!pohonData[kunci]) {
-            pohonData[kunci] = {
-                dnaInduk: kunci,
-                namaLengkap: m.nama + (m.varian ? ` ${m.varian}` : ''),
-                kategori: m.kategori || 'Umum',
-                hargaJual: m.jual || 0,
-
-                // LEVEL 1: HELIKOPTER VIEW (MAKRO)
-                sisaGudang: 0,
-                sisaEtalase: 0,
-                sisaFisikTotal: 0,
-
-                lakuShiftIni: 0,
-                lakuHariIni: 0,
-                lakuGlobal: 0, // Semua waktu (mendeteksi barang mati)
-
-                omzetShiftIni: 0,
-                labaShiftIni: 0,
-
-                rusakExpTotal: 0,
-                modalAsetTersisa: 0,
-
-                // LEVEL 2: RINCIAN BATCH (MENENGAH)
-                batches: [],
-                expTerdekat: '2099-12-31'
-            };
-        }
-
-        // Kalkulasi Fisik & Rusak per Batch
-        let sisaGudangBatch = m.stok || 0;
-        let rusakBatch = m.stokRusak || 0;
-
-        pohonData[kunci].sisaGudang += sisaGudangBatch;
-        pohonData[kunci].rusakExpTotal += rusakBatch;
-
-        // Pelacakan Expired Terdekat
-        if (m.expired && sisaGudangBatch > 0 && m.expired < pohonData[kunci].expTerdekat) {
-            pohonData[kunci].expTerdekat = m.expired;
-        }
-
-        // Kalkulasi Aset Modal (Presisi Tinggi dari Kulakan)
-        let modalBatchIni = 0;
-        if (m.kulakan_keuangan) {
-            m.kulakan_keuangan.forEach(f => {
-                modalBatchIni += ((f.sisaGudang || 0) + (f.sisaEtalase || 0)) * (f.hpp || m.modal || 0);
-            });
-        } else {
-            modalBatchIni = sisaGudangBatch * (m.modal || 0); // Fallback data lama
-        }
-        pohonData[kunci].modalAsetTersisa += modalBatchIni;
-
-        // Tanam Dahan Batch
-        pohonData[kunci].batches.push(m);
-    });
-
-    // ---------------------------------------------------------
-    // FASE 2: TANAM RANTING DARI ETALASE FISIK
-    // ---------------------------------------------------------
-    etalaseItems.forEach(e => {
-        let kunci = e.dnaInduk || e.nama;
-
-        // PENCEGATAN ZOMBIE: Jika ada di etalase tapi induknya terhapus di gudang
-        if (!pohonData[kunci]) {
-            let hppAman = (e.antreanFIFO && e.antreanFIFO.length > 0 && e.antreanFIFO[0].modal) ? e.antreanFIFO[0].modal : 0;
-            pohonData[kunci] = {
-                dnaInduk: kunci,
-                namaLengkap: e.nama + (e.varian ? ` ${e.varian}` : ''),
-                kategori: e.kategori || 'Umum',
-                hargaJual: e.jual || 0,
-                sisaGudang: 0, sisaEtalase: 0, sisaFisikTotal: 0,
-                lakuShiftIni: 0, lakuHariIni: 0, lakuGlobal: 0,
-                omzetShiftIni: 0, labaShiftIni: 0,
-                rusakExpTotal: 0, modalAsetTersisa: 0,
-                batches: [], expTerdekat: '2099-12-31'
-            };
-        }
-
-        let sisaEtalaseBiji = e.stok || 0;
-        pohonData[kunci].sisaEtalase += sisaEtalaseBiji;
-
-        // Akumulasi modal zombie dari kantung FIFO
-        if (pohonData[kunci].batches.length === 0 && e.antreanFIFO) {
-            e.antreanFIFO.forEach(f => {
-                 pohonData[kunci].modalAsetTersisa += (f.stok * (f.modal || 0));
-            });
-        }
-    });
-
-    // Sinkronisasi Sisa Total Mutlak
-    Object.values(pohonData).forEach(item => {
-        item.sisaFisikTotal = item.sisaGudang + item.sisaEtalase;
-    });
-
-    // ---------------------------------------------------------
-    // FASE 3: PANEN BUAH TERJUAL DARI RIWAYAT (SISTEM KASIR)
-    // ---------------------------------------------------------
-    cashierHistory.forEach(trx => {
-
-        // SENSOR SILUMAN 1: Abaikan mutlak Pelunasan Kasbon agar stok tidak terhitung ganda!
-        if (trx.isPelunasan) return;
-
-        let isShiftIni = (trx.id >= waktuMulai);
-        let isHariIni = (trx.tanggal === tglHariIni);
-
-        if (trx.detailKeranjang && trx.detailKeranjang.length > 0) {
-            trx.detailKeranjang.forEach(item => {
-                let kunci = item.dnaInduk || item.nama;
-
-                // PENCEGATAN BARANG HANTU: Barang yang laku tapi induknya sudah dihapus
-                if (!pohonData[kunci]) {
-                    pohonData[kunci] = {
-                        dnaInduk: kunci, namaLengkap: item.nama + (item.varian ? ` ${item.varian}` : ''),
-                        kategori: item.kategori || 'Barang Dihapus', hargaJual: item.jual || 0,
-                        sisaGudang: 0, sisaEtalase: 0, sisaFisikTotal: 0,
-                        lakuShiftIni: 0, lakuHariIni: 0, lakuGlobal: 0,
-                        omzetShiftIni: 0, labaShiftIni: 0,
-                        rusakExpTotal: 0, modalAsetTersisa: 0,
-                        batches: [], expTerdekat: '2099-12-31'
-                    };
-                }
-
-                let qtyLaku = item.qty || 0;
-                pohonData[kunci].lakuGlobal += qtyLaku;
-
-                if (isShiftIni) {
-                    pohonData[kunci].lakuShiftIni += qtyLaku;
-
-                    // SENSOR SILUMAN 3: Anti-Distorsi Waktu. Hitung HPP dan Harga Jual dari Kertas Struk, bukan dari Master saat ini!
-                    let omzetAkurat = qtyLaku * (item.jual || 0);
-                    let hppAkurat = qtyLaku * (item.hppSatuan || (item.jual * 0.8));
-
-                    pohonData[kunci].omzetShiftIni += omzetAkurat;
-                    pohonData[kunci].labaShiftIni += (omzetAkurat - hppAkurat);
-                }
-
-                if (isHariIni) {
-                    pohonData[kunci].lakuHariIni += qtyLaku;
-                }
-            });
-        } else {
-            // Fallback Cerdas untuk Riwayat Aplikasi Versi Lama
-            let kunci = trx.obat;
-            if (!pohonData[kunci]) {
-                pohonData[kunci] = {
-                    dnaInduk: kunci, namaLengkap: kunci, kategori: 'Data Lama', hargaJual: 0,
-                    sisaGudang: 0, sisaEtalase: 0, sisaFisikTotal: 0,
-                    lakuShiftIni: 0, lakuHariIni: 0, lakuGlobal: 0,
-                    omzetShiftIni: 0, labaShiftIni: 0,
-                    rusakExpTotal: 0, modalAsetTersisa: 0,
-                    batches: [], expTerdekat: '2099-12-31'
-                };
-            }
-
-            let qtyLaku = trx.item || 1;
-            pohonData[kunci].lakuGlobal += qtyLaku;
-
-            if (isShiftIni) {
-                pohonData[kunci].lakuShiftIni += qtyLaku;
-                pohonData[kunci].omzetShiftIni += (trx.total || 0);
-                pohonData[kunci].labaShiftIni += (trx.laba || 0);
-            }
-            if (isHariIni) {
-                pohonData[kunci].lakuHariIni += qtyLaku;
-            }
-        }
-    });
-
-    // FASE 4: SENSOR SILUMAN 2 (Abaikan antreanKulakan - Murni tidak dibaca!)
-    // Mesin selesai bekerja dan mengembalikan Pohon Data Emas.
-    return pohonData;
 }
 
 // ============================================================================
