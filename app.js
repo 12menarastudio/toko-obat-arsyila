@@ -602,6 +602,13 @@ let topQtyMurni = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
     let tercapai = siklusAktif.uangMasuk || 0;
     let targetHutang = (siklusAktif.hutangAwal !== undefined ? siklusAktif.hutangAwal : (siklusAktif.modalAwal || 0)) + (siklusAktif.modalTambahan || 0);
 
+    let terjualSiklusIni = 0;
+    cashierHistory.forEach(t => {
+        if (t.id >= waktuMulai && !t.isPelunasan) {
+            terjualSiklusIni += (t.item || 0);
+        }
+    });
+
     // ======================================================================
     // LOGIKA PERGERAKAN PIPA AIR SIKLUS PENJUALAN MURNI
     // ======================================================================
@@ -616,23 +623,23 @@ let topQtyMurni = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
     let teksStatus = document.getElementById('berandaTeksStatus');
 
     if (pipaAir && teksOmzet && teksStatus) {
-        let persen = targetHutang === 0 ? 0 : Math.max(0, Math.min(100, (tercapai / targetHutang) * 100));
+        let persen = topQtyMurni === 0 ? 0 : Math.max(0, Math.min(100, (terjualSiklusIni / topQtyMurni) * 100));
         pipaAir.style.width = persen + '%';
-        teksOmzet.textContent = "Kas Masuk: " + rupiah(tercapai);
+        teksOmzet.textContent = "Terjual: " + terjualSiklusIni + " dari " + topQtyMurni + " Stok";
 
-        if (tercapai < targetHutang) {
+        if (terjualSiklusIni < topQtyMurni) {
             pipaAir.className = "h-full transition-all duration-1000 ease-out animasi-air-hidup rounded-full bg-gradient-to-r from-red-500 via-orange-400 to-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]";
             teksOmzet.className = "text-[9px] font-black text-slate-800 tracking-wide uppercase";
-            teksStatus.innerHTML = `Status: Kas masuk lebih kecil dari Stok modal`;
-        } else if (tercapai === targetHutang && targetHutang > 0) {
+            teksStatus.innerHTML = "Status: Sisa " + (topQtyMurni - terjualSiklusIni) + " stok di rak";
+        } else if (terjualSiklusIni === topQtyMurni && topQtyMurni > 0) {
             pipaAir.className = "h-full transition-all duration-1000 ease-out animasi-air-hidup rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.6)]";
             teksOmzet.className = "text-[9px] font-black text-amber-950 tracking-wide uppercase";
-            teksStatus.innerHTML = `<span class="text-amber-600 font-black"><i class="fa-solid fa-scale-balanced"></i> Kas masuk mencapai Stok modal</span>`;
+            teksStatus.innerHTML = "<span class='text-amber-600 font-black'><i class='fa-solid fa-boxes-stacked'></i> SOLD OUT! Seluruh stok ludes.</span>";
         } else {
-            let surplus = tercapai - targetHutang;
+            let surplusStok = terjualSiklusIni - topQtyMurni;
             pipaAir.className = "h-full transition-all duration-1000 ease-out animasi-air-hidup rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.6)]";
             teksOmzet.className = "text-[9px] font-black text-white tracking-wide uppercase drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]";
-            teksStatus.innerHTML = `<span class="text-emerald-600 font-black"><i class="fa-solid fa-crown"></i> Kas masuk melebihi stok modal: <span class="text-emerald-500 font-extrabold">+ ${rupiah(surplus)}</span></span>`;
+            teksStatus.innerHTML = "<span class='text-emerald-600 font-black'><i class='fa-solid fa-fire'></i> OVER-SOLD! Melebihi stok awal: <span class='text-emerald-500 font-extrabold'>+ " + surplusStok + "</span></span>";
         }
     }
     // ======================================================================
@@ -693,12 +700,6 @@ let topQtyMurni = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
                 if (document.getElementById('berandaObatTerjual')) document.getElementById('berandaObatTerjual').textContent = lakuMurniHariIni;
                 if (document.getElementById('berandaPembeli')) document.getElementById('berandaPembeli').textContent = pembeliMurniHariIni.size;
                 if (document.getElementById('berandaJenis')) document.getElementById('berandaJenis').textContent = totalJenisObat;
-    let terjualSiklusIni = 0;
-    cashierHistory.forEach(t => {
-        if (t.id >= waktuMulai && !t.isPelunasan) {
-            terjualSiklusIni += (t.item || 0);
-        }
-    });
 
     if (document.getElementById('panelStokSisa')) document.getElementById('panelStokSisa').textContent = totalSisaStok;
     if (document.getElementById('panelStokTerjual')) document.getElementById('panelStokTerjual').textContent = terjualSiklusIni;
@@ -6723,25 +6724,24 @@ function hapusCatatan(id) {
 function renderBukuCatatan() {
     const wadah = document.getElementById('wadahListBukuCatatan');
     if (bukuCatatan.length === 0) {
-        wadah.innerHTML = `<div class="text-center p-6 opacity-50"><i class="fa-solid fa-clipboard-list text-5xl mb-3 text-slate-400"></i><p class="text-xs font-black text-slate-500 uppercase tracking-widest">Catatan Kosong</p></div>`;
+        wadah.innerHTML = `<div class="text-center p-6 opacity-30 mt-10"><i class="fa-solid fa-pen-nib text-3xl mb-2 text-slate-400"></i><p class="text-[10px] font-medium text-slate-500 italic">Belum ada coretan...</p></div>`;
         return;
     }
 
     wadah.innerHTML = bukuCatatan.map(c => {
         let opasitas = c.selesai ? 'opacity-50' : 'opacity-100';
-        let coret = c.selesai ? 'line-through text-slate-400' : 'text-slate-800';
-        let bgTombol = c.selesai ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-white text-slate-300 border-slate-300';
+        let coret = c.selesai ? 'line-through text-blue-900/50' : 'text-blue-900';
+        let iconCheck = c.selesai ? '<i class="fa-solid fa-check-double text-blue-900"></i>' : '<i class="fa-solid fa-check text-slate-300 hover:text-blue-900"></i>';
 
         return `
-        <div class="bg-white border border-slate-200 rounded-2xl p-3 flex gap-3 shadow-sm mb-2 transition-all ${opasitas}">
-            <button onclick="toggleSelesaiCatatan(${c.id})" class="w-7 h-7 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-colors ${bgTombol}">
-                <i class="fa-solid fa-check text-xs"></i>
+        <div class="flex items-start gap-2 min-h-[32px] group transition-all ${opasitas} -ml-2 mb-1">
+            <button onclick="toggleSelesaiCatatan(${c.id})" class="w-6 h-6 flex items-center justify-center shrink-0 mt-1 transition-colors text-xs">
+                ${iconCheck}
             </button>
-            <div class="flex-1">
-                <p class="text-[9px] font-bold text-slate-400 mb-0.5">${c.tanggal} • ${c.waktu}</p>
-                <p class="text-sm font-bold ${coret} leading-tight">${c.teks}</p>
+            <div class="flex-1 pt-1.5 pb-1">
+                <p class="text-sm italic font-medium ${coret} leading-snug break-words">${c.teks}</p>
             </div>
-            <button onclick="hapusCatatan(${c.id})" class="text-rose-400 hover:text-rose-600 px-2 shrink-0"><i class="fa-solid fa-trash-can"></i></button>
+            <button onclick="hapusCatatan(${c.id})" class="w-6 h-6 flex items-center justify-center shrink-0 mt-1 text-slate-300 hover:text-rose-500 transition-colors text-xs"><i class="fa-solid fa-xmark"></i></button>
         </div>`;
     }).join('');
 }
