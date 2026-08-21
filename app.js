@@ -625,7 +625,7 @@ let topQtyMurni = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
     if (pipaAir && teksOmzet && teksStatus) {
         let persen = topQtyMurni === 0 ? 0 : Math.max(0, Math.min(100, (terjualSiklusIni / topQtyMurni) * 100));
         pipaAir.style.width = persen + '%';
-        teksOmzet.textContent = "Terjual: " + terjualSiklusIni + " dari " + topQtyMurni + " Stok";
+        teksOmzet.textContent = "Kas Masuk: " + rupiah(tercapai);
 
         if (terjualSiklusIni < topQtyMurni) {
             pipaAir.className = "h-full transition-all duration-1000 ease-out animasi-air-hidup rounded-full bg-gradient-to-r from-red-500 via-orange-400 to-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]";
