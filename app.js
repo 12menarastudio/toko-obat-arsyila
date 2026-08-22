@@ -5095,7 +5095,17 @@ async function prosesCetakStrukMobile(idTransaksi, elemenTombol) {
 // ==========================================
 // 20. CLOUD SYNC & PENCARIAN
 // ==========================================
+const supabaseUrl = 'https://wlmcfyxccfofistofawt.supabase.co';
+const supabaseKey = 'sb_publishable_KMnclwPOT_0npylv3SjBHw_s1ZdyQg9';
 let supabaseClient = null;
+
+try {
+    if (window.supabase) {
+        supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
+    }
+} catch (e) {
+    console.log('Mode Offline: Koneksi Supabase tertunda.');
+}
 
 async function sinkronKeAwanMobile() {
     if (!supabaseClient) return;
