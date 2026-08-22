@@ -701,8 +701,8 @@ let topQtyMurni = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
         } else {
             wadahTerlaris.innerHTML = arrTerlaris.map((ob, idx) => {
                 let styling = idx === 0 ? 'bg-amber-100 text-amber-600 border-amber-200' : (idx === 1 ? 'bg-slate-100 text-slate-600 border-slate-200' : 'bg-orange-50 text-orange-600 border-orange-200');
-                let infoFormat = formatNamaItemMaster(ob.dnaInduk, ob.nama, ob.varian, ob.kategori, 'text-sm truncate');
-                return `<div class="flex items-center gap-3 p-3 hover:bg-slate-50 transition"><div class="w-8 h-8 rounded-full ${styling} flex items-center justify-center font-black text-sm shrink-0 border">${idx + 1}</div><div class="flex-1 overflow-hidden"><div class="mb-1">${infoFormat.namaHtml}</div><div class="flex items-center gap-2"><p class="text-[10px] text-slate-500">${ob.item} Terjual</p>${infoFormat.kategoriHtml}</div></div><div class="text-right shrink-0"><p class="font-bold text-corporate-700 text-sm">${rupiah(ob.omset)}</p></div></div>`;
+                let infoFormat = formatNamaItemMaster(ob.dnaInduk, ob.nama, ob.varian, ob.kategori, 'text-xs truncate');
+                return `<div class="flex items-center gap-2 p-2 hover:bg-slate-50 transition"><div class="w-6 h-6 rounded-full ${styling} flex items-center justify-center font-black text-xs shrink-0 border">${idx + 1}</div><div class="flex-1 overflow-hidden"><div class="mb-0.5">${infoFormat.namaHtml}</div><div class="flex items-center gap-1.5"><p class="text-[9px] text-slate-500">${ob.item} Terjual</p>${infoFormat.kategoriHtml}</div></div><div class="text-right shrink-0"><p class="font-bold text-corporate-700 text-xs">${rupiah(ob.omset)}</p></div></div>`;
             }).join('');
         }
     }
@@ -962,13 +962,19 @@ function muatLebihBanyakRiwayat() {
     renderRiwayatMobile();
 }
 
-function toggleDropdownFilterRiwayat() {  const panel = document.getElementById('panelFilterRiwayat');
+function toggleDropdownFilterRiwayat() {
+    const panel = document.getElementById('panelFilterRiwayat');
     const icon = document.getElementById('iconDropdownFilterRiwayat');
+    const backdrop = document.getElementById('backdropFilterRiwayat');
     if(panel.classList.contains('hidden')) {
         panel.classList.remove('hidden');
+        if (backdrop) backdrop.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
         icon.style.transform = 'rotate(180deg)';
     } else {
         panel.classList.add('hidden');
+        if (backdrop) backdrop.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
         icon.style.transform = 'rotate(0deg)';
     }
 }
@@ -1747,10 +1753,10 @@ function validasiHapusPiutangLunas(namaPelanggan, totalAktif) {
 }
 
 // MESIN PEMBELAH SEL (CHECKBOX AMAN)
-function togglePilihPiutangAman(id, namaObat, totalHarga, qtyMax, namaPelanggan, element) {
+async function togglePilihPiutangAman(id, namaObat, totalHarga, qtyMax, namaPelanggan, element) {
     if(element.checked) {
         if(qtyMax > 1) {
-            let inputQty = prompt(`${namaPelanggan} berutang ${qtyMax} stok ${namaObat}.\nBerapa stok yang ingin ditebus sekarang?`, "1");
+            let inputQty = await customPrompt(`${namaPelanggan} berutang ${qtyMax} stok ${namaObat}.\nBerapa stok yang ingin ditebus sekarang?`, "1");
             let qtyTebus = parseInt(inputQty);
             if(isNaN(qtyTebus) || qtyTebus <= 0 || qtyTebus > qtyMax) {
                 element.checked = false;
@@ -4050,8 +4056,9 @@ function prosesBayarMobile() {
     alert(`✅ Transaksi ${metode} Berhasil! Omzet telah masuk ke Beranda.`);
 }
 
-function prosesBatalTransaksiMobile(idTransaksiInput) {
-    tampilkanConfirmMobile("Batalkan transaksi ini?\n\nJika ini penjualan biasa, uang ditarik & obat diretur. Jika ini Pelunasan, utang akan dihidupkan kembali tanpa mengacaukan stok.", function() {
+async function prosesBatalTransaksiMobile(idTransaksiInput) {
+    let confirmBatal = await customConfirm("Batalkan transaksi ini?\n\nJika ini penjualan biasa, uang ditarik & obat diretur. Jika ini Pelunasan, utang akan dihidupkan kembali tanpa mengacaukan stok.");
+    if (confirmBatal) {
         // Normalisasi input menjadi array (Mendukung Pembatalan Multi-ID hasil Split)
         let arrIds = Array.isArray(idTransaksiInput) ? idTransaksiInput : [idTransaksiInput];
         let transaksiYangDibatalkan = cashierHistory.filter(t => arrIds.includes(t.id));
@@ -4145,7 +4152,7 @@ function prosesBatalTransaksiMobile(idTransaksiInput) {
         }
         triggerHaptic([100,50,100]);
         alert(sampelTrx.isPelunasan ? "✅ Batal Pelunasan Berhasil! Utang dihidupkan kembali secara presisi (Stok tidak disentuh)." : "✅ Transaksi Dibatalkan. Stok setiap item diretur ke Etalase.");
-    });
+    }
 }
 
 // ==========================================
@@ -4691,7 +4698,7 @@ function eksekusiTutupBukuMobile() {
     bukaModalMobile('modalTutupBukuMobile', 'panelTutupBukuMobile');
 }
 
-function prosesKonfirmasiTutupBuku() {
+async function prosesKonfirmasiTutupBuku() {
     let saldoLaci = parseInt(document.getElementById('btnKonfirmasiTutupBuku').dataset.saldo) || 0;
     let disisakanRaw = document.getElementById('inputModalKembalian').value.replace(/\./g, '');
     let disisakan = parseFloat(disisakanRaw) || 0;
@@ -4702,7 +4709,8 @@ function prosesKonfirmasiTutupBuku() {
 
     let uangDitarik = saldoLaci - disisakan;
 
-    tampilkanConfirmMobile(`Tarik tunai ${rupiah(uangDitarik)} dan sisakan ${rupiah(disisakan)} di laci untuk besok?\n\nSetelah ini, Siklus Progress Bar akan di-reset.`, function() {
+    let confirmTutup = await customConfirm(`Tarik tunai ${rupiah(uangDitarik)} dan sisakan ${rupiah(disisakan)} di laci untuk besok?\n\nSetelah ini, Siklus Progress Bar akan di-reset.`);
+    if (confirmTutup) {
 
         // 1. EKSEKUSI AUTO-PRIVE (TARIK UANG LACI FISIK)
         if (uangDitarik > 0) {
@@ -4769,7 +4777,7 @@ function prosesKonfirmasiTutupBuku() {
              if(sudahUntung) { alert(`✅ TUTUP BUKU BERHASIL!\nUang fisik ditarik sebesar ${rupiah(uangDitarik)}.\nMode Likuidasi Aktif.`); }
              else { alert(`✅ TUTUP BUKU BERHASIL!\nUang fisik ditarik sebesar ${rupiah(uangDitarik)}.\nMode Defisit Lanjutan diteruskan.`); }
          }, 500);
-    });
+    }
 }
 
 // ==========================================
@@ -4847,11 +4855,11 @@ function renderRiwayatPengeluaranMobile() {
     container.innerHTML = html;
 }
 
-function editPengeluaranMobile(id) {
+async function editPengeluaranMobile(id) {
     let p = pengeluaranHistory.find(x => x.id === id);
     if (!p) return;
 
-    let newNominalRaw = prompt(`Edit Nominal Pengeluaran (Saat ini: ${rupiah(p.nominal)}):`, p.nominal);
+    let newNominalRaw = await customPrompt(`Edit Nominal Pengeluaran (Saat ini: ${rupiah(p.nominal)}):`, p.nominal);
     if (newNominalRaw === null) return;
     let newNominal = parseFloat(newNominalRaw.replace(/[^0-9]/g, ''));
 
@@ -6425,7 +6433,7 @@ function renderBatchesPenyusutan(batches) {
 
             <div class="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-xl p-1 shrink-0 shadow-inner">
                 <button type="button" onclick="ubahQtyPenyusutan('${b.idBatch}', -1, ${qtyMax})" class="w-8 h-8 rounded-lg font-black text-base flex items-center justify-center transition-colors ${btnMinusClass}">-</button>
-                <span class="w-6 text-center font-black text-slate-800 text-sm">${qtyDibuang}</span>
+                <span onclick="ubahQtyPenyusutanPrompt('${b.idBatch}', ${qtyMax}, ${qtyDibuang})" class="w-6 text-center font-black text-slate-800 text-sm cursor-pointer underline decoration-dashed decoration-slate-400 underline-offset-2">${qtyDibuang}</span>
                 <button type="button" onclick="ubahQtyPenyusutan('${b.idBatch}', 1, ${qtyMax})" class="w-8 h-8 rounded-lg font-black text-base flex items-center justify-center transition-colors ${btnPlusClass}">+</button>
             </div>
         </div>`;
@@ -7485,4 +7493,86 @@ function renderBukuRusakMobile() {
 
     if (document.getElementById('bukuRusakTotalQty')) document.getElementById('bukuRusakTotalQty').textContent = totalQty + " Pcs";
     if (document.getElementById('bukuRusakTotalRugi')) document.getElementById('bukuRusakTotalRugi').textContent = rupiah(totalRugi);
+}
+
+
+// CUSTOM MODAL ENGINE
+function _customModalBase(type, message, defaultValue = '') {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('modalCustomEngine');
+        const backdrop = document.getElementById('backdropCustomEngine');
+        const panel = document.getElementById('panelCustomEngine');
+        const title = document.getElementById('titleCustomEngine');
+        const msg = document.getElementById('messageCustomEngine');
+        const inputWrap = document.getElementById('inputWrapperCustomEngine');
+        const input = document.getElementById('inputCustomEngine');
+        const btnCancel = document.getElementById('btnCancelCustomEngine');
+        const btnConfirm = document.getElementById('btnConfirmCustomEngine');
+
+        title.innerHTML = type === 'prompt' ? '<i class="fa-solid fa-pen-to-square text-blue-500"></i> Input Data' : '<i class="fa-solid fa-circle-question text-amber-500"></i> Konfirmasi';
+        msg.innerHTML = message.replace(/\n/g, '<br>');
+
+        if (type === 'prompt') {
+            inputWrap.classList.remove('hidden');
+            input.value = defaultValue;
+            input.focus();
+            setTimeout(() => input.focus(), 100);
+        } else {
+            inputWrap.classList.add('hidden');
+        }
+
+        modal.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            panel.classList.remove('scale-90');
+        }, 10);
+
+        const close = (result) => {
+            modal.classList.add('opacity-0');
+            panel.classList.add('scale-90');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                document.body.classList.remove('overflow-hidden');
+                resolve(result);
+            }, 300);
+        };
+
+        const onCancel = () => close(null);
+        const onConfirm = () => close(type === 'prompt' ? input.value : true);
+        const onBackdrop = () => close(null);
+        const onKeydown = (e) => {
+            if (e.key === 'Enter' && type === 'prompt') onConfirm();
+            if (e.key === 'Escape') onCancel();
+        };
+
+        btnCancel.onclick = onCancel;
+        btnConfirm.onclick = onConfirm;
+        backdrop.onclick = onBackdrop;
+        input.onkeydown = onKeydown;
+    });
+}
+
+async function customPrompt(message, defaultValue) {
+    let result = await _customModalBase('prompt', message, defaultValue);
+    return result;
+}
+
+async function customConfirm(message) {
+    let result = await _customModalBase('confirm', message);
+    return result === true;
+}
+
+
+async function ubahQtyPenyusutanPrompt(idBatch, max, current) {
+    let inputQty = await customPrompt(`Masukkan jumlah yang ingin dimusnahkan (Maks: ${max}):`, current);
+    if (inputQty !== null) {
+        let val = parseInt(inputQty);
+        if (!isNaN(val) && val >= 0 && val <= max) {
+            let delta = val - current;
+            ubahQtyPenyusutan(idBatch, delta, max);
+        } else {
+            alert("Jumlah tidak valid atau melebihi stok fisik.");
+        }
+    }
 }
