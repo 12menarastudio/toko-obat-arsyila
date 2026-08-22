@@ -229,7 +229,9 @@ tailwind.config = {
             <div class="px-6 mt-8">
                 <div class="flex justify-between items-center mb-3">
                     <h3 class="text-xs font-bold text-slate-700 uppercase tracking-wider"><i class="fa-solid fa-fire text-orange-500 mr-1"></i> Obat Terlaris</h3>
-                    <button onclick="bukaSidebarTrafik()" class="text-[10px] font-black text-corporate-600 bg-corporate-50 px-3 py-1.5 rounded-xl border border-corporate-100 shadow-sm active:scale-95 transition-all flex items-center gap-1.5">
+                </div>
+                <div class="flex justify-center mt-2 mb-4">
+                    <button onclick="bukaSidebarTrafik()" class="bg-blue-50 text-blue-700 px-6 py-2 rounded-full font-bold text-sm shadow-sm active:scale-95 transition-all w-full flex items-center justify-center gap-2">
                         Cek Radar <i class="fa-solid fa-arrow-right"></i>
                     </button>
                 </div>
@@ -445,6 +447,7 @@ tailwind.config = {
                     <i class="fa-regular fa-calendar-days absolute left-4 top-1/2 -translate-y-1/2 text-corporate-500 text-lg pointer-events-none"></i>
 
                     <!-- Panel Melayang Neumorphism -->
+                    <div id="backdropFilterRiwayat" class="hidden fixed inset-0 bg-black/50 z-40 transition-opacity" onclick="toggleDropdownFilterRiwayat()"></div>
                     <div id="panelFilterRiwayat" class="hidden absolute left-0 right-0 sm:w-[320px] top-[calc(100%+12px)] bg-[#f8fafc] rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.4)] border border-slate-200 overflow-hidden transform origin-top transition-all z-50">
                         <div class="p-4 bg-white border-b border-slate-100">
                             <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 pl-1"><i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Filter Pintas</p>
@@ -2010,5 +2013,22 @@ tailwind.config = {
             </div>
         </div>
     </div>
+
+    <!-- CUSTOM GLOBAL MODAL PROMPT & CONFIRM ENGINE -->
+    <div id="modalCustomEngine" class="absolute inset-0 z-[500] hidden flex items-center justify-center pointer-events-none transition-opacity duration-300 opacity-0">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm pointer-events-auto" id="backdropCustomEngine"></div>
+        <div class="bg-white w-11/12 max-w-sm rounded-2xl shadow-2xl p-6 relative z-10 pointer-events-auto transform transition-transform duration-300 scale-90" id="panelCustomEngine">
+            <h3 class="font-black text-xl tracking-tight mb-2 text-slate-800 text-center" id="titleCustomEngine">Pesan</h3>
+            <p class="text-sm text-slate-600 font-medium leading-relaxed text-center mb-4" id="messageCustomEngine">Isi pesan</p>
+            <div id="inputWrapperCustomEngine" class="hidden mb-4">
+                <input type="text" id="inputCustomEngine" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none focus:border-corporate-500 shadow-inner text-center">
+            </div>
+            <div class="flex gap-3">
+                <button id="btnCancelCustomEngine" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-xl transition-colors active:scale-95 text-sm uppercase tracking-wider">Batal</button>
+                <button id="btnConfirmCustomEngine" class="w-full bg-corporate-600 hover:bg-corporate-700 text-white font-bold py-3 rounded-xl shadow-md transition-transform active:scale-95 text-sm uppercase tracking-wider">OK</button>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>
