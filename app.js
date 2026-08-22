@@ -27,8 +27,13 @@ let bukuCatatan = []; // DATABASE CATATAN DEFECTA (LOST SALES)
 // --- DATABASE KHUSUS PENYUSUTAN (BARANG RUSAK/HILANG/EXPIRED) ---
 let historiPenyusutan = [];
 let penyusutanObatTerpilih = null; // Variabel penyimpan sementara di modal
+let activeStoreCode = localStorage.getItem('apotek_active_store') || null;
+
 // TUGAS QW-1: SENTRALISASI PENYIMPANAN LOCAL STORAGE (ANTI-CRASH & DRY)
 function saveApotekDB(key, data) {
+    if (activeStoreCode) {
+        key = key + "_" + activeStoreCode;
+    }
     try {
         localStorage.setItem(key, JSON.stringify(data));
     } catch (e) {
@@ -411,69 +416,81 @@ function kalkulasiAsetFisik() {
     };
 }
 
-// Memuat data dari Memori Perangkat (Local Storage)
-try {
-    let parsedNotif = JSON.parse(localStorage.getItem('apotek_notifikasi'));
-    if (Array.isArray(parsedNotif)) notifikasiHistori = parsedNotif;
 
-    let parsedMaster = JSON.parse(localStorage.getItem('apotek_masterItems'));
-    if (Array.isArray(parsedMaster) && parsedMaster.length > 0) masterItems = parsedMaster;
+function loadApotekData() {
+    // Memuat data dari Memori Perangkat (Local Storage)
+    try {
+        let storeSuffix = activeStoreCode ? '_' + activeStoreCode : '';
+        let parsedNotif = JSON.parse(localStorage.getItem('apotek_notifikasi' + storeSuffix));
+        if (Array.isArray(parsedNotif)) notifikasiHistori = parsedNotif;
 
-    let parsedEtalase = JSON.parse(localStorage.getItem('apotek_etalaseItems'));
-    if (Array.isArray(parsedEtalase)) etalaseItems = parsedEtalase;
+        let parsedMaster = JSON.parse(localStorage.getItem('apotek_masterItems' + storeSuffix));
+        if (Array.isArray(parsedMaster) && parsedMaster.length > 0) masterItems = parsedMaster;
 
-    let parsedCashier = JSON.parse(localStorage.getItem('apotek_cashierHistory'));
-    if (Array.isArray(parsedCashier)) cashierHistory = parsedCashier;
+        let parsedEtalase = JSON.parse(localStorage.getItem('apotek_etalaseItems' + storeSuffix));
+        if (Array.isArray(parsedEtalase)) etalaseItems = parsedEtalase;
 
-    let parsedSiklus = JSON.parse(localStorage.getItem('apotek_siklusAktif'));
-    if (parsedSiklus) siklusAktif = parsedSiklus;
+        let parsedCashier = JSON.parse(localStorage.getItem('apotek_cashierHistory' + storeSuffix));
+        if (Array.isArray(parsedCashier)) cashierHistory = parsedCashier;
 
-    let parsedPengeluaran = JSON.parse(localStorage.getItem('apotek_pengeluaranHistory'));
-    if (Array.isArray(parsedPengeluaran)) pengeluaranHistory = parsedPengeluaran;
-let parsedAntrean = JSON.parse(localStorage.getItem('apotek_antreanKulakan'));
-    if (Array.isArray(parsedAntrean)) antreanKulakan = parsedAntrean;
-    let parsedCatatan = JSON.parse(localStorage.getItem('apotek_bukuCatatan'));
-    if (Array.isArray(parsedCatatan)) bukuCatatan = parsedCatatan;
+        let parsedSiklus = JSON.parse(localStorage.getItem('apotek_siklusAktif' + storeSuffix));
+        if (parsedSiklus) siklusAktif = parsedSiklus;
 
-    // [PERBAIKAN] Mencegah Amnesia Riwayat Penyusutan saat aplikasi di-refresh
-    let parsedPenyusutan = JSON.parse(localStorage.getItem('apotek_penyusutan'));
-    if (Array.isArray(parsedPenyusutan)) historiPenyusutan = parsedPenyusutan;
+        let parsedPengeluaran = JSON.parse(localStorage.getItem('apotek_pengeluaranHistory' + storeSuffix));
+        if (Array.isArray(parsedPengeluaran)) pengeluaranHistory = parsedPengeluaran;
 
-    if (!siklusAktif.tanggalStart) siklusAktif.tanggalStart = getTanggalLokal();
-} catch(e) { console.error("Gagal memuat memori", e); }// [MODIFIKASI TAHAP 1] - SENSOR IMUNITAS (MIGRASI DATA KE kulakan)
-// Mengubah data tunggal menjadi bersarang (Nested) secara otomatis tanpa merusak aplikasi
-masterItems.forEach(obat => {
-    if (!obat.kulakan_keuangan) {
-        obat.kulakan_keuangan = [
-            {
-                idkulakan: "F-MIGRASI-" + obat.idBatch,
-                tanggalNota: "Data Sistem Lama",
-                hpp: obat.modal || 0,
-                stokAwal: obat.stok || 0,
-                sisaGudang: obat.stok || 0,
-                sisaEtalase: 0,
-                modalKeluar: obat.totalModal !== undefined ? obat.totalModal : ((obat.modal || 0) * (obat.stok || 0))
+        let parsedAntrean = JSON.parse(localStorage.getItem('apotek_antreanKulakan' + storeSuffix));
+        if (Array.isArray(parsedAntrean)) antreanKulakan = parsedAntrean;
+
+        let parsedCatatan = JSON.parse(localStorage.getItem('apotek_bukuCatatan' + storeSuffix));
+        if (Array.isArray(parsedCatatan)) bukuCatatan = parsedCatatan;
+
+        let parsedPenyusutan = JSON.parse(localStorage.getItem('apotek_penyusutan' + storeSuffix));
+        if (Array.isArray(parsedPenyusutan)) historiPenyusutan = parsedPenyusutan;
+
+        if (!siklusAktif.tanggalStart) siklusAktif.tanggalStart = getTanggalLokal();
+
+        // [MODIFIKASI TAHAP 1] - SENSOR IMUNITAS (MIGRASI DATA KE kulakan)
+        // Mengubah data tunggal menjadi bersarang (Nested) secara otomatis tanpa merusak aplikasi
+        masterItems.forEach(obat => {
+            if (!obat.kulakan_keuangan) {
+                obat.kulakan_keuangan = [
+                    {
+                        idkulakan: "F-MIGRASI-" + obat.idBatch,
+                        tanggalNota: "Data Sistem Lama",
+                        tanggalTerima: obat.tanggalTambah || getTanggalLokal(),
+                        supplier: "-",
+                        noFaktur: "-",
+                        qtyMasuk: obat.stokTerkini || 0,
+                        qtyAsli: obat.stokAwal || 0,
+                        modalBeli: obat.modal || 0,
+                        modalAsli: obat.modalAsli || obat.modal || 0
+                    }
+                ];
             }
-        ];
-    }
-});
+        });
 
-// [AUTO-HEALER TAHAP 2] - PEMBASMI UANG SILUMAN QRIS (MIGRASI SEKALI JALAN)
-if (!localStorage.getItem('sudah_diperbaiki_qris_v1')) {
-    let adaPerbaikan = false;
-    cashierHistory.forEach(t => {
-        if (t.isPelunasan && t.metode === 'Tunai' && t.metodeBayar && (t.metodeBayar.toUpperCase() === 'QRIS')) {
-            t.metode = 'QRIS';
-            adaPerbaikan = true;
+        // [AUTO-HEALER TAHAP 2] - PEMBASMI UANG SILUMAN QRIS (MIGRASI SEKALI JALAN)
+        let healerKey = 'sudah_diperbaiki_qris_v1' + (activeStoreCode ? '_' + activeStoreCode : '');
+        if (!localStorage.getItem(healerKey)) {
+            let adaPerbaikan = false;
+            cashierHistory.forEach(t => {
+                if (t.isPelunasan && t.metode === 'Tunai' && t.metodeBayar && (t.metodeBayar.toUpperCase() === 'QRIS')) {
+                    t.metode = 'QRIS';
+                    adaPerbaikan = true;
+                }
+            });
+
+            if (adaPerbaikan) {
+                saveApotekDB('apotek_cashierHistory', cashierHistory);
+            }
+            // Tempelkan stiker hijau agar robot tidur selamanya setelah ini
+            localStorage.setItem(healerKey, 'true');
         }
-    });
+    } catch(e) { console.error("Gagal memuat memori", e); }
 
-    if (adaPerbaikan) {
-        saveApotekDB('apotek_cashierHistory', cashierHistory);
-    }
-    // Tempelkan stiker hijau agar robot tidur selamanya setelah ini
-    localStorage.setItem('sudah_diperbaiki_qris_v1', 'true');
 }
+
 
 
 // ==========================================
@@ -5114,9 +5131,12 @@ async function sinkronKeAwanMobile() {
     if(indikator && teks) { indikator.classList.replace('bg-red-50', 'bg-emerald-50'); indikator.classList.replace('text-red-500', 'text-emerald-500'); indikator.classList.replace('border-red-100', 'border-emerald-100'); teks.innerText = 'SYNC'; }
 
     try {
-        if (masterItems.length > 0) await supabaseClient.from('master_items').upsert(masterItems, { onConflict: 'nama' });
-        if (etalaseItems.length > 0) await supabaseClient.from('etalase_items').upsert(etalaseItems, { onConflict: 'nama' });
-        if (cashierHistory.length > 0) await supabaseClient.from('cashier_history').upsert(cashierHistory, { onConflict: 'id' });
+        const injectToko = (arr) => arr.map(item => ({ ...item, kode_toko: activeStoreCode }));
+
+        if (masterItems.length > 0) await supabaseClient.from('master_items').upsert(injectToko(masterItems), { onConflict: 'nama' });
+        if (etalaseItems.length > 0) await supabaseClient.from('etalase_items').upsert(injectToko(etalaseItems), { onConflict: 'nama' });
+        if (cashierHistory.length > 0) await supabaseClient.from('cashier_history').upsert(injectToko(cashierHistory), { onConflict: 'id' });
+        if (pengeluaranHistory.length > 0) await supabaseClient.from('pengeluaran_history').upsert(injectToko(pengeluaranHistory), { onConflict: 'id' });
     } catch (err) { console.log(err); }
 
     setTimeout(() => { if(indikator && teks) { indikator.classList.replace('bg-emerald-50', 'bg-red-50'); indikator.classList.replace('text-emerald-500', 'text-red-500'); indikator.classList.replace('border-emerald-100', 'border-red-100'); teks.innerText = 'Live'; } }, 1500);
@@ -5290,8 +5310,23 @@ prosesSimpanSetelanMobile = function() {
 // 23. INISIALISASI SAAT APLIKASI DIBUKA
 // ==========================================
 window.onload = () => {
+    if (!activeStoreCode) {
+        document.getElementById('loginOverlay').classList.remove('hidden');
+        document.getElementById('appContent').classList.add('hidden');
+        return;
+    } else {
+        initApp();
+    }
+};
+
+function initApp() {
+    document.getElementById('loginOverlay').classList.add('hidden');
+    document.getElementById('appContent').classList.remove('hidden');
+
+    loadApotekData();
+
     try {
-        let p = JSON.parse(localStorage.getItem('apotek_profilData'));
+        let p = JSON.parse(localStorage.getItem('apotek_profilData_' + activeStoreCode));
         if(p) {
             profilApotek = p;
             document.getElementById('namaApotekHeader').innerText = p.nama;
@@ -5303,7 +5338,40 @@ window.onload = () => {
         }
     } catch(e) {}
     renderBerandaMobile();
-};
+}
+
+function prosesLogin() {
+    const toko = document.getElementById('loginStoreCode').value;
+    const password = document.getElementById('loginPassword').value;
+
+    if (toko === 'ARSYILA' && password === 'arsyila123') {
+        loginSukses(toko);
+    } else if (toko === 'ANTON' && password === 'anton123') {
+        loginSukses(toko);
+    } else {
+        alert('Password salah atau toko tidak valid!');
+    }
+}
+
+function loginSukses(toko) {
+    activeStoreCode = toko;
+    localStorage.setItem('apotek_active_store', toko);
+
+    // Set default profile if not exists
+    let p = JSON.parse(localStorage.getItem('apotek_profilData_' + toko));
+    if (!p) {
+        let defaultNama = toko === 'ARSYILA' ? 'TOKO OBAT ARSYILA' : 'TOKO OBAT ANTON';
+        let defaultProfile = { nama: defaultNama, alamat: "Desa Bahari Dua, Buton Selatan", telepon: "081234567890" };
+        localStorage.setItem('apotek_profilData_' + toko, JSON.stringify(defaultProfile));
+    }
+
+    initApp();
+}
+
+function prosesLogout() {
+    localStorage.removeItem('apotek_active_store');
+    window.location.reload();
+}
 
 
 // ==========================================
