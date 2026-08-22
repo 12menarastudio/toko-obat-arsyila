@@ -5350,8 +5350,6 @@ async function installPWA() {
 
 // ==========================================
 window.onload = () => {
-    if (!cekPwaMode()) return;
-
     if (!activeStoreCode) {
         document.getElementById('loginOverlay').classList.remove('hidden');
         document.getElementById('appContent').classList.add('hidden');
