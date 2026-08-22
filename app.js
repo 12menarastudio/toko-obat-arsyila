@@ -513,6 +513,7 @@ function bukaLayar(targetLayar) {
 
     // Jalankan fungsi render sesuai layar yang dibuka
     if (targetLayar === 'beranda') renderBerandaMobile();
+    if (targetLayar === 'bukurusak') renderBukuRusakMobile();
     if (targetLayar === 'rekap') renderRekapMobile();
     if (targetLayar === 'gudang') renderGudangMobile(document.getElementById('cariGudangMobile').value);
     if (targetLayar === 'riwayat') renderRiwayatMobile();
@@ -535,7 +536,7 @@ function renderBerandaMobile() {
     let setPembeliUnikBeranda = new Set();
 
     cashierHistory.forEach(t => {
-        if (t.id >= waktuMulai) {
+        if (t.tanggal === tglHariIni) {
             if (!t.isPelunasan) {
                 omzet += t.total || 0; laba += t.laba || 0; hpp += ((t.total || 0) - (t.laba || 0));
                 totalItemTerjualHariIni += (t.item || 0);
@@ -2428,10 +2429,10 @@ function renderRekapMobile() {
 
     // Setting Header
     document.getElementById('judulLayarRekap').textContent = metodeRekapAktif === 'Tunai' ? 'REKAP TUNAI' : 'REKAP DIGITAL';
-    document.getElementById('tanggalLayarRekap').textContent = 'Sesi / Shift Saat Ini';
+    document.getElementById('tanggalLayarRekap').textContent = 'Fase Harian (Hari Ini)';
 
     // FILTER: Hanya transaksi SETELAH Tutup Buku terakhir (Sistem Shift)
-    let dataPeriode = cashierHistory.filter(t => t.id >= waktuMulai && t.metode === metodeRekapAktif && !t.isPelunasan);
+    let dataPeriode = cashierHistory.filter(t => t.tanggal === getTanggalLokal() && t.metode === metodeRekapAktif && !t.isPelunasan);
 
     let rekapItem = {};
     let grandTotalBiji = 0;
@@ -7417,4 +7418,71 @@ function KalkulatorMasterObat() {
         }
     });
     return pohonData;
+}
+
+
+
+// ==========================================
+// MESIN RENDER: BUKU BARANG RUSAK (SIKLUS BERJALAN)
+// ==========================================
+function renderBukuRusakMobile() {
+    const wadah = document.getElementById('daftarBukuRusakMobile');
+
+    // Filter by siklusAktif (waktuMulai)
+    // idPenyusutan format: 'SHR-' + Date.now() + Math.floor(Math.random() * 100)
+    // We can extract timestamp from idPenyusutan OR use tanggal if it matches siklusAktif.tanggalStart
+    // But since we want to be precise, we extract timestamp.
+    let waktuMulai = siklusAktif.waktuStart || 0;
+
+    let dataPeriode = historiPenyusutan.filter(h => {
+        let valid = false;
+        if (h.idPenyusutan && h.idPenyusutan.startsWith('SHR-')) {
+            let part = h.idPenyusutan.substring(4);
+            let timestamp = parseInt(part.substring(0, 13));
+            if (!isNaN(timestamp) && timestamp >= waktuMulai) {
+                valid = true;
+            }
+        }
+        // Fallback
+        if(!valid && !h.idPenyusutan) {
+           valid = h.tanggal >= siklusAktif.tanggalStart;
+        }
+        return valid;
+    });
+
+    let totalQty = 0;
+    let totalRugi = 0;
+
+    if (dataPeriode.length === 0) {
+        wadah.innerHTML = `<div class="bg-white border border-slate-200 rounded-3xl p-8 text-center shadow-sm mt-4"><i class="fa-solid fa-dumpster-fire text-4xl text-slate-300 mb-3 block"></i><p class="font-bold text-slate-600">Tidak ada barang rusak/susut di siklus ini.</p></div>`;
+    } else {
+        wadah.innerHTML = dataPeriode.map((r, index) => {
+            totalQty += (r.qtyDibuang || 0);
+            totalRugi += (r.totalKerugian || 0);
+
+            // Re-use formatNamaItemMaster for consistency
+            // Note: historiPenyusutan structure: {namaLengkap, kategori, jenisMasalah, qtyDibuang, hppPerItem, totalKerugian}
+            let infoFormat = formatNamaItemMaster(r.idBatch, r.namaLengkap, '', r.kategori, 'text-sm');
+
+            return `
+            <div class="bg-white border border-red-200 rounded-2xl p-4 shadow-sm flex items-start gap-3 relative overflow-hidden">
+                <div class="absolute top-0 right-0 w-16 h-16 bg-red-50 rounded-bl-full -z-0 opacity-50"></div>
+                <div class="w-7 h-7 rounded-full bg-red-100 text-red-500 flex items-center justify-center font-black text-xs shrink-0 border border-red-200 relative z-10">${index + 1}</div>
+                <div class="flex-1 relative z-10">
+                    <div class="mb-2">
+                        ${infoFormat.namaHtml}
+                        <div class="mt-1">${infoFormat.kategoriHtml}</div>
+                    </div>
+                    <p class="text-[11px] font-bold text-slate-600 leading-relaxed">
+                        <span class="bg-red-50 px-2 py-0.5 rounded text-red-700">${r.qtyDibuang} Pcs</span> <span class="text-slate-300 mx-0.5">|</span>
+                        Total Rugi: <span class="text-red-600">${rupiah(r.totalKerugian)}</span>
+                    </p>
+                    <p class="text-[10px] text-slate-500 mt-1 italic"><i class="fa-solid fa-triangle-exclamation text-red-400"></i> ${r.jenisMasalah} ${r.catatan ? ' - ' + r.catatan : ''}</p>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    if (document.getElementById('bukuRusakTotalQty')) document.getElementById('bukuRusakTotalQty').textContent = totalQty + " Pcs";
+    if (document.getElementById('bukuRusakTotalRugi')) document.getElementById('bukuRusakTotalRugi').textContent = rupiah(totalRugi);
 }
