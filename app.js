@@ -5309,7 +5309,49 @@ prosesSimpanSetelanMobile = function() {
 // ==========================================
 // 23. INISIALISASI SAAT APLIKASI DIBUKA
 // ==========================================
+
+// ==========================================
+// PWA ENFORCEMENT & INSTALLATION
+// ==========================================
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+});
+
+function isStandalone() {
+    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone;
+}
+
+function cekPwaMode() {
+    // Only enforce PWA standalone in production or if requested (you can bypass this for testing if needed by modifying the logic, but we follow requirements)
+    if (!isStandalone()) {
+        document.getElementById('pwaBlockerOverlay').classList.remove('hidden');
+        document.getElementById('loginOverlay').classList.add('hidden');
+        document.getElementById('appContent').classList.add('hidden');
+        return false; // Blocks app
+    }
+    return true; // Allowed
+}
+
+async function installPWA() {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            console.log('User accepted the install prompt');
+        }
+        deferredPrompt = null;
+    } else {
+        document.getElementById('pwaInstallHint').classList.remove('hidden');
+    }
+}
+
+// ==========================================
 window.onload = () => {
+    if (!cekPwaMode()) return;
+
     if (!activeStoreCode) {
         document.getElementById('loginOverlay').classList.remove('hidden');
         document.getElementById('appContent').classList.add('hidden');
