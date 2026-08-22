@@ -623,23 +623,48 @@ let topQtyMurni = (siklusAktif.qtyAwal || 0) + (siklusAktif.qtyTambahan || 0);
     let teksStatus = document.getElementById('berandaTeksStatus');
 
     if (pipaAir && teksOmzet && teksStatus) {
-        let persen = topQtyMurni === 0 ? 0 : Math.max(0, Math.min(100, (terjualSiklusIni / topQtyMurni) * 100));
-        pipaAir.style.width = persen + '%';
-        teksOmzet.textContent = "Kas Masuk: " + rupiah(tercapai);
+        let qtyDihapus = siklusAktif.qtyDihapus || 0;
+        let modalDihapus = siklusAktif.modalDihapus || 0;
 
-        if (tercapai < targetHutang) {
-            pipaAir.className = "h-full transition-all duration-1000 ease-out animasi-air-hidup rounded-full bg-gradient-to-r from-red-500 via-orange-400 to-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.4)]";
-            teksOmzet.className = "text-[9px] font-black text-slate-800 tracking-wide uppercase";
-            teksStatus.innerHTML = `Status: Kas masuk lebih kecil dari Stok modal`;
-        } else if (tercapai === targetHutang && targetHutang > 0) {
-            pipaAir.className = "h-full transition-all duration-1000 ease-out animasi-air-hidup rounded-full bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.6)]";
-            teksOmzet.className = "text-[9px] font-black text-amber-950 tracking-wide uppercase";
-            teksStatus.innerHTML = `<span class="text-amber-600 font-black"><i class="fa-solid fa-scale-balanced"></i> Kas masuk mencapai Stok modal</span>`;
+        let soldPercent = topQtyMurni === 0 ? 0 : (terjualSiklusIni / topQtyMurni) * 100;
+        let lossPercent = topQtyMurni === 0 ? 0 : (qtyDihapus / topQtyMurni) * 100;
+
+        let totalPercent = Math.min(100, soldPercent + lossPercent);
+
+        pipaAir.style.width = totalPercent + '%';
+        pipaAir.className = "h-full transition-all duration-1000 ease-out animasi-air-hidup rounded-full shadow-[0_0_10px_rgba(245,158,11,0.4)]";
+
+        if (lossPercent > 0) {
+            let colorSold = tercapai >= targetHutang ? '#10b981' : '#f59e0b';
+            let colorLoss = '#ef4444';
+
+            let pSold = (soldPercent / totalPercent) * 100;
+
+            pipaAir.style.background = `linear-gradient(to right, ${colorSold} ${pSold}%, ${colorLoss} ${pSold}%, ${colorLoss} 100%)`;
         } else {
+            if (tercapai < targetHutang) {
+                pipaAir.style.background = `linear-gradient(to right, #ef4444, #fb923c, #f59e0b)`;
+            } else if (tercapai === targetHutang && targetHutang > 0) {
+                pipaAir.style.background = `linear-gradient(to right, #f59e0b, #facc15, #fbbf24)`;
+            } else {
+                pipaAir.style.background = `linear-gradient(to right, #10b981, #2dd4bf, #34d399)`;
+            }
+        }
+
+        teksOmzet.textContent = "Kas Masuk: " + rupiah(tercapai);
+        teksOmzet.className = tercapai < targetHutang ? "text-[9px] font-black text-slate-800 tracking-wide uppercase" : "text-[9px] font-black text-white tracking-wide uppercase drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]";
+
+        if (tercapai > targetHutang) {
             let surplus = tercapai - targetHutang;
-            pipaAir.className = "h-full transition-all duration-1000 ease-out animasi-air-hidup rounded-full bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.6)]";
-            teksOmzet.className = "text-[9px] font-black text-white tracking-wide uppercase drop-shadow-[0_1px_2px_rgba(0,0,0,0.4)]";
-            teksStatus.innerHTML = `<span class="text-emerald-600 font-black"><i class="fa-solid fa-crown"></i> Kas masuk melebihi stok modal: <span class="text-emerald-500 font-extrabold">+ ${rupiah(surplus)}</span></span>`;
+            teksStatus.innerHTML = `<span class="text-emerald-600 font-black"><i class="fa-solid fa-crown"></i> Paripurna: Kas tembus target (+ Rp ${(Number(surplus) || 0).toLocaleString('id-ID')})</span>`;
+        } else if (tercapai === targetHutang && targetHutang > 0 && modalDihapus === 0) {
+            teksStatus.innerHTML = `<span class="text-amber-600 font-black"><i class="fa-solid fa-scale-balanced"></i> Sempurna: Kas masuk mencapai 100% Stok Modal.</span>`;
+        } else if ((terjualSiklusIni + qtyDihapus) >= topQtyMurni && tercapai < targetHutang) {
+            teksStatus.innerHTML = `<span class="text-blue-600 font-black">Siklus Selesai: Kas Rp ${(Number(tercapai) || 0).toLocaleString('id-ID')} (Susut: Rp ${(Number(modalDihapus) || 0).toLocaleString('id-ID')})</span>`;
+        } else if ((terjualSiklusIni + qtyDihapus) < topQtyMurni && modalDihapus > 0) {
+            teksStatus.innerHTML = `<span class="text-slate-600 font-bold">⚠️ Kas Rp ${(Number(tercapai) || 0).toLocaleString('id-ID')} | Susut: Rp ${(Number(modalDihapus) || 0).toLocaleString('id-ID')} | Sisa Target: Rp ${(Number(targetHutang - tercapai) || 0).toLocaleString('id-ID')}</span>`;
+        } else if ((terjualSiklusIni + qtyDihapus) < topQtyMurni && modalDihapus === 0) {
+            teksStatus.innerHTML = `<span class="text-slate-500 font-bold">Status: Kas masuk masih di bawah Stok Modal.</span>`;
         }
     }
     // ======================================================================
@@ -3597,21 +3622,8 @@ function eksekusiAntreanKulakan() {
     });
 
     // Modal Bos hanya dikurangi dari nominal yang VALID lolos eksekusi
-    if (totalTagihanModalBos > 0) {
-        const waktu = new Date();
-        const strWaktu = waktu.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
-        pengeluaranHistory.unshift({
-            id: 'OUT-BOS-' + Date.now(),
-            tanggal: getTanggalLokal(),
-            waktu: strWaktu,
-            kategori: 'Kulakan',
-            nominal: 0, // Sengaja 0 agar tidak memotong saldo Laci/Bank
-            keterangan: `[Pribadi] Kulakan Gabungan - PAKAI DANA BOS`,
-            kasir: 'Sistem',
-            sumberDana: 'Pribadi'
-        });
-        saveApotekDB('apotek_pengeluaranHistory', pengeluaranHistory);
-    }
+    // Pengeluaran 0 dihapus sesuai instruksi
+    // if (totalTagihanModalBos > 0) { ... }
 
     if (qtyTotalSuntik > 0) {
         catatMutasiSiklus('KULAKAN_TAMBAH', totalTagihanModalBos, qtyTotalSuntik);
