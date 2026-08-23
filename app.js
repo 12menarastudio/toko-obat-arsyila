@@ -5386,17 +5386,21 @@ function initApp() {
 async function prosesLogin() {
     const emailInput = document.getElementById('loginEmail').value.trim();
     const passwordInput = document.getElementById('loginPassword').value;
-    const btnOtorisasi = document.querySelector('button[onclick="prosesLogin()"]');
-    const teksAsli = btnOtorisasi.innerHTML;
+    
+    // PERBAIKAN: Cari tombol berdasarkan tipe submit, bukan onclick
+    const btnOtorisasi = document.querySelector('button[type="submit"]');
+    const teksAsli = btnOtorisasi ? btnOtorisasi.innerHTML : 'Otorisasi';
 
     // 1. Pencegat Kolom Kosong
     if (!emailInput || !passwordInput) {
         return alert('⚠️ Email dan Sandi Akses wajib diisi!');
     }
 
-    // 2. Efek Loading Profesional
-    btnOtorisasi.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-lg"></i> Memverifikasi...';
-    btnOtorisasi.disabled = true;
+    // 2. Efek Loading Profesional (Aman dari Crash)
+    if (btnOtorisasi) {
+        btnOtorisasi.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-lg"></i> Memverifikasi...';
+        btnOtorisasi.disabled = true;
+    }
 
     try {
         // 3. Tembak Data ke Brankas Supabase
@@ -5428,10 +5432,13 @@ async function prosesLogin() {
         alert('⛔ Akses Ditolak: Kredensial tidak valid atau salah sandi!');
     } finally {
         // Kembalikan Tombol ke Semula jika gagal
-        btnOtorisasi.innerHTML = teksAsli;
-        btnOtorisasi.disabled = false;
+        if (btnOtorisasi) {
+            btnOtorisasi.innerHTML = teksAsli;
+            btnOtorisasi.disabled = false;
+        }
     }
 }
+
 
 // ==========================================
 // FITUR UI: BUKA/TUTUP SANDI (IKON MATA)
