@@ -5380,17 +5380,86 @@ function initApp() {
     renderBerandaMobile();
 }
 
-function prosesLogin() {
-    const toko = document.getElementById('loginStoreCode').value;
-    const password = document.getElementById('loginPassword').value;
+// ==========================================
+// MESIN OTENTIKASI SUPABASE (ENTERPRISE)
+// ==========================================
+async function prosesLogin() {
+    const emailInput = document.getElementById('loginEmail').value.trim();
+    const passwordInput = document.getElementById('loginPassword').value;
+    const btnOtorisasi = document.querySelector('button[onclick="prosesLogin()"]');
+    const teksAsli = btnOtorisasi.innerHTML;
 
-    if (toko === 'ARSYILA' && password === 'arsyila123') {
-        loginSukses(toko);
-    } else if (toko === 'ANTON' && password === 'anton123') {
-        loginSukses(toko);
-    } else {
-        alert('Password salah atau toko tidak valid!');
+    // 1. Pencegat Kolom Kosong
+    if (!emailInput || !passwordInput) {
+        return alert('⚠️ Email dan Sandi Akses wajib diisi!');
     }
+
+    // 2. Efek Loading Profesional
+    btnOtorisasi.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin text-lg"></i> Memverifikasi...';
+    btnOtorisasi.disabled = true;
+
+    try {
+        // 3. Tembak Data ke Brankas Supabase
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: emailInput,
+            password: passwordInput,
+        });
+
+        if (error) throw error;
+
+        // 4. Logika Pengenalan Gerai Otomatis (Tanpa Pilihan Toko)
+        let tokoTujuan = '';
+        let emailChecker = emailInput.toLowerCase();
+        
+        if (emailChecker.includes('arsyila')) {
+            tokoTujuan = 'ARSYILA';
+        } else if (emailChecker.includes('anton')) {
+            tokoTujuan = 'ANTON';
+        } else {
+            // Jika Anda menambah toko baru di masa depan
+            tokoTujuan = 'UMUM'; 
+        }
+
+        // 5. Buka Gerbang Kasir
+        loginSukses(tokoTujuan);
+
+    } catch (error) {
+        // Jika sandi salah atau email tidak terdaftar di Supabase
+        alert('⛔ Akses Ditolak: Kredensial tidak valid atau salah sandi!');
+    } finally {
+        // Kembalikan Tombol ke Semula jika gagal
+        btnOtorisasi.innerHTML = teksAsli;
+        btnOtorisasi.disabled = false;
+    }
+}
+
+// ==========================================
+// FITUR UI: BUKA/TUTUP SANDI (IKON MATA)
+// ==========================================
+function toggleSandi() {
+    const inputSandi = document.getElementById('loginPassword');
+    const ikonMata = document.getElementById('ikonMata');
+
+    if (inputSandi.type === 'password') {
+        inputSandi.type = 'text';
+        ikonMata.classList.remove('fa-eye');
+        ikonMata.classList.add('fa-eye-slash');
+    } else {
+        inputSandi.type = 'password';
+        ikonMata.classList.remove('fa-eye-slash');
+        ikonMata.classList.add('fa-eye');
+    }
+}
+
+// ==========================================
+// FITUR SEMENTARA (TOMBOL GOOGLE & LUPA SANDI)
+// ==========================================
+function lupaSandi() {
+    alert("Protokol pemulihan sandi via email akan segera dikonfigurasi.");
+}
+
+function loginDenganGoogle() {
+    alert("Sistem otentikasi Google sedang dipersiapkan untuk sinkronisasi.");
 }
 
 function loginSukses(toko) {
