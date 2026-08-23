@@ -3161,7 +3161,7 @@ function simpanEditLanjutanMobile() {
                 tutupModalMobile('modalEditMobile');
                 renderBadgeAntreanKulakan();
                 triggerHaptic(100);
-                alert('🛒 Tambah Stok diparkir di Keranjang Kulakan!\\n(Buka troli merah di atas untuk membayar & memasukkannya ke Gudang).');
+                alert('🛒 Tambah Stok diparkir di Keranjang Kulakan!\n(Buka troli merah di atas untuk membayar & memasukkannya ke Gudang).');
             }
         } else {
             // --- EKSEKUSI LANGSUNG (EDIT MURNI / KOREKSI KURANGI STOK) ---
@@ -3524,7 +3524,7 @@ function prosesSimpanObatBaruMobile() {
         tutupModalMobile('modalTambahObatMobile');
         renderBadgeAntreanKulakan();
         triggerHaptic(100);
-        alert('🛒 Obat diparkir di Keranjang Kulakan!\\n(Belum masuk gudang & belum memotong uang).');
+        alert('🛒 Obat diparkir di Keranjang Kulakan!\n(Belum masuk gudang & belum memotong uang).');
     }
 }
 
@@ -4437,13 +4437,14 @@ function bukaScannerKameraMobile(target = 'kasir') {
       // Visual Animasi Hijau Scanner Kasir
                     let btnScan = document.getElementById('btnScannerKasir');
                     if(btnScan) {
-                        btnScan.classList.replace('bg-orange-50', 'bg-emerald-500');
-                        btnScan.classList.replace('border-orange-200', 'border-emerald-600');
-                        btnScan.classList.replace('text-orange-500', 'text-white');
+                        btnScan.classList.remove('bg-orange-50', 'border-orange-200', 'hover:bg-orange-100', 'text-orange-500');
+                        btnScan.classList.add('bg-emerald-500', 'border-emerald-600', 'text-white');
+                        let separator = btnScan.querySelector('span');
+                        if (separator) separator.classList.replace('text-orange-200/50', 'text-emerald-300');
                         setTimeout(() => {
-                            btnScan.classList.replace('bg-emerald-500', 'bg-orange-50');
-                            btnScan.classList.replace('border-emerald-600', 'border-orange-200');
-                            btnScan.classList.replace('text-white', 'text-orange-500');
+                            btnScan.classList.remove('bg-emerald-500', 'border-emerald-600', 'text-white');
+                            btnScan.classList.add('bg-orange-50', 'border-orange-200', 'hover:bg-orange-100', 'text-orange-500');
+                            if (separator) separator.classList.replace('text-emerald-300', 'text-orange-200/50');
                         }, 800);
                     }
                     masukkanKeKeranjangMobile(bEtalase);
