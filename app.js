@@ -4377,42 +4377,6 @@ function prosesSimpanSetelanMobile() {
     tutupModalMobile('modalSetelanMobile');
     alert("✅ Profil Apotek berhasil diperbarui!");
 }
-// ==========================================
-// MESIN UNGGAH & KONVERSI LOGO (BASE64)
-// ==========================================
-function prosesUnggahLogo(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    if (file.size > 2 * 1024 * 1024) {
-        return alert("⚠️ Ukuran gambar terlalu besar! Maksimal 2MB agar aplikasi tetap ringan.");
-    }
-
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const base64String = e.target.result;
-        profilApotek.logo = base64String;
-
-        terapkanLogoVisual(base64String);
-        saveApotekDB('apotek_profilData', profilApotek);
-        alert("✅ Logo berhasil diperbarui!");
-    };
-    reader.readAsDataURL(file);
-}
-
-function terapkanLogoVisual(base64String) {
-    const arrImg = ['previewLogoSetelan', 'logoBeranda', 'logoSidebar'];
-    const arrIcon = ['iconLogoSetelan', 'iconBeranda', 'iconSidebar'];
-
-    if (base64String) {
-        arrImg.forEach(id => { let el = document.getElementById(id); if (el) { el.src = base64String; el.classList.remove('hidden'); } });
-        arrIcon.forEach(id => { let el = document.getElementById(id); if (el) el.classList.add('hidden'); });
-    } else {
-        arrImg.forEach(id => { let el = document.getElementById(id); if (el) { el.src = ''; el.classList.add('hidden'); } });
-        arrIcon.forEach(id => { let el = document.getElementById(id); if (el) el.classList.remove('hidden'); });
-    }
-}
-
 
 // ==========================================
 // 16. MESIN PEMINDAI SENSOR KARTU & BARCODE (VIRTUAL ID)
@@ -5306,49 +5270,6 @@ prosesSimpanSetelanMobile = function() {
     if(document.getElementById('namaApotekSidebar')) document.getElementById('namaApotekSidebar').innerText = namaBaru;
 }
 
-// ==========================================
-// 23. INISIALISASI SAAT APLIKASI DIBUKA
-// ==========================================
-
-// ==========================================
-// PWA ENFORCEMENT & INSTALLATION
-// ==========================================
-let deferredPrompt;
-
-window.addEventListener('beforeinstallprompt', (e) => {
-    e.preventDefault();
-    deferredPrompt = e;
-});
-
-function isStandalone() {
-    return (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone;
-}
-
-function cekPwaMode() {
-    // Only enforce PWA standalone in production or if requested (you can bypass this for testing if needed by modifying the logic, but we follow requirements)
-    if (!isStandalone()) {
-        document.getElementById('pwaBlockerOverlay').classList.remove('hidden');
-        document.getElementById('loginOverlay').classList.add('hidden');
-        document.getElementById('appContent').classList.add('hidden');
-        return false; // Blocks app
-    }
-    return true; // Allowed
-}
-
-async function installPWA() {
-    if (deferredPrompt) {
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-            console.log('User accepted the install prompt');
-        }
-        deferredPrompt = null;
-    } else {
-        document.getElementById('pwaInstallHint').classList.remove('hidden');
-    }
-}
-
-// ==========================================
 window.onload = () => {
     if (!activeStoreCode) {
         document.getElementById('loginOverlay').classList.remove('hidden');
@@ -5372,10 +5293,7 @@ function initApp() {
             document.getElementById('namaApotekHeader').innerText = p.nama;
             if(document.getElementById('namaApotekSidebar')) document.getElementById('namaApotekSidebar').innerText = p.nama;
             document.getElementById('setNamaMobile').value = p.nama;
-
-            // SUNTIKAN: Muat ulang gambar logo ke seluruh wajah aplikasi
-            if(p.logo) terapkanLogoVisual(p.logo);
-        }
+                    }
     } catch(e) {}
     renderBerandaMobile();
 }
@@ -7770,3 +7688,48 @@ async function ubahQtyPenyusutanPrompt(idBatch, max, current) {
         }
     }
 }
+// ==========================================
+// MESIN UBAH SANDI MANDIRI (SUPABASE AUTH)
+// ==========================================
+function bukaModalUbahSandi() {
+    document.getElementById('inputSandiBaru').value = '';
+    document.getElementById('inputKonfirmasiSandi').value = '';
+    bukaModalMobile('modalUbahSandi', 'panelUbahSandi');
+}
+
+async function prosesGantiSandiSupabase() {
+    const sandiBaru = document.getElementById('inputSandiBaru').value;
+    const konfirmasiSandi = document.getElementById('inputKonfirmasiSandi').value;
+
+    if (!sandiBaru || !konfirmasiSandi) {
+        return alert("⚠️ Kolom sandi baru wajib diisi!");
+    }
+
+    if (sandiBaru.length < 6) {
+        return alert("⚠️ Keamanan Supabase: Kata sandi minimal harus 6 karakter.");
+    }
+
+    if (sandiBaru !== konfirmasiSandi) {
+        return alert("⚠️ Konfirmasi sandi tidak cocok. Silakan periksa kembali.");
+    }
+
+    if (!supabaseClient) {
+        return alert("⚠️ Koneksi ke server cloud Supabase sedang terganggu.");
+    }
+
+    try {
+        // Perintah resmi Supabase untuk mengubah password user yang sedang aktif login
+        const { data, error } = await supabaseClient.auth.updateUser({
+            password: sandiBaru
+        });
+
+        if (error) throw error;
+
+        alert("✅ Berhasil! Kata sandi akun Anda telah diperbarui secara permanen di server.");
+        tutupModalMobile('modalUbahSandi');
+
+    } catch (error) {
+        alert("❌ Gagal memperbarui sandi: " + error.message);
+    }
+}
+

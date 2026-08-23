@@ -67,71 +67,67 @@ tailwind.config = {
 
 <body class="text-slate-800 overflow-x-hidden relative w-full h-full">
 
-<div id="loginOverlay" class="fixed inset-0 z-[9999] flex flex-col justify-end items-center px-5 pb-6 hidden overflow-hidden bg-[url('walpaper.jpg')] bg-cover bg-center bg-no-repeat">
+<div id="loginOverlay" class="fixed inset-0 z-[9999] flex flex-col justify-end items-center pb-3 hidden overflow-hidden bg-[url('walpaper.jpg')] bg-cover bg-top bg-no-repeat">
     
     <!-- Lapisan Kaca Super Tipis -->
-    <div class="absolute inset-0 bg-slate-900/10"></div>
+    <div class="absolute inset-0 bg-slate-900/20"></div>
 
-    <!-- Kotak Login VIP (Format Akun Google & Email + AutoSave Form) -->
-    <div class="relative w-full max-w-sm bg-slate-900/30 backdrop-blur-lg border border-slate-400/30 rounded-3xl p-5 shadow-[0_8px_32px_rgba(0,0,0,0.8)] text-center">
+    <!-- Kotak Login VIP (Ramping, Lebih Turun & Kompak) -->
+    <div class="relative w-[75%] max-w-[300px] bg-slate-900/40 backdrop-blur-xl border border-slate-400/30 rounded-[2rem] px-5 pt-1 pb-5 shadow-[0_15px_40px_rgba(0,0,0,0.6)] text-center">
         
-        <!-- Logo Medis -->
-        <div class="h-10 w-10 bg-gradient-to-br from-blue-500 to-indigo-700 rounded-xl mx-auto flex items-center justify-center shadow-lg mb-2 border border-blue-400/30">
-            <i class="fa-solid fa-laptop-medical text-white text-lg"></i>
+        <!-- Logo 3D VIP (Efek Mencuat Keluar) -->
+        <div class="h-20 w-20 mx-auto flex items-center justify-center mb-1 drop-shadow-2xl relative -mt-10">
+            <img src="logo-apotek.png" class="w-full h-full object-contain">
         </div>
 
         <!-- Judul -->
-        <h2 class="text-xl font-black text-white mb-0.5 tracking-tight">POS Usahaku</h2>
-        <p class="text-[10px] text-slate-200 mb-4 font-medium">Sistem Manajemen Aplikasi Kasir</p>
+        <h2 class="text-lg font-black text-white mb-0.5 tracking-tight">POS Usahaku</h2>
+        <p class="text-[9px] text-slate-200 mb-3 font-medium">Sistem Manajemen Kasir</p>
 
-        <!-- FORM INPUT (Dibungkus form agar HP bisa Auto-Save) -->
-        <form onsubmit="event.preventDefault(); prosesLogin();" class="space-y-3">
+        <!-- FORM INPUT -->
+        <form onsubmit="event.preventDefault(); prosesLogin();" class="space-y-2.5">
             
             <!-- Kolom Email Terdaftar -->
             <div class="text-left">
-                <label class="block text-[8px] font-bold text-slate-200 uppercase tracking-[0.2em] mb-1 ml-1">Email Terdaftar</label>
-                <input type="email" id="loginEmail" name="email" autocomplete="username" placeholder="nama@email.com" required class="w-full bg-slate-950/40 border border-slate-500/50 rounded-xl px-3 py-2.5 text-white font-bold outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all placeholder:font-medium placeholder:text-slate-400 shadow-inner backdrop-blur-sm text-xs">
+                <label class="block text-[8px] font-bold text-slate-200 uppercase tracking-[0.2em] mb-1 ml-1">Email</label>
+                <input type="email" id="loginEmail" name="email" autocomplete="username" placeholder="nama@email.com" required class="w-full bg-slate-950/40 border border-slate-500/50 rounded-xl px-3 py-2 text-white font-bold outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all placeholder:font-medium placeholder:text-slate-400 shadow-inner backdrop-blur-sm text-xs">
             </div>
 
-            <!-- Kolom Sandi & Ikon Mata & Lupa Sandi -->
+            <!-- Kolom Sandi & Lupa Sandi -->
             <div class="text-left relative">
                 <div class="flex justify-between items-end mb-1 ml-1 mr-1">
-                    <label class="block text-[8px] font-bold text-slate-200 uppercase tracking-[0.2em]">Sandi Akses</label>
+                    <label class="block text-[8px] font-bold text-slate-200 uppercase tracking-[0.2em]">Sandi</label>
                     <a href="#" onclick="lupaSandi()" class="text-[9px] text-blue-300 hover:text-blue-100 font-medium transition-colors">Lupa Sandi?</a>
                 </div>
                 
-                <!-- Pembungkus Input & Ikon -->
                 <div class="relative">
-                    <!-- Catatan: Ada tambahan pr-10 agar teks tidak menabrak ikon -->
-                    <input type="password" id="loginPassword" name="password" autocomplete="current-password" placeholder="Masukkan kata sandi..." required class="w-full bg-slate-950/40 border border-slate-500/50 rounded-xl px-3 py-2.5 pr-10 text-white font-bold outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all placeholder:font-medium placeholder:text-slate-400 shadow-inner backdrop-blur-sm text-xs">
-                    
-                    <!-- Tombol Ikon Mata -->
+                    <input type="password" id="loginPassword" name="password" autocomplete="current-password" placeholder="Kata sandi..." required class="w-full bg-slate-950/40 border border-slate-500/50 rounded-xl px-3 py-2 pr-10 text-white font-bold outline-none focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition-all placeholder:font-medium placeholder:text-slate-400 shadow-inner backdrop-blur-sm text-xs">
                     <button type="button" onclick="toggleSandi()" class="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-white transition-colors focus:outline-none">
                         <i id="ikonMata" class="fa-solid fa-eye text-sm"></i>
                     </button>
                 </div>
             </div>
 
-            <!-- Tombol Otorisasi Utama -->
+            <!-- Tombol Otorisasi -->
             <button type="submit" class="w-full bg-gradient-to-r from-blue-600/90 to-indigo-700/90 hover:from-blue-500 hover:to-indigo-600 text-white font-bold py-2.5 rounded-xl shadow-[0_0_15px_rgba(59,130,246,0.4)] active:scale-[0.98] transition-all mt-1 text-xs uppercase tracking-widest border border-blue-400/30 flex items-center justify-center gap-2">
-                Otorisasi Email <i class="fa-solid fa-fingerprint text-sm"></i>
+                Otorisasi <i class="fa-solid fa-fingerprint text-sm"></i>
             </button>
-
         </form>
 
-        <!-- Garis Pemisah (Atau) -->
-        <div class="flex items-center my-2 opacity-50">
+        <!-- Garis Pemisah -->
+        <div class="flex items-center my-2.5 opacity-50">
             <div class="flex-grow border-t border-slate-300"></div>
-            <span class="px-2 text-[9px] text-slate-200 font-medium tracking-widest uppercase">Atau</span>
+            <span class="px-2 text-[8px] text-slate-200 font-medium tracking-widest uppercase">Atau</span>
             <div class="flex-grow border-t border-slate-300"></div>
         </div>
 
-        <!-- Tombol Login Google -->
-        <button type="button" onclick="loginDenganGoogle()" class="w-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white font-bold py-2.5 rounded-xl active:scale-[0.98] transition-all text-xs tracking-wide border border-white/30 flex items-center justify-center gap-2 shadow-lg">
-            <i class="fa-brands fa-google text-sm text-white"></i> Lanjutkan dengan Google
+        <!-- Tombol Google -->
+        <button type="button" onclick="loginDenganGoogle()" class="w-full bg-white/10 hover:bg-white/20 backdrop-blur-md text-white font-bold py-2 rounded-xl active:scale-[0.98] transition-all text-xs tracking-wide border border-white/30 flex items-center justify-center gap-2 shadow-lg">
+            <i class="fa-brands fa-google text-sm text-white"></i> Login Google
         </button>
             
     </div>
+</div>
 </div>
 
 <div id="appContent" class="mobile-frame">
@@ -144,11 +140,10 @@ tailwind.config = {
                     <div class="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-2xl -translate-y-1/3 translate-x-1/3"></div>
                     <div class="flex justify-between items-center relative z-10">
                                                 <div class="flex items-center gap-3 cursor-pointer group" onclick="bukaSidebarKiriMobile()">
-                                                        <div class="h-11 w-11 bg-white/20 group-active:scale-95 transition-transform backdrop-blur-sm rounded-2xl flex items-center justify-center shadow-inner border border-white/20 relative overflow-hidden">
-                                <img id="logoBeranda" src="" class="w-full h-full object-cover hidden">
-                                <i id="iconBeranda" class="fa-solid fa-mortar-pestle text-xl text-white"></i>
-                            </div>
-
+                                                        <!-- LOGO BERDIRI SENDIRI & DIPERBESAR -->
+<div class="h-16 w-16 group-active:scale-95 transition-transform relative flex items-center justify-center shrink-0">
+    <img src="logo-apotek.png" class="w-full h-full object-contain drop-shadow-md">
+</div>
                             <div class="group-active:opacity-80 transition-opacity">
   <h1 class="text-white font-bold text-lg tracking-tight" id="namaApotekHeader">Apotek Arsyila</h1>
                                 <p class="text-corporate-100 text-[10px] mt-0.5 font-medium tracking-wide uppercase"><i class="fa-solid fa-location-dot mr-1"></i>Sistem Kasir</p>
@@ -1430,21 +1425,6 @@ tailwind.config = {
 
                                         <div id="setelan-profil" class="hidden px-4 pb-4 pt-4 border-t border-slate-100 space-y-4">
 
-                        <!-- WADAH UNGGAH LOGO BARU -->
-                        <div class="flex items-center gap-4 mb-2">
-                            <div class="w-14 h-14 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
-                                <img id="previewLogoSetelan" src="" class="w-full h-full object-cover hidden">
-                                <i id="iconLogoSetelan" class="fa-solid fa-store text-slate-300 text-xl"></i>
-                            </div>
-                            <div class="flex-1">
-                                <input type="file" id="inputUploadLogo" accept="image/*" class="hidden" onchange="prosesUnggahLogo(event)">
-                                <button onclick="document.getElementById('inputUploadLogo').click()" class="w-full bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 font-bold py-2.5 rounded-xl text-xs transition-colors active:scale-95 shadow-sm">
-                                    <i class="fa-solid fa-image mr-1"></i> Ganti Logo Apotek
-                                </button>
-                                <p class="text-[8px] text-slate-400 mt-1.5 leading-tight">Format JPG/PNG. Maksimal 2MB.</p>
-                            </div>
-                        </div>
-
                         <div>
                             <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Nama Apotek</label>
                             <input type="text" id="setNamaMobile" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-bold text-slate-800 focus:outline-none transition-all">
@@ -1454,13 +1434,18 @@ tailwind.config = {
                             <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">Alamat Lengkap</label>
                             <textarea id="setAlamatMobile" rows="2" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none transition-all leading-relaxed"></textarea>
                         </div>
-                        <div>
+                                                <div>
                             <label class="block text-[10px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider pl-1">No. Telp / WhatsApp</label>
                             <input type="number" id="setTelpMobile" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-800 focus:outline-none transition-all">
                         </div>
-                        <button onclick="prosesSimpanSetelanMobile()" class="w-full bg-corporate-600 hover:bg-corporate-700 text-white font-black py-3.5 rounded-xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2 text-xs tracking-wider"><i class="fa-solid fa-save"></i> Simpan Profil</button>
-                    </div>
+                   <!-- TOMBOL TAMBAHAN: UBAH SANDI MANDIRI -->
+                        <button onclick="bukaModalUbahSandi()" class="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2 text-xs uppercase tracking-wider border border-slate-200 shadow-sm mt-3">
+                            <i class="fa-solid fa-key text-corporate-600"></i> Ubah Sandi Mandiri
+                        </button>
+
+                        <button onclick="prosesSimpanSetelanMobile()" class="w-full bg-corporate-600 hover:bg-corporate-700 text-white font-black py-3.5 rounded-xl shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2 text-xs tracking-wider"><i class="fa-solid fa-save"></i> Simpan Profil</button>      </div>
                 </div>
+
 
                 <!-- BLOK 2: PRINTER -->
                 <div class="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden select-none opacity-70">
@@ -1642,14 +1627,15 @@ tailwind.config = {
     </div>
 
     <div id="sidebarKiriOverlay" class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-[250] hidden opacity-0 transition-opacity duration-300" onclick="tutupSidebarKiriMobile()"></div>
-        <div id="sidebarKiriMobile" class="absolute top-0 left-0 h-full w-[280px] bg-[#f8fafc] z-[260] shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col rounded-r-[2.5rem] overflow-hidden border-r border-slate-200">
-                <div class="bg-gradient-to-br from-corporate-600 to-corporate-800 p-7 pt-12 text-white relative shadow-md">
+    <div id="sidebarKiriMobile" class="absolute top-0 left-0 h-full w-[280px] bg-[#f8fafc] z-[260] shadow-2xl transform -translate-x-full transition-transform duration-300 flex flex-col rounded-r-[2.5rem] overflow-hidden border-r border-slate-200">
+        
+        <div class="bg-gradient-to-br from-corporate-600 to-corporate-800 p-7 pt-12 text-white relative shadow-md">
             <div class="relative inline-block cursor-pointer group" onclick="bukaModalSetelanMobile(); tutupSidebarKiriMobile()">
-                <div class="h-16 w-16 bg-white/20 backdrop-blur-md rounded-[1.25rem] flex items-center justify-center shadow-inner border border-white/30 group-active:scale-95 transition-transform overflow-hidden">
-                    <img id="logoSidebar" src="" class="w-full h-full object-cover hidden">
-                    <i id="iconSidebar" class="fa-solid fa-mortar-pestle text-3xl text-white drop-shadow-md"></i>
+                <!-- LOGO BERDIRI SENDIRI & SUPER BESAR (SIDEBAR) -->
+                <div class="h-24 w-24 group-active:scale-95 transition-transform relative flex items-center justify-center">
+                    <img src="logo-apotek.png" class="w-full h-full object-contain drop-shadow-lg">
                 </div>
-            </div>
+            </div> <!-- INI ADALAH PENUTUP DIV YANG SEMPAT HILANG -->
 
             <div class="mt-5 relative inline-block cursor-pointer group w-full" onclick="bukaModalSetelanMobile(); tutupSidebarKiriMobile()">
                 <h2 class="font-black text-[22px] tracking-tight pr-6 leading-none" id="namaApotekSidebar">Apotek Arsyila</h2>
@@ -1663,7 +1649,7 @@ tailwind.config = {
         <div class="flex-1 p-5 space-y-3 overflow-y-auto hide-scrollbar bg-slate-50">
             <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-2 mb-2 mt-2">Menu Sistem</p>
 
-                            <button onclick="tutupSidebarKiriMobile(); setTimeout(() => alert('Buku Panduan Aplikasi Sedang Dipersiapkan.'), 300);" class="w-full flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-blue-200 transition-all active:scale-95 text-left group">
+            <button onclick="tutupSidebarKiriMobile(); setTimeout(() => alert('Buku Panduan Aplikasi Sedang Dipersiapkan.'), 300);" class="w-full flex items-center gap-4 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:border-blue-200 transition-all active:scale-95 text-left group">
                 <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors"><i class="fa-solid fa-book-open"></i></div>
                 <div><span class="block text-sm font-black text-slate-700 mb-0.5">Panduan Aplikasi</span><span class="block text-[9px] text-slate-500 font-bold uppercase tracking-wider">Buku Manual Kasir</span></div>
             </button>
@@ -2065,7 +2051,7 @@ tailwind.config = {
             <div class="mt-4">
                 <label class="block text-[9px] font-black text-slate-500 mb-2 uppercase tracking-widest pl-1">Urutkan Berdasarkan:</label>
                 <div class="flex gap-2 overflow-x-auto hide-scrollbar pb-1">
-                    <button id="btnUrutLaris" onclick="ubahUrutanRadar('laris')" class="shrink-0 bg-orange-500 text-white border border-orange-600 px-3 py-1.5 rounded-full text-[10px] font-black transition-all shadow-md active:scale-95">🔥 Paling Laris</button>
+                    <button id="btnUrutLaris" onclick="ubahUrutanRadar('laris')" class="shrink-0 bg-orange-500 text-white border border-orange-600 px-3 py-1.5 rounded-full text-[10px] font-black transition-all shadow-md active:scale-95">?? Paling Laris</button>
                     <button id="btnUrutCuan" onclick="ubahUrutanRadar('cuan')" class="shrink-0 bg-slate-50 text-slate-500 border border-slate-200 px-3 py-1.5 rounded-full text-[10px] font-black transition-all active:scale-95">💰 Paling Cuan</button>
                     <button id="btnUrutSisa" onclick="ubahUrutanRadar('sisa_dikit')" class="shrink-0 bg-slate-50 text-slate-500 border border-slate-200 px-3 py-1.5 rounded-full text-[10px] font-black transition-all active:scale-95">🚨 Sisa Dikit</button>
                 </div>
@@ -2101,6 +2087,37 @@ tailwind.config = {
             </div>
         </div>
     </div>
+<!-- MODAL UBAH SANDI MANDIRI -->
+<div id="modalUbahSandi" class="absolute inset-0 z-[160] hidden flex items-end sm:items-center justify-center pointer-events-none">
+    <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity pointer-events-auto" onclick="tutupModalMobile('modalUbahSandi')"></div>
+    <div class="bg-white w-full max-h-[85vh] rounded-t-3xl sm:rounded-3xl sm:w-[90%] sm:mb-10 shadow-2xl relative z-10 pointer-events-auto transform transition-transform translate-y-full flex flex-col overflow-hidden" id="panelUbahSandi">
+        
+        <div class="bg-gradient-to-r from-corporate-700 to-corporate-900 px-6 py-4 flex items-center justify-between shadow-md">
+            <div>
+                <h3 class="font-black text-white text-lg tracking-tight flex items-center gap-2"><i class="fa-solid fa-key text-amber-300"></i> Ganti Sandi Akun</h3>
+                <p class="text-[9px] text-corporate-200 font-bold uppercase tracking-widest mt-0.5">Keamanan Mandiri Pemilik Toko</p>
+            </div>
+            <button onclick="tutupModalMobile('modalUbahSandi')" class="w-8 h-8 rounded-full bg-white/10 text-white flex items-center justify-center hover:bg-white/20 transition-colors"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+
+        <div class="p-6 space-y-4 overflow-y-auto">
+            <div>
+                <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider pl-1">Sandi Baru</label>
+                <input type="password" id="inputSandiBaru" placeholder="Minimal 6 karakter..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-bold text-slate-800 focus:outline-none focus:border-corporate-500 shadow-inner">
+            </div>
+            <div>
+                <label class="block text-[10px] font-black text-slate-600 mb-1.5 uppercase tracking-wider pl-1">Konfirmasi Sandi Baru</label>
+                <input type="password" id="inputKonfirmasiSandi" placeholder="Ulangi sandi baru..." class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-sm font-bold text-slate-800 focus:outline-none focus:border-corporate-500 shadow-inner">
+            </div>
+        </div>
+
+        <div class="p-5 border-t border-slate-100 bg-white">
+            <button onclick="prosesGantiSandiSupabase()" class="w-full bg-corporate-600 hover:bg-corporate-700 text-white font-black py-4 rounded-2xl shadow-lg transition-transform active:scale-95 flex items-center justify-center gap-2 text-sm uppercase tracking-wider">
+                <i class="fa-solid fa-shield-halved"></i> Simpan Sandi Baru
+            </button>
+        </div>
+    </div>
+</div>
 
 </body>
 </html>
