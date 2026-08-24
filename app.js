@@ -1974,10 +1974,13 @@ function renderLaporanMobile() {
                     if(!groupedSalesOnScreen[key]) {
                         groupedSalesOnScreen[key] = { nama: namaLengkap, metode: t.metode, qty: 0, hpp: 0, omzet: 0, laba: 0 };
                     }
+                    let itemHpp = item.hppTotalModal !== undefined ? item.hppTotalModal : ((item.hppSatuan || (item.jual * 0.8)) * item.qty);
+                    let itemOmzet = (item.jual || 0) * item.qty;
+
                     groupedSalesOnScreen[key].qty += item.qty;
-                    groupedSalesOnScreen[key].hpp += (item.hargaModal * item.qty);
-                    groupedSalesOnScreen[key].omzet += (item.hargaJual * item.qty);
-                    groupedSalesOnScreen[key].laba += ((item.hargaJual - item.hargaModal) * item.qty);
+                    groupedSalesOnScreen[key].hpp += itemHpp;
+                    groupedSalesOnScreen[key].omzet += itemOmzet;
+                    groupedSalesOnScreen[key].laba += (itemOmzet - itemHpp);
                 });
             } else {
                 totalBiji += t.item;
@@ -5963,10 +5966,13 @@ function exportLaporanKePDFInternal(tglAwal, tglAkhir, judulPDF, isArsip) {
                     if(!groupedSales[key]) {
                         groupedSales[key] = { nama: namaLengkap, metode: t.metode, qty: 0, hpp: 0, omzet: 0, laba: 0 };
                     }
+                    let itemHpp = item.hppTotalModal !== undefined ? item.hppTotalModal : ((item.hppSatuan || (item.jual * 0.8)) * item.qty);
+                    let itemOmzet = (item.jual || 0) * item.qty;
+
                     groupedSales[key].qty += item.qty;
-                    groupedSales[key].hpp += (item.hargaModal * item.qty);
-                    groupedSales[key].omzet += (item.hargaJual * item.qty);
-                    groupedSales[key].laba += ((item.hargaJual - item.hargaModal) * item.qty);
+                    groupedSales[key].hpp += itemHpp;
+                    groupedSales[key].omzet += itemOmzet;
+                    groupedSales[key].laba += (itemOmzet - itemHpp);
                 });
             } else {
                 let infoFormat = formatNamaItemMaster(null, t.obat, '', '', '');
