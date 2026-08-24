@@ -7634,7 +7634,11 @@ function renderBukuRusakMobile() {
                         <span class="bg-red-50 px-2 py-0.5 rounded text-red-700">${r.qtyDibuang} Pcs</span> <span class="text-slate-300 mx-0.5">|</span>
                         Total Rugi: <span class="text-red-600">${rupiah(r.totalKerugian)}</span>
                     </p>
-                    <p class="text-[10px] text-slate-500 mt-1 italic"><i class="fa-solid fa-triangle-exclamation text-red-400"></i> ${r.jenisMasalah} ${r.catatan ? ' - ' + r.catatan : ''}</p>
+                    <p class="text-[10px] text-slate-500 mt-1 italic"><i class="fa-solid fa-triangle-exclamation text-red-400"></i> ${r.jenisMasalah}${r.catatan && r.catatan !== '-' && r.catatan !== '- -' ? ' - ' + r.catatan : ''}</p>
+                    <div class="mt-3 flex gap-2 border-t border-red-100 pt-3">
+                        <button onclick="prosesBatalPenyusutan('${r.idPenyusutan}')" class="flex-1 bg-white border border-slate-200 text-slate-600 text-[10px] font-bold py-1.5 rounded-lg shadow-sm active:scale-95 transition-all"><i class="fa-solid fa-rotate-left mr-1"></i> Batal (Undo)</button>
+                        <button onclick="prosesHapusRiwayatPenyusutan('${r.idPenyusutan}')" class="flex-1 bg-red-50 border border-red-200 text-red-600 text-[10px] font-bold py-1.5 rounded-lg shadow-sm active:scale-95 transition-all hover:bg-red-100"><i class="fa-solid fa-trash mr-1"></i> Hapus Histori</button>
+                    </div>
                 </div>
             </div>`;
         }).join('');
@@ -7644,6 +7648,78 @@ function renderBukuRusakMobile() {
     if (document.getElementById('bukuRusakTotalRugi')) document.getElementById('bukuRusakTotalRugi').textContent = rupiah(totalRugi);
 }
 
+
+async function prosesHapusRiwayatPenyusutan(idPenyusutan) {
+    let r = historiPenyusutan.find(h => h.idPenyusutan === idPenyusutan);
+    if (!r) return;
+
+    let confirm = await customConfirm("Apakah Anda yakin ingin menghapus histori ini?\n\n(Ini hanya membersihkan histori, stok dan uang tidak akan dikembalikan)");
+    if (!confirm) return;
+
+    historiPenyusutan = historiPenyusutan.filter(h => h.idPenyusutan !== idPenyusutan);
+    saveApotekDB('apotek_penyusutan', historiPenyusutan);
+    renderBukuRusakMobile();
+}
+
+async function prosesBatalPenyusutan(idPenyusutan) {
+    let r = historiPenyusutan.find(h => h.idPenyusutan === idPenyusutan);
+    if (!r) return;
+
+    let confirm = await customConfirm(`Apakah Anda yakin ingin MEMBATALKAN penyusutan ini?\n\nStok (${r.qtyDibuang} Pcs) akan dikembalikan ke Gudang, dan kerugian HPP (${rupiah(r.totalKerugian)}) akan dihapus dari laporan.`);
+    if (!confirm) return;
+
+    // 1. Anti-Zombie Shield
+    let batchMaster = masterItems.find(m => m.idBatch === r.idBatch);
+    if (!batchMaster) {
+        alert("Akses Ditolak: Data induk obat di Gudang sudah dihapus total. Pembatalan tidak bisa dilakukan.");
+        return;
+    }
+
+    // 2. Warehouse Return Shield
+    batchMaster.stok += r.qtyDibuang;
+
+    // 3. HPP/COGS Restoration Shield (kulakan_keuangan)
+    let sisaDibatalkan = r.qtyDibuang;
+    if (batchMaster.kulakan_keuangan && batchMaster.kulakan_keuangan.length > 0) {
+        for (let i = batchMaster.kulakan_keuangan.length - 1; i >= 0; i--) {
+            let f = batchMaster.kulakan_keuangan[i];
+            if (f.stokRusak > 0 && sisaDibatalkan > 0) {
+                let bisaDikembalikan = Math.min(f.stokRusak, sisaDibatalkan);
+                f.stokRusak -= bisaDikembalikan;
+                f.sisaGudang += bisaDikembalikan;
+                sisaDibatalkan -= bisaDikembalikan;
+            }
+        }
+    }
+    batchMaster.stokRusak -= r.qtyDibuang;
+    batchMaster.totalModal += r.totalKerugian;
+
+    // 4. Cross-Shift Validation Shield
+    let waktuMulai = siklusAktif.waktuStart || 0;
+    let timestampPenyusutan = 0;
+    if (r.idPenyusutan && r.idPenyusutan.startsWith('SHR-')) {
+        let part = r.idPenyusutan.substring(4);
+        timestampPenyusutan = parseInt(part.substring(0, 13));
+    }
+
+    if (timestampPenyusutan >= waktuMulai || r.tanggal >= siklusAktif.tanggalStart) {
+        siklusAktif.qtyDihapus -= r.qtyDibuang;
+        if(siklusAktif.qtyDihapus < 0) siklusAktif.qtyDihapus = 0;
+        siklusAktif.modalDihapus -= r.totalKerugian;
+        if(siklusAktif.modalDihapus < 0) siklusAktif.modalDihapus = 0;
+    }
+
+    // Final Step
+    historiPenyusutan = historiPenyusutan.filter(h => h.idPenyusutan !== idPenyusutan);
+
+    saveApotekDB('apotek_master', masterItems);
+    saveApotekDB('apotek_siklus', siklusAktif);
+    saveApotekDB('apotek_penyusutan', historiPenyusutan);
+
+    renderBukuRusakMobile();
+    renderGudangMobile(document.getElementById('cariGudangMobile') ? document.getElementById('cariGudangMobile').value : '');
+    renderBerandaMobile();
+}
 
 // CUSTOM MODAL ENGINE
 function _customModalBase(type, message, defaultValue = '') {
