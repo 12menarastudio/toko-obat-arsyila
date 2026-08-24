@@ -497,9 +497,18 @@ function loadApotekData() {
 // 2. NAVIGASI LAYAR (ROUTING)
 // ==========================================
 function bukaLayar(targetLayar) {
+    // [AUTO-CLEANER] Tutup semua pop-up/dropdown yang melayang sebelum pindah layar
+    let drpRiwayat = document.getElementById('panelFilterRiwayat');
+    if(drpRiwayat && !drpRiwayat.classList.contains('hidden')) toggleDropdownFilterRiwayat();
+    
+    let drpLaporan = document.getElementById('panelFilterLaporan');
+    if(drpLaporan && !drpLaporan.classList.contains('hidden')) toggleDropdownFilterLaporan();
+    
+    let drpPDF = document.getElementById('panelExportPDF');
+    if(drpPDF && !drpPDF.classList.contains('hidden')) toggleDropdownExportPDF();
+
     // Sembunyikan semua layar
     document.querySelectorAll('.layar-app').forEach(layar => layar.classList.add('hidden'));
-
     // Tampilkan layar yang dituju
     const layarAktif = document.getElementById('layar-' + targetLayar);
     if(layarAktif) layarAktif.classList.remove('hidden');
@@ -1231,14 +1240,14 @@ function renderRiwayatMobile() {
                     let nominalItem = (k.jual * k.qty).toLocaleString('id-ID');
                     grupRiwayat[key].rincian.push(`
                     <div class="flex flex-col w-full mb-2">
-                        <div class="flex items-start w-full opacity-60">
-                            <div class="text-[10px] text-slate-600 font-semibold leading-tight flex-1 line-through">
-                                <div class="flex items-center gap-1">- ${infoFormat.namaHtml} (x${k.qty})</div>
-                                <div class="ml-2 mt-1">${infoFormat.kategoriHtml}</div>
+                        <div class="grid grid-cols-[1fr_30px_20px_max-content] items-center w-full opacity-60 line-through mb-1">
+                            <div class="text-[10px] text-slate-600 font-semibold leading-tight pr-2">
+                                <div class="truncate">- ${infoFormat.namaUtama} ${infoFormat.varianHtml}</div>
+                                <div class="ml-2 mt-0.5">${infoFormat.kategoriHtml}</div>
                             </div>
-                            <div class="w-[75px] shrink-0 flex justify-between text-[11px] font-black text-slate-800 pl-1 line-through">
-                                <span>Rp</span><span>${nominalItem}</span>
-                            </div>
+                            <div class="text-[10px] font-black text-slate-500 text-center">x${k.qty}</div>
+                            <div class="text-[11px] font-black text-slate-800 text-left">Rp</div>
+                            <div class="text-[11px] font-black text-slate-800 text-right">${nominalItem}</div>
                         </div>
                         <div class="text-[9px] font-bold text-emerald-600 mt-0.5 ml-2 flex items-center gap-1">
                             <i class="fa-solid fa-check-circle"></i> Lunas Total: Rp ${nominalItem}
@@ -1250,14 +1259,14 @@ function renderRiwayatMobile() {
                     let nominalTebusStr = nominalTertebus.toLocaleString('id-ID');
                     grupRiwayat[key].rincian.push(`
                     <div class="flex flex-col w-full mb-2 bg-amber-50/30 p-2 rounded-xl border border-amber-200">
-                        <div class="flex items-start w-full">
-                            <div class="text-[10.5px] text-slate-800 font-bold leading-tight flex-1">
-                                <div class="flex items-center gap-1">- ${infoFormat.namaHtml} (x${qtySisa})</div>
-                                <div class="ml-2 mt-1">${infoFormat.kategoriHtml}</div>
+                        <div class="grid grid-cols-[1fr_30px_20px_max-content] items-center w-full">
+                            <div class="text-[10.5px] text-slate-800 font-bold leading-tight pr-2">
+                                <div class="truncate">- ${infoFormat.namaUtama} ${infoFormat.varianHtml}</div>
+                                <div class="ml-2 mt-0.5">${infoFormat.kategoriHtml}</div>
                             </div>
-                            <div class="w-[75px] shrink-0 flex justify-between text-[11px] font-black text-slate-800 pl-1">
-                                <span>Rp</span><span>${nominalSisaStr}</span>
-                            </div>
+                            <div class="text-[10.5px] font-black text-slate-700 text-center">x${qtySisa}</div>
+                            <div class="text-[11px] font-black text-slate-800 text-left">Rp</div>
+                            <div class="text-[11px] font-black text-slate-800 text-right">${nominalSisaStr}</div>
                         </div>
                         <div class="text-[9px] font-bold text-amber-600 mt-1.5 ml-2 flex items-center gap-1">
                             <i class="fa-solid fa-clock"></i> Telah ditebus ${qtyTertebus} stok: Rp ${nominalTebusStr}
@@ -1267,21 +1276,21 @@ function renderRiwayatMobile() {
                     // NORMAL / BELUM DISENTUH
                     let nominalItem = (k.jual * k.qty).toLocaleString('id-ID');
                     grupRiwayat[key].rincian.push(`
-                    <div class="flex items-start w-full mb-1.5">
-                        <div class="text-[10px] text-slate-600 font-semibold leading-tight flex-1">
-                            <div class="flex items-center gap-1">- ${infoFormat.namaHtml} (x${k.qty})</div>
-                            <div class="ml-2 mt-1">${infoFormat.kategoriHtml}</div>
+                    <div class="grid grid-cols-[1fr_30px_20px_max-content] items-center w-full mb-1.5">
+                        <div class="text-[10px] text-slate-600 font-semibold leading-tight pr-2">
+                            <div class="truncate">- ${infoFormat.namaUtama} ${infoFormat.varianHtml}</div>
+                            <div class="ml-2 mt-0.5">${infoFormat.kategoriHtml}</div>
                         </div>
-                        <div class="w-[75px] shrink-0 flex justify-between text-[11px] font-black text-slate-800 pl-1">
-                            <span>Rp</span><span>${nominalItem}</span>
-                        </div>
+                        <div class="text-[10px] font-black text-slate-500 text-center">x${k.qty}</div>
+                        <div class="text-[11px] font-black text-slate-800 text-left">Rp</div>
+                        <div class="text-[11px] font-black text-slate-800 text-right">${nominalItem}</div>
                     </div>`);
                 }
             });
         } else {
             let nominalTotal = (t.total).toLocaleString('id-ID');
             let infoFormat = formatNamaItemMaster(null, t.obat, '', '', 'text-[10px] flex-1');
-            grupRiwayat[key].rincian.push(`<div class="flex items-start w-full mb-1.5"><div class="text-[10px] text-slate-600 font-semibold leading-tight flex-1"><div class="flex items-center gap-1">- ${infoFormat.namaHtml} (x${t.item || 1})</div><div class="ml-2 mt-1">${infoFormat.kategoriHtml}</div></div><div class="w-[75px] shrink-0 flex justify-between text-[11px] font-black text-slate-800 pl-1"><span>Rp</span><span>${nominalTotal}</span></div></div>`);
+            grupRiwayat[key].rincian.push(`<div class="grid grid-cols-[1fr_30px_20px_max-content] items-center w-full mb-1.5"><div class="text-[10px] text-slate-600 font-semibold leading-tight pr-2"><div class="truncate">- ${infoFormat.namaUtama} ${infoFormat.varianHtml}</div><div class="ml-2 mt-0.5">${infoFormat.kategoriHtml}</div></div><div class="text-[10px] font-black text-slate-500 text-center">x${t.item || 1}</div><div class="text-[11px] font-black text-slate-800 text-left">Rp</div><div class="text-[11px] font-black text-slate-800 text-right">${nominalTotal}</div></div>`);
         }
     });
 
@@ -1843,11 +1852,16 @@ let laporanLabelVisual = "Hari Ini";
 function toggleDropdownFilterLaporan() {
     const panel = document.getElementById('panelFilterLaporan');
     const icon = document.getElementById('iconDropdownFilterLaporan');
+    const backdrop = document.getElementById('backdropFilterLaporan');
     if(panel.classList.contains('hidden')) {
         panel.classList.remove('hidden');
+        if (backdrop) backdrop.classList.remove('hidden');
+        document.body.classList.add('overflow-hidden');
         icon.style.transform = 'rotate(180deg)';
     } else {
         panel.classList.add('hidden');
+        if (backdrop) backdrop.classList.add('hidden');
+        document.body.classList.remove('overflow-hidden');
         icon.style.transform = 'rotate(0deg)';
     }
 }
@@ -2562,6 +2576,14 @@ function bukaModalMobile(idModal, idPanel) {
 
 function tutupModalMobile(idModal) {
     const modal = document.getElementById(idModal); const panel = modal.querySelector('.transform.transition-transform');
+    
+    // --- SENSOR SAPU BERSIH POP-UP DI DALAM MODAL ---
+    let dKasir = document.getElementById('dropdownKasirList');
+    if (dKasir) dKasir.classList.add('hidden');
+    document.querySelectorAll('.custom-dropdown-menu').forEach(m => m.classList.add('hidden'));
+    document.querySelectorAll('.custom-dropdown-icon').forEach(i => i.style.transform = 'rotate(0deg)');
+    // ------------------------------------------------
+
     if(panel) panel.classList.add('translate-y-full'); setTimeout(() => { modal.classList.add('hidden'); }, 300);
 }
 
@@ -6940,6 +6962,12 @@ function tutupSidebarTrafik() {
     const panel = document.getElementById('sidebarTrafikMobile');
     overlay.classList.add('opacity-0');
     panel.classList.add('translate-x-full');
+    
+    // --- SENSOR RESET AKORDEON ---
+    // Membunuh ingatan akordeon yang terbuka agar kembali rapi saat dibuka lagi
+    kalenderTerbuka = null; 
+    // -----------------------------
+    
     setTimeout(() => { overlay.classList.add('hidden'); }, 300);
 }
 
@@ -7044,10 +7072,15 @@ document.addEventListener('touchend', (e) => {
 function toggleDropdownTrafik() {
     const menu = document.getElementById('panelFilterTrafik');
     const icon = document.getElementById('iconDropdownTrafik');
+    const backdrop = document.getElementById('backdropFilterTrafik');
     if(menu.classList.contains('hidden')) {
-        menu.classList.remove('hidden'); icon.style.transform = 'rotate(180deg)';
+        menu.classList.remove('hidden'); 
+        if(backdrop) backdrop.classList.remove('hidden');
+        icon.style.transform = 'rotate(180deg)';
     } else {
-        menu.classList.add('hidden'); icon.style.transform = 'rotate(0deg)';
+        menu.classList.add('hidden'); 
+        if(backdrop) backdrop.classList.add('hidden');
+        icon.style.transform = 'rotate(0deg)';
     }
 }
 
@@ -7736,4 +7769,47 @@ async function prosesGantiSandiSupabase() {
         alert("❌ Gagal memperbarui sandi: " + error.message);
     }
 }
+// ==========================================
+// SENSOR PEMBERSIH UNIVERSAL (KLIK DI LUAR POP-UP)
+// ==========================================
+document.addEventListener('pointerdown', function(e) {
+    // 1. Sapu Bersih Pop-up Filter Laporan
+    let pLaporan = document.getElementById('panelFilterLaporan');
+    let bLaporan = document.getElementById('teksFilterLaporanUi')?.parentElement;
+    if (pLaporan && !pLaporan.classList.contains('hidden') && !pLaporan.contains(e.target) && (!bLaporan || !bLaporan.contains(e.target))) {
+        toggleDropdownFilterLaporan();
+    }
+    
+    // 2. Sapu Bersih Pop-up Filter Riwayat
+    let pRiwayat = document.getElementById('panelFilterRiwayat');
+    let bRiwayat = document.getElementById('teksFilterRiwayatUi')?.parentElement;
+    if (pRiwayat && !pRiwayat.classList.contains('hidden') && !pRiwayat.contains(e.target) && (!bRiwayat || !bRiwayat.contains(e.target))) {
+        toggleDropdownFilterRiwayat();
+    }
+    
+    // 3. Sapu Bersih Pop-up Filter Trafik / Radar
+    let pTrafik = document.getElementById('panelFilterTrafik');
+    let bTrafik = document.getElementById('teksFilterTrafikUi')?.parentElement;
+    if (pTrafik && !pTrafik.classList.contains('hidden') && !pTrafik.contains(e.target) && (!bTrafik || !bTrafik.contains(e.target))) {
+        toggleDropdownTrafik();
+    }
+    
+    // 4. Sapu Bersih Dropdown Mesin Kasir
+    let pKasir = document.getElementById('dropdownKasirList');
+    let bKasir = pKasir ? pKasir.previousElementSibling : null;
+    if (pKasir && !pKasir.classList.contains('hidden') && !pKasir.contains(e.target) && (!bKasir || !bKasir.contains(e.target))) {
+        pKasir.classList.add('hidden');
+    }
 
+    // 5. Sapu Bersih Semua Custom Dropdown Form (Kategori, Satuan)
+    document.querySelectorAll('.custom-dropdown-menu').forEach(menu => {
+        if (!menu.classList.contains('hidden')) {
+            let btn = menu.previousElementSibling;
+            if (!menu.contains(e.target) && (!btn || !btn.contains(e.target))) {
+                menu.classList.add('hidden');
+                let icon = btn ? btn.querySelector('.custom-dropdown-icon') : null;
+                if (icon) icon.style.transform = 'rotate(0deg)';
+            }
+        }
+    });
+});
