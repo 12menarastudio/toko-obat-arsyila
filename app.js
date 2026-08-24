@@ -2639,16 +2639,17 @@ let barang = masterItems.find(i => i.idBatch === idBatch);
 function renderEditTabsMobile() {
     let html = currentEditBatchesMobile.map((b, index) => {
         let isActive = (!isAddingNewBatchMobile && index === activeEditBatchIndexMobile) ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200';
-        return `<button type="button" onclick="pindahTabEditMobile(${index})" class="whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition ${isActive}">Batch ${index + 1}</button>`;
+        return `<button type="button" onclick="pindahTabEditMobile(${index})" class="whitespace-nowrap px-4 py-2 rounded-full shadow-sm text-xs font-bold transition ${isActive}">Batch Obat ${index + 1}</button>`;
     }).join('');
 
     let addActive = isAddingNewBatchMobile ? 'bg-blue-600 text-white shadow-md' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200';
-    html += `<button type="button" onclick="siapkanBatchBaruMobile()" class="whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-1 ${addActive}"><i class="fa-solid fa-plus"></i> Batch Baru</button>`;
+    html += `<button type="button" onclick="siapkanBatchBaruMobile()" class="whitespace-nowrap px-4 py-2 rounded-full shadow-sm text-xs font-bold transition flex items-center gap-1 ${addActive}"><i class="fa-solid fa-plus"></i> Tambah Stok</button>`;
 
     document.getElementById('editBatchNavMobile').innerHTML = html;
 }
 
 function pindahTabEditMobile(index) {
+    modeEditKeranjangIndex = null;
     isAddingNewBatchMobile = false; activeEditBatchIndexMobile = index;
     idBatchAktif = currentEditBatchesMobile[index].idBatch;
     renderEditTabsMobile(); loadFormEditBatchMobile(); kunciFormEditMobile();
@@ -2743,6 +2744,7 @@ function isiKategoriEditCerdas(kategori) {
 
 
 function siapkanBatchBaruMobile() {
+    modeEditKeranjangIndex = null;
     isAddingNewBatchMobile = true; renderEditTabsMobile();
     let referensi = currentEditBatchesMobile[0];
 
@@ -3855,7 +3857,8 @@ function bukaEditItemAntrean(idx) {
                 document.getElementById('editVarianMobile').readOnly = true; document.getElementById('editVarianMobile').classList.add('bg-slate-200','text-slate-500');
                 document.getElementById('editKategoriMobile').disabled = true; document.getElementById('btn_editKategoriMobile').classList.add('bg-slate-200','text-slate-500');
                 document.getElementById('editJualMobile').readOnly = true; document.getElementById('editJualMobile').classList.add('bg-slate-200','text-slate-500');
-                document.getElementById('btnUbahJualMobile').classList.add('hidden');
+                let btnJual = document.getElementById('btnUbahJualMobile');
+                if (btnJual) { btnJual.classList.add('hidden'); }
             }
 
             setTimeout(() => bukaModalMobile('modalEditMobile', 'panelEditMobile'), 400);
