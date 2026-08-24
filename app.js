@@ -2638,12 +2638,12 @@ let barang = masterItems.find(i => i.idBatch === idBatch);
 
 function renderEditTabsMobile() {
     let html = currentEditBatchesMobile.map((b, index) => {
-        let isActive = (!isAddingNewBatchMobile && index === activeEditBatchIndexMobile) ? 'bg-blue-600 text-white shadow-md' : 'bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200';
-        return `<button type="button" onclick="pindahTabEditMobile(${index})" class="whitespace-nowrap px-4 py-2 rounded-full shadow-sm text-xs font-bold transition ${isActive}">Batch Obat ${index + 1}</button>`;
+        let isActive = (!isAddingNewBatchMobile && index === activeEditBatchIndexMobile) ? 'bg-blue-600 text-white shadow-md rounded-full px-5' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200 rounded-full px-5';
+        return `<button type="button" onclick="pindahTabEditMobile(${index})" class="whitespace-nowrap py-2 shadow-sm text-xs font-bold transition ${isActive}">Batch Obat ${index + 1}</button>`;
     }).join('');
 
-    let addActive = isAddingNewBatchMobile ? 'bg-blue-600 text-white shadow-md' : 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200';
-    html += `<button type="button" onclick="siapkanBatchBaruMobile()" class="whitespace-nowrap px-4 py-2 rounded-full shadow-sm text-xs font-bold transition flex items-center gap-1 ${addActive}"><i class="fa-solid fa-plus"></i> Tambah Stok</button>`;
+    let addActive = isAddingNewBatchMobile ? 'bg-blue-600 text-white shadow-md rounded-full px-5' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200 rounded-full px-5';
+    html += `<button type="button" onclick="siapkanBatchBaruMobile()" class="whitespace-nowrap py-2 shadow-sm text-xs font-bold transition flex items-center gap-1 ${addActive}"><i class="fa-solid fa-plus"></i> Tambah Stok</button>`;
 
     document.getElementById('editBatchNavMobile').innerHTML = html;
 }
@@ -2970,7 +2970,7 @@ function bukaKunciHargaJualMobile() {
     inputJual.classList.remove('bg-slate-200', 'text-slate-500');
     inputJual.classList.add('bg-white', 'text-slate-900');
     inputJual.focus();
-    document.getElementById('btnUbahJualMobile').classList.add('hidden');
+    let btnJual = document.getElementById('btnUbahJualMobile'); if(btnJual) btnJual.classList.add('hidden');
 }
 
 function prosesTombolAksiEditMobile() {

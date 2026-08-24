@@ -506,7 +506,7 @@ tailwind.config = {
                     <i class="fa-regular fa-calendar-days absolute left-4 top-1/2 -translate-y-1/2 text-corporate-500 text-lg pointer-events-none"></i>
 
                     <!-- Panel Melayang Neumorphism -->
-                    <div id="backdropFilterRiwayat" class="hidden fixed inset-0 bg-black/50 z-40 transition-opacity" onclick="toggleDropdownFilterRiwayat()"></div>
+                    <div id="backdropFilterRiwayat" class="hidden fixed inset-0 z-40" onclick="toggleDropdownFilterRiwayat()"></div>
                     <div id="panelFilterRiwayat" class="hidden absolute left-0 right-0 sm:w-[320px] top-[calc(100%+12px)] bg-[#f8fafc] rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.4)] border border-slate-200 overflow-hidden transform origin-top transition-all z-50">
                         <div class="p-4 bg-white border-b border-slate-100">
                             <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 pl-1"><i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Filter Pintas</p>
@@ -626,6 +626,7 @@ tailwind.config = {
                         <i class="fa-regular fa-calendar-days absolute left-5 top-1/2 -translate-y-1/2 text-slate-400 text-lg pointer-events-none"></i>
 
                         <!-- Panel Melayang Neumorphism (Filter Dropdown) -->
+                        <div id="backdropFilterLaporan" class="hidden fixed inset-0 z-40" onclick="toggleDropdownFilterLaporan()"></div>
                         <div id="panelFilterLaporan" class="hidden absolute left-0 right-0 sm:w-[320px] top-[calc(100%+12px)] bg-[#f8fafc] rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.4)] border border-slate-200 overflow-hidden transform origin-top transition-all z-50">
                             <div class="p-4 bg-white border-b border-slate-100">
                                 <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3 pl-1"><i class="fa-solid fa-bolt text-amber-500 mr-1"></i> Filter Pintas</p>
@@ -755,7 +756,7 @@ tailwind.config = {
                 </div>
             </button>
 
-            <div class="bg-slate-50 border-b border-slate-200 justify-center py-4 flex gap-3 overflow-x-auto hide-scrollbar shadow-sm z-10" id="editBatchNavMobile"></div>
+            <div class="bg-white border-b border-slate-200 px-4 py-4 flex justify-center gap-3 overflow-x-auto hide-scrollbar shadow-sm z-10" id="editBatchNavMobile"></div>
 
             <div class="p-6 overflow-y-auto hide-scrollbar flex-1 space-y-4">
                 <div>
@@ -2027,6 +2028,7 @@ tailwind.config = {
             </button>
 
             <!-- Menu Dropdown Waktu -->
+            <div id="backdropFilterTrafik" class="hidden fixed inset-0 z-40" onclick="toggleDropdownTrafik()"></div>
             <div id="panelFilterTrafik" class="hidden absolute left-5 right-5 top-[60px] bg-white rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.3)] border border-slate-200 overflow-hidden transform origin-top transition-all z-50">
                 <div class="p-3 bg-slate-50 border-b border-slate-100 flex flex-col gap-1.5">
                     <button onclick="setFilterTrafik('hari_ini')" class="text-left px-3 py-2 text-xs font-bold text-slate-700 hover:bg-blue-50 rounded-lg">📅 Hari Ini</button>
