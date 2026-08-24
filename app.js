@@ -1948,20 +1948,59 @@ function renderLaporanMobile() {
     let inLunas = 0, totalPembeli = 0, totalBiji = 0;
     let setPembeliUnikLaporan = new Set();
 
-    dataPeriode.forEach(t => {
-        if(!t.isPelunasan) {
-            lOmset += t.total; lHPP += (t.total - t.laba);
-            if(t.metode === 'Tunai') omzetTunai += t.total;
-            else if(t.metode === 'QRIS') omzetQRIS += t.total;
-            else if(t.metode === 'Debt') omzetDebt += t.total;
+    let groupedSalesOnScreen = {};
+    let lunasListOnScreen = [];
 
-            let kunciPelacak = (t.metode === 'Debt') ? 'DEBT_'+t.tanggal+'_'+t.waktu+'_'+t.pelanggan : 'TRX_'+t.id; setPembeliUnikLaporan.add(kunciPelacak);
-            totalPembeli = setPembeliUnikLaporan.size;
-            totalBiji += (t.item || 1);
+    dataPeriode.forEach(t => {
+        let kunciPelacak = (t.metode === 'Debt') ? 'DEBT_'+t.tanggal+'_'+t.waktu+'_'+t.pelanggan : 'TRX_'+t.id; setPembeliUnikLaporan.add(kunciPelacak);
+
+        if(!t.isPelunasan) {
+            let omzet = t.total;
+            let laba = t.laba;
+            let hpp = (t.total - t.laba);
+
+            lOmset += omzet; lHPP += hpp;
+            if(t.metode === 'Tunai') omzetTunai += omzet;
+            else if(t.metode === 'QRIS') omzetQRIS += omzet;
+            else if(t.metode === 'Debt') omzetDebt += omzet;
+
+            if (t.detailKeranjang && t.detailKeranjang.length > 0) {
+                t.detailKeranjang.forEach(item => {
+                    totalBiji += item.qty;
+                    let infoFormat = formatNamaItemMaster(item.dnaInduk, item.nama, item.varian, item.kategori, '');
+                    let namaLengkap = infoFormat.namaLengkapTxt + (infoFormat.kategoriTxt ? ' [' + infoFormat.kategoriTxt + ']' : '');
+
+                    let key = namaLengkap + '|' + t.metode;
+                    if(!groupedSalesOnScreen[key]) {
+                        groupedSalesOnScreen[key] = { nama: namaLengkap, metode: t.metode, qty: 0, hpp: 0, omzet: 0, laba: 0 };
+                    }
+                    groupedSalesOnScreen[key].qty += item.qty;
+                    groupedSalesOnScreen[key].hpp += (item.hargaModal * item.qty);
+                    groupedSalesOnScreen[key].omzet += (item.hargaJual * item.qty);
+                    groupedSalesOnScreen[key].laba += ((item.hargaJual - item.hargaModal) * item.qty);
+                });
+            } else {
+                totalBiji += t.item;
+                let infoFormat = formatNamaItemMaster(null, t.obat, '', '', '');
+                let namaLengkap = infoFormat.namaLengkapTxt + (infoFormat.kategoriTxt ? ' [' + infoFormat.kategoriTxt + ']' : '');
+
+                let key = namaLengkap + '|' + t.metode;
+                if(!groupedSalesOnScreen[key]) {
+                    groupedSalesOnScreen[key] = { nama: namaLengkap, metode: t.metode, qty: 0, hpp: 0, omzet: 0, laba: 0 };
+                }
+                groupedSalesOnScreen[key].qty += t.item;
+                groupedSalesOnScreen[key].hpp += hpp;
+                groupedSalesOnScreen[key].omzet += omzet;
+                groupedSalesOnScreen[key].laba += laba;
+            }
         } else {
-            inLunas += (t.total || 0);
+            inLunas += t.total;
+            lOmset += t.total;
+            omzetTunai += t.total;
+            lunasListOnScreen.push(t);
         }
     });
+    totalPembeli = setPembeliUnikLaporan.size;
 
     let bBiayaToko = 0, bPrive = 0, bKulakan = 0;
     let listKulakanHtml = '', listBiayaHtml = '', listPriveHtml = '';
@@ -1975,11 +2014,20 @@ function renderLaporanMobile() {
 
     let labaKotor = lOmset - lHPP;
     let kerugianPenyusutan = 0;
+    let listPenyusutanHtml = "";
+
     historiPenyusutan.forEach(susut => {
-        if (susut.tanggal >= laporanTglAwal && susut.tanggal <= laporanTglAkhir) {
+        if (susut.tanggal >= laporanTglAwal && susut.tanggal <= laporanTglAkhir && (laporanTglAwal === '2000-01-01' ? true : susut.tanggal !== '2000-01-01')) {
             kerugianPenyusutan += (susut.totalKerugian || 0);
+            listPenyusutanHtml += `<div class="grid grid-cols-[1fr_max-content_max-content] gap-x-2 text-[10px] text-slate-500 mb-1 border-b border-slate-100 pb-1">
+                <span class="truncate">&bull; ${susut.namaLengkap} <br><span class="text-[8px] text-slate-400">(${susut.qtyDibuang} dibuang - ${susut.jenisMasalah})</span></span>
+                <span class="text-rose-500 font-mono">- Rp</span><span class="text-rose-500 font-mono text-right font-medium">${Math.round(susut.totalKerugian || 0).toLocaleString('id-ID')}</span>
+            </div>`;
         }
     });
+
+    if(!listPenyusutanHtml) listPenyusutanHtml = `<div class="text-[10px] text-slate-400 italic text-center py-2">Belum ada kerugian barang rusak</div>`;
+
     let labaBersihSejati = labaKotor - bBiayaToko - kerugianPenyusutan; // Rumus Baru
     let labaDitahan = labaBersihSejati - bPrive;
     let aov = totalPembeli > 0 ? (lOmset / totalPembeli) : 0;
@@ -2030,6 +2078,22 @@ function renderLaporanMobile() {
     // =======================================================
     // RENDERING UI: AKORDEON DINAMIS & BATANGAN EMAS
     // =======================================================
+    let listTrxGroupedHtml = "";
+    for (let key in groupedSalesOnScreen) {
+        let g = groupedSalesOnScreen[key];
+        listTrxGroupedHtml += `<div class="grid grid-cols-[1fr_max-content_max-content] gap-x-2 text-[10px] text-slate-500 mb-2 border-b border-slate-700/50 pb-2">
+            <span class="truncate">&bull; ${g.nama} <br><span class="text-[8px] text-slate-400">(${g.qty} item - ${g.metode})</span></span>
+            <span class="text-emerald-500 font-mono">Rp</span><span class="text-emerald-500 font-mono text-right font-medium">${Math.round(g.omzet).toLocaleString('id-ID')}</span>
+        </div>`;
+    }
+    lunasListOnScreen.forEach(t => {
+        listTrxGroupedHtml += `<div class="grid grid-cols-[1fr_max-content_max-content] gap-x-2 text-[10px] text-slate-500 mb-2 border-b border-slate-700/50 pb-2">
+            <span class="truncate">&bull; Pelunasan: ${t.keterangan || '-'} <br><span class="text-[8px] text-slate-400">(Tunai)</span></span>
+            <span class="text-emerald-500 font-mono">Rp</span><span class="text-emerald-500 font-mono text-right font-medium">${Math.round(t.total).toLocaleString('id-ID')}</span>
+        </div>`;
+    });
+    if(!listTrxGroupedHtml) listTrxGroupedHtml = `<div class="text-[10px] text-slate-400 italic text-center py-2">Belum ada transaksi</div>`;
+
     wadah.innerHTML = `
     <div class="flex flex-col gap-3 pb-4">
 
@@ -2159,6 +2223,32 @@ function renderLaporanMobile() {
                         <span class="font-black font-mono text-[11px] ${labaBersihSejati >= 0 ? 'text-[#166534]' : 'text-rose-600'}">Rp</span>
                         <span class="font-black font-mono text-[13px] tracking-tight ${labaBersihSejati >= 0 ? 'text-[#166534]' : 'text-rose-600'}">${Math.round(labaBersihSejati).toLocaleString('id-ID')}</span>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BLOK RINCIAN BUKU HARIAN (GROUPED TRANSAKSI) -->
+        <div class="bg-[#24272c] border border-[#3b3f46] rounded-xl shadow-sm select-none">
+            <div class="flex justify-between items-center px-4 py-2.5 cursor-pointer" onclick="toggleAkordeonLaporan('blok-transaksi-grouped')">
+                <p class="text-[9px] font-black text-[#93c5fd] uppercase tracking-widest flex items-center gap-1.5"><i class="fa-solid fa-receipt text-sky-400"></i> RINCIAN TRANSAKSI (GROUPED)</p>
+                <i class="fa-solid fa-chevron-down text-slate-400 text-[10px] transition-transform duration-300" id="icon-blok-transaksi-grouped"></i>
+            </div>
+            <div id="blok-transaksi-grouped" class="hidden px-3.5 pb-3.5 border-t border-[#3b3f46] pt-2 space-y-2">
+                <div class="bg-[#1e2329] border border-[#3b3f46] p-2 rounded-sm">
+                    ${listTrxGroupedHtml}
+                </div>
+            </div>
+        </div>
+
+        <!-- BLOK KERUGIAN BARANG RUSAK -->
+        <div class="bg-[#24272c] border border-[#3b3f46] rounded-xl shadow-sm select-none">
+            <div class="flex justify-between items-center px-4 py-2.5 cursor-pointer" onclick="toggleAkordeonLaporan('blok-rusak')">
+                <p class="text-[9px] font-black text-rose-400 uppercase tracking-widest flex items-center gap-1.5"><i class="fa-solid fa-truck-ramp-box text-rose-500"></i> KERUGIAN BRG RUSAK/EXP</p>
+                <i class="fa-solid fa-chevron-down text-slate-400 text-[10px] transition-transform duration-300" id="icon-blok-rusak"></i>
+            </div>
+            <div id="blok-rusak" class="hidden px-3.5 pb-3.5 border-t border-[#3b3f46] pt-2 space-y-2">
+                <div class="bg-[#1e2329] border border-[#3b3f46] p-2 rounded-sm">
+                    ${listPenyusutanHtml}
                 </div>
             </div>
         </div>
@@ -5842,56 +5932,114 @@ function exportPDFArsip() {
 function exportLaporanKePDFInternal(tglAwal, tglAkhir, judulPDF, isArsip) {
     let dataPeriode = cashierHistory.filter(t => t.tanggal >= tglAwal && t.tanggal <= tglAkhir && (isArsip ? t.tanggal === '2000-01-01' : t.tanggal !== '2000-01-01'));
     let dataKeluar = pengeluaranHistory.filter(p => p.tanggal >= tglAwal && p.tanggal <= tglAkhir && (isArsip ? p.tanggal === '2000-01-01' : p.tanggal !== '2000-01-01'));
+    let dataPenyusutan = historiPenyusutan.filter(p => p.tanggal >= tglAwal && p.tanggal <= tglAkhir && (isArsip ? p.tanggal === '2000-01-01' : p.tanggal !== '2000-01-01'));
 
-    if(dataPeriode.length === 0 && dataKeluar.length === 0) return alert("Data kosong! Belum ada transaksi pada rentang tanggal ini.");
+    if(dataPeriode.length === 0 && dataKeluar.length === 0 && dataPenyusutan.length === 0) return alert("Data kosong! Belum ada transaksi pada rentang tanggal ini.");
 
     // 1. Kalkulasi Laba / Rugi (Income Statement)
     let lOmset = 0, lHPP = 0, omzetTunai = 0, omzetQRIS = 0, omzetDebt = 0;
-    let isiTabelHTML = ""; let urut = 1;
+
+    // Grouping transactions
+    let groupedSales = {};
+    let lunasList = [];
 
     dataPeriode.forEach(t => {
-        let hpp = 0, omzet = 0, laba = 0;
-        let qty = t.item, namaObat = t.obat;
-
         if(!t.isPelunasan) {
-            omzet = t.total; laba = t.laba; hpp = (t.total - t.laba);
+            let omzet = t.total;
+            let laba = t.laba;
+            let hpp = (t.total - t.laba);
+
             lOmset += omzet; lHPP += hpp;
             if(t.metode === 'Tunai') omzetTunai += omzet;
             else if(t.metode === 'QRIS') omzetQRIS += omzet;
             else if(t.metode === 'Debt') omzetDebt += omzet;
 
             if (t.detailKeranjang && t.detailKeranjang.length > 0) {
-                namaObat = t.detailKeranjang.map(item => {
+                t.detailKeranjang.forEach(item => {
                     let infoFormat = formatNamaItemMaster(item.dnaInduk, item.nama, item.varian, item.kategori, '');
-                    return infoFormat.namaLengkapTxt + ' [' + infoFormat.kategoriTxt + ']';
-                }).join('<br>');
+                    let namaLengkap = infoFormat.namaLengkapTxt + (infoFormat.kategoriTxt ? ' [' + infoFormat.kategoriTxt + ']' : '');
+
+                    let key = namaLengkap + '|' + t.metode;
+                    if(!groupedSales[key]) {
+                        groupedSales[key] = { nama: namaLengkap, metode: t.metode, qty: 0, hpp: 0, omzet: 0, laba: 0 };
+                    }
+                    groupedSales[key].qty += item.qty;
+                    groupedSales[key].hpp += (item.hargaModal * item.qty);
+                    groupedSales[key].omzet += (item.hargaJual * item.qty);
+                    groupedSales[key].laba += ((item.hargaJual - item.hargaModal) * item.qty);
+                });
             } else {
                 let infoFormat = formatNamaItemMaster(null, t.obat, '', '', '');
-                namaObat = infoFormat.namaLengkapTxt + ' [' + infoFormat.kategoriTxt + ']';
+                let namaLengkap = infoFormat.namaLengkapTxt + (infoFormat.kategoriTxt ? ' [' + infoFormat.kategoriTxt + ']' : '');
+
+                let key = namaLengkap + '|' + t.metode;
+                if(!groupedSales[key]) {
+                    groupedSales[key] = { nama: namaLengkap, metode: t.metode, qty: 0, hpp: 0, omzet: 0, laba: 0 };
+                }
+                groupedSales[key].qty += t.item;
+                groupedSales[key].hpp += hpp;
+                groupedSales[key].omzet += omzet;
+                groupedSales[key].laba += laba;
             }
         } else {
-            qty = "-"; namaObat = "PELUNASAN KASBON (" + (t.pelanggan || 'Pelanggan') + ")";
-            omzet = t.total;
+            lunasList.push(t);
         }
-
-        isiTabelHTML += `
-            <tr>
-                <td class="text-center">${urut++}</td>
-                <td class="text-center">${t.tanggal} ${t.waktu}</td>
-                <td>${namaObat}</td>
-                <td class="text-center">${qty}</td>
-                <td class="text-center">${t.metode}</td>
-                <td class="text-right t-num">${hpp > 0 ? rupiah(Math.round(hpp)) : '-'}</td>
-                <td class="text-right t-num">${rupiah(Math.round(omzet))}</td>
-                <td class="text-right t-num">${laba > 0 ? rupiah(Math.round(laba)) : '-'}</td>
-            </tr>`;
     });
+
+    let isiTabelHTML = "";
+    let urut = 1;
+    for (let key in groupedSales) {
+        let g = groupedSales[key];
+        isiTabelHTML += `<tr>
+            <td class="text-center">${urut++}</td>
+            <td>${g.nama}</td>
+            <td class="text-center">${g.metode}</td>
+            <td class="text-center">${g.qty}</td>
+            <td class="text-right t-num">${rupiah(Math.round(g.hpp))}</td>
+            <td class="text-right t-num">${rupiah(Math.round(g.omzet))}</td>
+            <td class="text-right t-num">${rupiah(Math.round(g.laba))}</td>
+        </tr>`;
+    }
+
+    lunasList.forEach(t => {
+        isiTabelHTML += `<tr>
+            <td class="text-center">${urut++}</td>
+            <td>Pelunasan Kasbon: ${t.keterangan || '-'}</td>
+            <td class="text-center">Tunai</td>
+            <td class="text-center">-</td>
+            <td class="text-right t-num">Rp 0</td>
+            <td class="text-right t-num">${rupiah(Math.round(t.total))}</td>
+            <td class="text-right t-num">${rupiah(Math.round(t.laba))}</td>
+        </tr>`;
+        lOmset += t.total;
+        omzetTunai += t.total;
+    });
+
+    if(urut === 1) isiTabelHTML = `<tr><td colspan="7" class="text-center">Belum ada transaksi</td></tr>`;
+
+    let isiTabelRusakHTML = "";
+    let urutRusak = 1;
+    let totalKerugianTabel = 0;
+
+    dataPenyusutan.forEach(p => {
+        let kerugian = p.totalKerugian || 0;
+        totalKerugianTabel += kerugian;
+        isiTabelRusakHTML += `<tr>
+            <td class="text-center">${urutRusak++}</td>
+            <td>${p.namaLengkap} ${p.kategori ? '['+p.kategori+']' : ''}</td>
+            <td>${p.jenisMasalah} ${p.keteranganMasalah ? '- ' + p.keteranganMasalah : ''}</td>
+            <td class="text-center">${p.qtyDibuang}</td>
+            <td class="text-right t-num">${rupiah(Math.round(kerugian))}</td>
+        </tr>`;
+    });
+
+    if(urutRusak === 1) isiTabelRusakHTML = `<tr><td colspan="5" class="text-center">Belum ada barang rusak/kedaluwarsa</td></tr>`;
 
     let bBiayaToko = 0;
     dataKeluar.forEach(p => { if (p.kategori === 'Biaya Toko') bBiayaToko += p.nominal; });
-    let kerugianPenyusutan = siklusAktif.modalDihapus || 0;
+    let kerugianPenyusutan = totalKerugianTabel;
     let labaBersihSejati = (lOmset - lHPP) - bBiayaToko - kerugianPenyusutan;
-        // 2. Kalkulasi Neraca Kekayaan Lintas Waktu (Balance Sheet)
+    // 2. Kalkulasi Neraca Kekayaan Lintas Waktu (Balance Sheet)
     let estimasiIsiLaci = hitungSaldoLaciFisik();
     let hartaQRIS = hitungSaldoQRIS();
     let hartaPiutang = 0, hutangMap = {};
@@ -5938,6 +6086,8 @@ function exportLaporanKePDFInternal(tglAwal, tglAkhir, judulPDF, isArsip) {
 
     // Tabel Trx
     document.getElementById('p-tabel-body').innerHTML = isiTabelHTML;
+    let elTabelRusak = document.getElementById('p-tabel-rusak-body');
+    if (elTabelRusak) elTabelRusak.innerHTML = isiTabelRusakHTML;
     document.getElementById('p-tot-hpp').innerText = rupiah(Math.round(lHPP));
     document.getElementById('p-tot-omzet').innerText = rupiah(Math.round(lOmset)); // Total omzet kotor tanpa pelunasan
     document.getElementById('p-tot-laba').innerText = rupiah(Math.round(lOmset - lHPP));
