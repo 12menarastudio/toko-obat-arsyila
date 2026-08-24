@@ -1812,24 +1812,36 @@ tailwind.config = {
                 </div>
             </div>
 
-            <div class="section-title">A. RINCIAN BUKU HARIAN TRANSAKSI</div>
+            <div class="section-title">A. RINCIAN TRANSAKSI PENJUALAN (KONSOLIDASI)</div>
             <table class="table-cetak">
                 <thead>
                     <tr>
-                        <th width="4%">No</th><th width="8%">Jam</th><th width="32%">Nama Obat / Keterangan</th>
-                        <th width="8%">Qty</th><th width="12%">Metode</th><th width="12%">HPP Keluar</th>
-                        <th width="12%">Omzet</th><th width="12%">Laba Kotor</th>
+                        <th width="4%">No</th><th width="35%">Nama Produk / Item</th>
+                        <th width="10%">Metode</th><th width="8%">Qty</th><th width="14%">Modal / HPP</th>
+                        <th width="14%">Omzet</th><th width="15%">Laba Kotor</th>
                     </tr>
                 </thead>
                 <tbody id="p-tabel-body"></tbody>
                 <tfoot>
                     <tr>
-                        <th colspan="5" class="text-right">TOTAL SIKLUS PERIODE INI</th>
+                        <th colspan="4" class="text-right">TOTAL SIKLUS PERIODE INI</th>
                         <th class="text-right t-num" id="p-tot-hpp">Rp 0</th>
                         <th class="text-right t-num" id="p-tot-omzet">Rp 0</th>
                         <th class="text-right t-num" id="p-tot-laba">Rp 0</th>
                     </tr>
                 </tfoot>
+            </table>
+
+            <div class="section-title mt-4" style="margin-top: 15px;">B. RINCIAN KERUGIAN BARANG RUSAK / KEDALUWARSA</div>
+            <table class="table-cetak">
+                <thead>
+                    <tr>
+                        <th width="4%">No</th><th width="35%">Nama Produk</th>
+                        <th width="33%">Masalah / Catatan</th><th width="12%">Qty Dibuang</th>
+                        <th width="16%">Total Kerugian (Modal)</th>
+                    </tr>
+                </thead>
+                <tbody id="p-tabel-rusak-body"></tbody>
             </table>
 
             <!-- 3 BLOK NERACA EKONOMI -->
