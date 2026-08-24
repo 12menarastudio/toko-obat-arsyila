@@ -1753,9 +1753,13 @@ tailwind.config = {
             body * { visibility: hidden; }
             #printArea, #printArea * { visibility: visible; }
             #printArea { position: absolute; left: 0; top: 0; width: 1056px; }
-            @page { size: letter landscape; margin: 0; }
+            @page { size: letter landscape; margin: 10mm; }
             body { background: none; padding: 0; margin: 0; }
             .letter-landscape { box-shadow: none; border-top: none; width: 11in; padding: 0.4in 0.5in; height: 100%; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            tr, td, th, .ledger-box {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
         }
 
         /* TEMA STRICT LEDGER (FORMAL AKUNTANSI) */
