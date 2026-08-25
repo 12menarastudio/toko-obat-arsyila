@@ -6130,6 +6130,159 @@ function exportLaporanKePDFInternal(tglAwal, tglAkhir, judulPDF, isArsip) {
     setTimeout(() => { window.print(); }, 300);
 }
 
+function exportPDFMasterGudang() {
+    let htmlTabel = "";
+    let urut = 1;
+    let grandTotalAwal = 0, grandTotalLaku = 0, grandTotalSisa = 0, grandTotalOmzet = 0;
+
+    let grouped = {};
+    masterItems.forEach(m => {
+        if(m.nama === '___SYSTEM_AUTH___' || m.kategori === '⚠️ Barang Retur') return;
+        if(!grouped[m.dnaInduk]) {
+            grouped[m.dnaInduk] = {
+                dnaInduk: m.dnaInduk, namaLengkap: m.nama + (m.varian ? ` ${m.varian}` : ''),
+                kategori: m.kategori || 'Umum', jual: m.jual || 0, batches: []
+            };
+        }
+        grouped[m.dnaInduk].batches.push(m);
+    });
+
+    Object.values(grouped).sort((a,b) => a.namaLengkap.localeCompare(b.namaLengkap)).forEach(induk => {
+        let indukAwal = 0, indukLaku = 0, indukSisa = 0, indukOmzet = 0;
+        let anakHtml = "";
+        let bEtalase = etalaseItems.find(e => e.dnaInduk === induk.dnaInduk);
+
+        induk.batches.sort((a,b) => a.idBatch.localeCompare(b.idBatch)).forEach((b, idxBatch) => {
+            let listKulakan = b.kulakan_keuangan || [{
+                tanggalNota: b.riwayatAsal ? 'Data Awal' : '-', hpp: b.modal, stokAwal: b.stok, sisaGudang: b.stok, sisaEtalase: 0, stokRusak: b.stokRusak || 0
+            }];
+
+            let stokEtalaseFisik = 0;
+            if (bEtalase && bEtalase.antreanFIFO) {
+                let fEtalase = bEtalase.antreanFIFO.find(x => x.idBatch === b.idBatch);
+                if (fEtalase) stokEtalaseFisik = parseInt(fEtalase.stok) || 0;
+            }
+            let sisaEtalaseTersedia = stokEtalaseFisik;
+
+            listKulakan.forEach((f, idxKulakan) => {
+                let totalKapasitas = parseInt(f.sisaGudang || 0) + parseInt(f.sisaEtalase || 0);
+                let eceranAlokasi = 0;
+                if (sisaEtalaseTersedia >= totalKapasitas) { eceranAlokasi = totalKapasitas; sisaEtalaseTersedia -= totalKapasitas; }
+                else { eceranAlokasi = sisaEtalaseTersedia; sisaEtalaseTersedia = 0; }
+
+                let sisaFisik = (f.sisaGudang || 0) + eceranAlokasi;
+                let stokAwal = f.stokAwal || sisaFisik;
+                let rusak = f.stokRusak || 0;
+                let laku = stokAwal - sisaFisik - rusak;
+                if(laku < 0) laku = 0;
+
+                let hpp = f.hpp || b.modal || 0;
+                let omzet = laku * induk.jual;
+
+                indukAwal += stokAwal; indukLaku += laku; indukSisa += sisaFisik; indukOmzet += omzet;
+
+                anakHtml += `
+                <tr>
+                    <td style="border:none;"></td>
+                    <td style="padding-left: 20px; color: #555; font-size: 8pt;">└ Batch ${idxBatch+1} (${f.tanggalNota || '-'})</td>
+                    <td style="border:none;"></td>
+                    <td style="color:#555; font-size:8pt;" class="text-center">${f.idkulakan ? f.idkulakan.substring(0,12) : '-'}</td>
+                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${rupiah(Math.round(hpp))}</td>
+                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${stokAwal}</td>
+                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${laku}</td>
+                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${sisaFisik}</td>
+                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${rupiah(Math.round(omzet))}</td>
+                </tr>`;
+            });
+        });
+
+        grandTotalAwal += indukAwal; grandTotalLaku += indukLaku; grandTotalSisa += indukSisa; grandTotalOmzet += indukOmzet;
+
+        htmlTabel += `
+        <tbody style="page-break-inside: avoid; border-bottom: 1px solid #000;">
+            <tr style="background-color: #fafafa; font-weight: bold;">
+                <td class="text-center">${urut++}</td>
+                <td>${induk.namaLengkap} <span style="font-size:7pt; color:#666;">[${induk.kategori}]</span></td>
+                <td class="text-right t-num">${rupiah(induk.jual)}</td>
+                <td class="text-center" style="font-size:8pt; color:#888;">(Akumulasi Batch)</td>
+                <td class="text-center">-</td>
+                <td class="text-right t-num">${indukAwal}</td>
+                <td class="text-right t-num">${indukLaku}</td>
+                <td class="text-right t-num">${indukSisa}</td>
+                <td class="text-right t-num">${rupiah(Math.round(indukOmzet))}</td>
+            </tr>
+            ${anakHtml}
+        </tbody>`;
+    });
+
+    if(urut === 1) htmlTabel = `<tbody><tr><td colspan="9" class="text-center">Gudang Kosong</td></tr></tbody>`;
+    else htmlTabel += `
+        <tfoot style="display: table-footer-group;">
+            <tr style="background-color: #e0e0e0;">
+                <th colspan="5" class="text-right" style="padding: 6px;">GRAND TOTAL KESELURUHAN</th>
+                <th class="text-right t-num" style="padding: 6px;">${grandTotalAwal}</th>
+                <th class="text-right t-num" style="padding: 6px;">${grandTotalLaku}</th>
+                <th class="text-right t-num" style="padding: 6px;">${grandTotalSisa}</th>
+                <th class="text-right t-num" style="padding: 6px;">${rupiah(Math.round(grandTotalOmzet))}</th>
+            </tr>
+        </tfoot>`;
+
+    let dNow = new Date();
+    document.getElementById('p-waktu-cetak').innerText = dNow.toLocaleDateString('id-ID') + " " + dNow.toLocaleTimeString('id-ID');
+    document.getElementById('p-nama-apotek').innerText = profilApotek.nama.toUpperCase();
+    document.getElementById('p-owner').innerText = profilApotek.nama;
+    document.getElementById('p-tgl').innerText = "AUDIT MASTER GUDANG (DETAIL BATCH)";
+    document.getElementById('p-trx').innerText = (urut - 1) + " Item Induk";
+
+    let titleEl = document.querySelector('.brand-text h1');
+    let subtitleEl = document.querySelector('.brand-text p');
+    let originalTitle = titleEl.innerText; let originalSub = subtitleEl.innerText;
+    titleEl.innerText = "LAPORAN AUDIT MASTER GUDANG";
+    subtitleEl.innerText = "Rincian Stok, Modal, Omzet per Batch Kulakan";
+
+    let originalTable = document.querySelector('.table-cetak');
+    let auditTable = document.createElement('table');
+    auditTable.className = 'table-cetak'; auditTable.id = 'temp-audit-table'; auditTable.style.fontSize = '8.5pt';
+    auditTable.innerHTML = `
+        <thead style="display: table-header-group;">
+            <tr>
+                <th width="3%">No</th><th width="28%">Nama Obat & Varian [Kategori]</th>
+                <th width="10%">H. Jual</th><th width="18%">Batch / Tgl Kulakan</th><th width="11%">Modal/HPP</th>
+                <th width="6%">Awal</th><th width="6%">Laku</th><th width="6%">Sisa</th><th width="12%">Omzet</th>
+            </tr>
+        </thead>
+        ${htmlTabel}
+    `;
+
+    originalTable.parentNode.insertBefore(auditTable, originalTable);
+    originalTable.style.display = 'none';
+
+    let sectionTitle = document.querySelector('.section-title');
+    let bottomGrid = document.querySelector('.bottom-grid');
+    let tabelRusak = document.getElementById('p-tabel-rusak-body');
+
+    if (sectionTitle) sectionTitle.style.display = 'none';
+    if (bottomGrid) bottomGrid.style.display = 'none';
+    if (tabelRusak) {
+        tabelRusak.closest('table').style.display = 'none';
+        tabelRusak.closest('table').previousElementSibling.style.display = 'none';
+    }
+
+    setTimeout(() => {
+        window.print();
+        setTimeout(() => {
+            titleEl.innerText = originalTitle; subtitleEl.innerText = originalSub;
+            auditTable.remove(); originalTable.style.display = 'table';
+            if (sectionTitle) sectionTitle.style.display = 'block';
+            if (bottomGrid) bottomGrid.style.display = 'grid';
+            if (tabelRusak) {
+                tabelRusak.closest('table').style.display = 'table';
+                tabelRusak.closest('table').previousElementSibling.style.display = 'block';
+            }
+        }, 1000);
+    }, 400);
+}
+
 
 // ==========================================
 // MESIN KALKULATOR KONVERSI EDIT BATCH
