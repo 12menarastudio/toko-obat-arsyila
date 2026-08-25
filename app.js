@@ -6135,6 +6135,16 @@ function exportPDFMasterGudang() {
     let urut = 1;
     let grandTotalAwal = 0, grandTotalLaku = 0, grandTotalSisa = 0, grandTotalOmzet = 0;
 
+    // Helper for Ruler-Straight Currency Alignment
+    const renderRp = (angka) => {
+        let str = rupiah(Math.round(angka));
+        let numStr = str.replace(/Rp\s?/i, '').trim();
+        return `<div style="display: flex; justify-content: space-between; width: 100%;"><span>Rp</span><span>${numStr}</span></div>`;
+    };
+
+    let today = new Date();
+    today.setHours(0,0,0,0);
+
     let grouped = {};
     masterItems.forEach(m => {
         if(m.nama === '___SYSTEM_AUTH___' || m.kategori === '⚠️ Barang Retur') return;
@@ -6154,7 +6164,7 @@ function exportPDFMasterGudang() {
 
         induk.batches.sort((a,b) => a.idBatch.localeCompare(b.idBatch)).forEach((b, idxBatch) => {
             let listKulakan = b.kulakan_keuangan || [{
-                tanggalNota: b.riwayatAsal ? 'Data Awal' : '-', hpp: b.modal, stokAwal: b.stok, sisaGudang: b.stok, sisaEtalase: 0, stokRusak: b.stokRusak || 0
+                tanggalNota: b.riwayatAsal ? 'Data Awal' : '-', hpp: b.modal, stokAwal: b.stok, sisaGudang: b.stok, sisaEtalase: 0, stokRusak: b.stokRusak || 0, expired: b.expired || b.kadaluarsa || null
             }];
 
             let stokEtalaseFisik = 0;
@@ -6181,8 +6191,17 @@ function exportPDFMasterGudang() {
 
                 indukAwal += stokAwal; indukLaku += laku; indukSisa += sisaFisik; indukOmzet += omzet;
 
+                // Expiry Logic
+                let expDateStr = f.expired || f.kadaluarsa || f.tglExpired || f.tglKadaluarsa;
+                let expHtml = "";
+                if (expDateStr) {
+                    let isExpired = new Date(expDateStr) <= today;
+                    let color = isExpired ? "red" : "#888";
+                    expHtml = `<br><i style="font-size: 7pt; color: ${color};">Exp: ${expDateStr}</i>`;
+                }
+
                 anakData.push({
-                    teksBatch: `Batch ${idxBatch+1} <span style="font-size:7pt;">(${f.tanggalNota || '-'})</span>`,
+                    teksBatch: `Batch ${idxBatch+1} <span style="font-size:7pt;">(${f.tanggalNota || '-'})</span>${expHtml}`,
                     hpp: hpp, stokAwal: stokAwal, laku: laku, sisaFisik: sisaFisik, omzet: omzet
                 });
             });
@@ -6191,49 +6210,47 @@ function exportPDFMasterGudang() {
         grandTotalAwal += indukAwal; grandTotalLaku += indukLaku; grandTotalSisa += indukSisa; grandTotalOmzet += indukOmzet;
 
         if (anakData.length === 1) {
-            // SMART RENDER: Merge into a single row if only 1 batch exists
             let d = anakData[0];
             htmlTabel += `
             <tbody style="page-break-inside: avoid; border-bottom: 1px solid #000;">
                 <tr style="background-color: #fafafa; font-weight: bold;">
-                    <td class="text-center">${urut++}</td>
-                    <td>${induk.namaLengkap} <span style="font-size:7pt; color:#666;">[${induk.kategori}]</span></td>
-                    <td class="text-right t-num">${rupiah(induk.jual)}</td>
-                    <td class="text-center" style="font-size:8pt; color:#444;">${d.teksBatch}</td>
-                    <td class="text-right t-num" style="font-size:8pt;">${rupiah(Math.round(d.hpp))}</td>
-                    <td class="text-right t-num">${d.stokAwal}</td>
-                    <td class="text-right t-num">${d.laku}</td>
-                    <td class="text-right t-num">${d.sisaFisik}</td>
-                    <td class="text-right t-num">${rupiah(Math.round(d.omzet))}</td>
+                    <td class="text-center" style="vertical-align: top;">${urut++}</td>
+                    <td style="vertical-align: top;">${induk.namaLengkap} <span style="font-size:7pt; color:#666;">[${induk.kategori}]</span></td>
+                    <td class="text-right t-num" style="vertical-align: top;">${renderRp(induk.jual)}</td>
+                    <td class="text-center" style="font-size:8pt; color:#444; vertical-align: top;">${d.teksBatch}</td>
+                    <td class="text-right t-num" style="font-size:8pt; vertical-align: top;">${renderRp(d.hpp)}</td>
+                    <td class="text-right t-num" style="vertical-align: top;">${d.stokAwal}</td>
+                    <td class="text-right t-num" style="vertical-align: top;">${d.laku}</td>
+                    <td class="text-right t-num" style="vertical-align: top;">${d.sisaFisik}</td>
+                    <td class="text-right t-num" style="vertical-align: top;">${renderRp(d.omzet)}</td>
                 </tr>
             </tbody>`;
         } else {
-            // NORMAL RENDER: Parent Total + Multiple Child Rows
             let anakHtml = anakData.map(d => `
                 <tr>
                     <td style="border:none;"></td>
                     <td style="border:none;"></td>
                     <td style="border:none;"></td>
-                    <td style="color:#555; font-size:8pt; padding-left:15px;">└ ${d.teksBatch}</td>
-                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${rupiah(Math.round(d.hpp))}</td>
-                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${d.stokAwal}</td>
-                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${d.laku}</td>
-                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${d.sisaFisik}</td>
-                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${rupiah(Math.round(d.omzet))}</td>
+                    <td style="color:#555; font-size:8pt; padding-left:15px; vertical-align: top;">└ ${d.teksBatch}</td>
+                    <td class="text-right t-num" style="color:#555; font-size:8pt; vertical-align: top;">${renderRp(d.hpp)}</td>
+                    <td class="text-right t-num" style="color:#555; font-size:8pt; vertical-align: top;">${d.stokAwal}</td>
+                    <td class="text-right t-num" style="color:#555; font-size:8pt; vertical-align: top;">${d.laku}</td>
+                    <td class="text-right t-num" style="color:#555; font-size:8pt; vertical-align: top;">${d.sisaFisik}</td>
+                    <td class="text-right t-num" style="color:#555; font-size:8pt; vertical-align: top;">${renderRp(d.omzet)}</td>
                 </tr>`).join('');
 
             htmlTabel += `
             <tbody style="page-break-inside: avoid; border-bottom: 1px solid #000;">
                 <tr style="background-color: #fafafa; font-weight: bold;">
-                    <td class="text-center">${urut++}</td>
-                    <td>${induk.namaLengkap} <span style="font-size:7pt; color:#666;">[${induk.kategori}]</span></td>
-                    <td class="text-right t-num">${rupiah(induk.jual)}</td>
-                    <td class="text-center" style="font-size:8pt; color:#888;">(Akumulasi Batch)</td>
-                    <td class="text-center">-</td>
-                    <td class="text-right t-num">${indukAwal}</td>
-                    <td class="text-right t-num">${indukLaku}</td>
-                    <td class="text-right t-num">${indukSisa}</td>
-                    <td class="text-right t-num">${rupiah(Math.round(indukOmzet))}</td>
+                    <td class="text-center" style="vertical-align: top;">${urut++}</td>
+                    <td style="vertical-align: top;">${induk.namaLengkap} <span style="font-size:7pt; color:#666;">[${induk.kategori}]</span></td>
+                    <td class="text-right t-num" style="vertical-align: top;">${renderRp(induk.jual)}</td>
+                    <td class="text-center" style="font-size:8pt; color:#888; vertical-align: top;">(Akumulasi Batch)</td>
+                    <td class="text-center" style="vertical-align: top;">-</td>
+                    <td class="text-right t-num" style="vertical-align: top;">${indukAwal}</td>
+                    <td class="text-right t-num" style="vertical-align: top;">${indukLaku}</td>
+                    <td class="text-right t-num" style="vertical-align: top;">${indukSisa}</td>
+                    <td class="text-right t-num" style="vertical-align: top;">${renderRp(indukOmzet)}</td>
                 </tr>
                 ${anakHtml}
             </tbody>`;
@@ -6242,15 +6259,15 @@ function exportPDFMasterGudang() {
 
     if(urut === 1) htmlTabel = `<tbody><tr><td colspan="9" class="text-center">Gudang Kosong</td></tr></tbody>`;
     else htmlTabel += `
-        <tfoot style="display: table-footer-group;">
-            <tr style="background-color: #e0e0e0;">
-                <th colspan="5" class="text-right" style="padding: 6px;">GRAND TOTAL KESELURUHAN</th>
-                <th class="text-right t-num" style="padding: 6px;">${grandTotalAwal}</th>
-                <th class="text-right t-num" style="padding: 6px;">${grandTotalLaku}</th>
-                <th class="text-right t-num" style="padding: 6px;">${grandTotalSisa}</th>
-                <th class="text-right t-num" style="padding: 6px;">${rupiah(Math.round(grandTotalOmzet))}</th>
+        <tbody style="page-break-inside: avoid;">
+            <tr style="background-color: #e0e0e0; font-weight: 900;">
+                <td colspan="5" class="text-right" style="padding: 6px; border: 1px solid #000;">GRAND TOTAL KESELURUHAN</td>
+                <td class="text-right t-num" style="padding: 6px; border: 1px solid #000;">${grandTotalAwal}</td>
+                <td class="text-right t-num" style="padding: 6px; border: 1px solid #000;">${grandTotalLaku}</td>
+                <td class="text-right t-num" style="padding: 6px; border: 1px solid #000;">${grandTotalSisa}</td>
+                <td class="text-right t-num" style="padding: 6px; border: 1px solid #000;">${renderRp(grandTotalOmzet)}</td>
             </tr>
-        </tfoot>`;
+        </tbody>`;
 
     let dNow = new Date();
     document.getElementById('p-waktu-cetak').innerText = dNow.toLocaleDateString('id-ID') + " " + dNow.toLocaleTimeString('id-ID');
@@ -6262,7 +6279,7 @@ function exportPDFMasterGudang() {
     let titleEl = document.querySelector('.brand-text h1');
     let subtitleEl = document.querySelector('.brand-text p');
     let originalTitle = titleEl.innerText; let originalSub = subtitleEl.innerText;
-    titleEl.innerText = "LAPORAN AUDIT MASTER GUDANG";
+    titleEl.innerText = "DAFTAR OBAT";
     subtitleEl.innerText = "Rincian Stok, Modal, Omzet per Batch Kulakan";
 
     let originalTable = document.querySelector('.table-cetak');
@@ -6272,7 +6289,7 @@ function exportPDFMasterGudang() {
         <thead style="display: table-header-group;">
             <tr>
                 <th width="3%">No</th><th width="28%">Nama Obat & Varian [Kategori]</th>
-                <th width="10%">H. Jual</th><th width="18%">Batch / Tgl Kulakan</th><th width="11%">Modal/HPP</th>
+                <th width="11%">H. Jual</th><th width="16%">Batch / Tgl Kulakan</th><th width="12%">Modal/HPP</th>
                 <th width="6%">Awal</th><th width="6%">Laku</th><th width="6%">Sisa</th><th width="12%">Omzet</th>
             </tr>
         </thead>

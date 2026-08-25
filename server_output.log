@@ -1,45 +1,29 @@
-npm warn exec The following package was not found and will be installed: http-server@14.1.1
-npm warn deprecated whatwg-encoding@2.0.0: Use @exodus/bytes instead for a more spec-conformant and faster implementation
-Starting up http-server, serving .
-
-http-server version: 14.1.1
-
-http-server settings:
-CORS: disabled
-Cache: 3600 seconds
-Connection Timeout: 120 seconds
-Directory Listings: visible
-AutoIndex: visible
-Serve GZIP Files: false
-Serve Brotli Files: false
-Default File Extension: none
-
-Available on:
-  http://127.0.0.1:8080
-  http://192.168.0.2:8080
-Hit CTRL-C to stop the server
-
-[2026-08-25T08:25:05.128Z]  "GET /index.html" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36"
-(node:29494) [DEP0066] DeprecationWarning: OutgoingMessage.prototype._headers is deprecated
-(Use `node --trace-deprecation ...` to show where the warning was created)
-[2026-08-25T08:25:05.350Z]  "GET /style.css" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36"
-[2026-08-25T08:25:05.351Z]  "GET /logo-apotek.png" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36"
-[2026-08-25T08:25:05.352Z]  "GET /app.js" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36"
-[2026-08-25T08:25:07.834Z]  "GET /walpaper.jpg" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36"
-[2026-08-25T08:25:45.046Z]  "GET /index.html" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36"
-[2026-08-25T08:25:45.065Z]  "GET /style.css" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36"
-[2026-08-25T08:25:45.073Z]  "GET /logo-apotek.png" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36"
-[2026-08-25T08:25:45.074Z]  "GET /app.js" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36"
-[2026-08-25T08:25:45.926Z]  "GET /walpaper.jpg" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36"
-[2026-08-25T08:26:24.399Z]  "GET /index.html" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36"
-[2026-08-25T08:26:24.424Z]  "GET /style.css" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36"
-[2026-08-25T08:26:24.429Z]  "GET /logo-apotek.png" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36"
-[2026-08-25T08:26:24.430Z]  "GET /app.js" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36"
-[2026-08-25T08:26:25.337Z]  "GET /walpaper.jpg" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36"
-[2026-08-25T08:26:25.422Z]  "GET /index.html" "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/145.0.7632.6 Safari/537.36"
-http-server stopped.
-npm notice
-npm notice New minor version of npm available! 11.11.0 -> 11.19.0
-npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.19.0
-npm notice To update run: npm install -g npm@11.19.0
-npm notice
+127.0.0.1 - - [25/Aug/2026 15:35:29] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:35:30] "GET /style.css HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:35:30] "GET /app.js HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:35:30] "GET /logo-apotek.png HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:35:32] "GET /walpaper.jpg HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:36:10] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:36:10] "GET /style.css HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:36:10] "GET /logo-apotek.png HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:36:10] "GET /app.js HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:36:11] "GET /walpaper.jpg HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:36:11] "GET / HTTP/1.1" 304 -
+127.0.0.1 - - [25/Aug/2026 15:36:35] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:36:35] "GET /logo-apotek.png HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:36:35] "GET /style.css HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:36:35] "GET /app.js HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:36:36] "GET /walpaper.jpg HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:36:36] "GET / HTTP/1.1" 304 -
+127.0.0.1 - - [25/Aug/2026 15:38:03] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:38:04] "GET /style.css HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:38:04] "GET /logo-apotek.png HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:38:04] "GET /app.js HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:38:05] "GET /walpaper.jpg HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:38:05] "GET / HTTP/1.1" 304 -
+127.0.0.1 - - [25/Aug/2026 15:39:09] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:39:09] "GET /style.css HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:39:09] "GET /logo-apotek.png HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:39:09] "GET /app.js HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:39:10] "GET /walpaper.jpg HTTP/1.1" 200 -
+127.0.0.1 - - [25/Aug/2026 15:39:10] "GET / HTTP/1.1" 304 -
