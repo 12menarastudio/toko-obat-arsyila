@@ -6149,7 +6149,7 @@ function exportPDFMasterGudang() {
 
     Object.values(grouped).sort((a,b) => a.namaLengkap.localeCompare(b.namaLengkap)).forEach(induk => {
         let indukAwal = 0, indukLaku = 0, indukSisa = 0, indukOmzet = 0;
-        let anakHtml = "";
+        let anakData = [];
         let bEtalase = etalaseItems.find(e => e.dnaInduk === induk.dnaInduk);
 
         induk.batches.sort((a,b) => a.idBatch.localeCompare(b.idBatch)).forEach((b, idxBatch) => {
@@ -6181,38 +6181,63 @@ function exportPDFMasterGudang() {
 
                 indukAwal += stokAwal; indukLaku += laku; indukSisa += sisaFisik; indukOmzet += omzet;
 
-                anakHtml += `
-                <tr>
-                    <td style="border:none;"></td>
-                    <td style="padding-left: 20px; color: #555; font-size: 8pt;">└ Batch ${idxBatch+1} (${f.tanggalNota || '-'})</td>
-                    <td style="border:none;"></td>
-                    <td style="color:#555; font-size:8pt;" class="text-center">${f.idkulakan ? f.idkulakan.substring(0,12) : '-'}</td>
-                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${rupiah(Math.round(hpp))}</td>
-                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${stokAwal}</td>
-                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${laku}</td>
-                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${sisaFisik}</td>
-                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${rupiah(Math.round(omzet))}</td>
-                </tr>`;
+                anakData.push({
+                    teksBatch: `Batch ${idxBatch+1} <span style="font-size:7pt;">(${f.tanggalNota || '-'})</span>`,
+                    hpp: hpp, stokAwal: stokAwal, laku: laku, sisaFisik: sisaFisik, omzet: omzet
+                });
             });
         });
 
         grandTotalAwal += indukAwal; grandTotalLaku += indukLaku; grandTotalSisa += indukSisa; grandTotalOmzet += indukOmzet;
 
-        htmlTabel += `
-        <tbody style="page-break-inside: avoid; border-bottom: 1px solid #000;">
-            <tr style="background-color: #fafafa; font-weight: bold;">
-                <td class="text-center">${urut++}</td>
-                <td>${induk.namaLengkap} <span style="font-size:7pt; color:#666;">[${induk.kategori}]</span></td>
-                <td class="text-right t-num">${rupiah(induk.jual)}</td>
-                <td class="text-center" style="font-size:8pt; color:#888;">(Akumulasi Batch)</td>
-                <td class="text-center">-</td>
-                <td class="text-right t-num">${indukAwal}</td>
-                <td class="text-right t-num">${indukLaku}</td>
-                <td class="text-right t-num">${indukSisa}</td>
-                <td class="text-right t-num">${rupiah(Math.round(indukOmzet))}</td>
-            </tr>
-            ${anakHtml}
-        </tbody>`;
+        if (anakData.length === 1) {
+            // SMART RENDER: Merge into a single row if only 1 batch exists
+            let d = anakData[0];
+            htmlTabel += `
+            <tbody style="page-break-inside: avoid; border-bottom: 1px solid #000;">
+                <tr style="background-color: #fafafa; font-weight: bold;">
+                    <td class="text-center">${urut++}</td>
+                    <td>${induk.namaLengkap} <span style="font-size:7pt; color:#666;">[${induk.kategori}]</span></td>
+                    <td class="text-right t-num">${rupiah(induk.jual)}</td>
+                    <td class="text-center" style="font-size:8pt; color:#444;">${d.teksBatch}</td>
+                    <td class="text-right t-num" style="font-size:8pt;">${rupiah(Math.round(d.hpp))}</td>
+                    <td class="text-right t-num">${d.stokAwal}</td>
+                    <td class="text-right t-num">${d.laku}</td>
+                    <td class="text-right t-num">${d.sisaFisik}</td>
+                    <td class="text-right t-num">${rupiah(Math.round(d.omzet))}</td>
+                </tr>
+            </tbody>`;
+        } else {
+            // NORMAL RENDER: Parent Total + Multiple Child Rows
+            let anakHtml = anakData.map(d => `
+                <tr>
+                    <td style="border:none;"></td>
+                    <td style="border:none;"></td>
+                    <td style="border:none;"></td>
+                    <td style="color:#555; font-size:8pt; padding-left:15px;">└ ${d.teksBatch}</td>
+                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${rupiah(Math.round(d.hpp))}</td>
+                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${d.stokAwal}</td>
+                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${d.laku}</td>
+                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${d.sisaFisik}</td>
+                    <td class="text-right t-num" style="color:#555; font-size:8pt;">${rupiah(Math.round(d.omzet))}</td>
+                </tr>`).join('');
+
+            htmlTabel += `
+            <tbody style="page-break-inside: avoid; border-bottom: 1px solid #000;">
+                <tr style="background-color: #fafafa; font-weight: bold;">
+                    <td class="text-center">${urut++}</td>
+                    <td>${induk.namaLengkap} <span style="font-size:7pt; color:#666;">[${induk.kategori}]</span></td>
+                    <td class="text-right t-num">${rupiah(induk.jual)}</td>
+                    <td class="text-center" style="font-size:8pt; color:#888;">(Akumulasi Batch)</td>
+                    <td class="text-center">-</td>
+                    <td class="text-right t-num">${indukAwal}</td>
+                    <td class="text-right t-num">${indukLaku}</td>
+                    <td class="text-right t-num">${indukSisa}</td>
+                    <td class="text-right t-num">${rupiah(Math.round(indukOmzet))}</td>
+                </tr>
+                ${anakHtml}
+            </tbody>`;
+        }
     });
 
     if(urut === 1) htmlTabel = `<tbody><tr><td colspan="9" class="text-center">Gudang Kosong</td></tr></tbody>`;
