@@ -1754,12 +1754,11 @@ tailwind.config = {
         @media screen { #printArea { display: none; } }
         @media print {
     /* Aturan Wajib Tabel Terpotong Alami (Header Diulang & Anti Belah Baris) */
-    table { page-break-inside: auto !important; page-break-after: auto !important; }
-    tbody { page-break-inside: auto !important; page-break-after: auto !important; }
+    table { page-break-inside: auto !important; orphans: 1 !important; widows: 1 !important; }
+    tbody { page-break-inside: auto !important; }
     thead { display: table-header-group !important; }
     tr { page-break-inside: avoid !important; break-inside: avoid !important; page-break-after: auto !important; }
-    td, th { page-break-inside: avoid !important; }
-    /* Hide UI, show only print area naturally */
+    td, th { page-break-inside: avoid !important; }   /* Hide UI, show only print area naturally */
             body > *:not(#printArea) { display: none !important; }
 
             #printArea {
@@ -1778,6 +1777,7 @@ tailwind.config = {
                 background: #fff;
                 padding: 0;
                 margin: 0;
+                overflow: visible !important;
             }
 
             .letter-landscape {
@@ -1787,6 +1787,7 @@ tailwind.config = {
                 min-height: auto !important;
                 box-shadow: none !important;
                 border-top: none !important;
+                overflow: visible !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
