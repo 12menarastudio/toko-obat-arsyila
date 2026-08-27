@@ -6135,7 +6135,6 @@ function exportPDFMasterGudang() {
     let urut = 1;
     let grandTotalAwal = 0, grandTotalLaku = 0, grandTotalSisa = 0, grandTotalOmzet = 0;
 
-    // Helper for Ruler-Straight Currency Alignment
     const renderRp = (angka) => {
         let str = rupiah(Math.round(angka));
         let numStr = str.replace(/Rp\s?/i, '').trim();
@@ -6191,17 +6190,14 @@ function exportPDFMasterGudang() {
 
                 indukAwal += stokAwal; indukLaku += laku; indukSisa += sisaFisik; indukOmzet += omzet;
 
-                // Expiry Logic
                 let expDateStr = f.expired || f.kadaluarsa || f.tglExpired || f.tglKadaluarsa;
-                let expHtml = "";
-                if (expDateStr) {
-                    let isExpired = new Date(expDateStr) <= today;
-                    let color = isExpired ? "red" : "#888";
-                    expHtml = `<br><i style="font-size: 7pt; color: ${color};">Exp: ${expDateStr}</i>`;
-                }
+                let isExpired = expDateStr ? (new Date(expDateStr) <= today) : false;
 
                 anakData.push({
-                    teksBatch: `Batch ${idxBatch+1} <span style="font-size:7pt;">(${f.tanggalNota || '-'})</span>${expHtml}`,
+                    namaBatch: `Batch ${idxBatch+1}`,
+                    tglKulakan: f.tanggalNota || '-',
+                    expTeks: expDateStr ? `Exp: ${expDateStr}` : '-',
+                    expColor: isExpired ? "red" : "#222",
                     hpp: hpp, stokAwal: stokAwal, laku: laku, sisaFisik: sisaFisik, omzet: omzet
                 });
             });
@@ -6209,63 +6205,55 @@ function exportPDFMasterGudang() {
 
         grandTotalAwal += indukAwal; grandTotalLaku += indukLaku; grandTotalSisa += indukSisa; grandTotalOmzet += indukOmzet;
 
-        if (anakData.length === 1) {
-            let d = anakData[0];
-            htmlTabel += `
-            <tbody style="page-break-inside: avoid; border-bottom: 1px solid #000;">
-                <tr style="background-color: #fafafa; font-weight: bold;">
-                    <td class="text-center" style="vertical-align: top;">${urut++}</td>
-                    <td style="vertical-align: top;">${induk.namaLengkap} <span style="font-size:7pt; color:#666;">[${induk.kategori}]</span></td>
-                    <td class="text-right t-num" style="vertical-align: top;">${renderRp(induk.jual)}</td>
-                    <td class="text-center" style="font-size:8pt; color:#444; vertical-align: top;">${d.teksBatch}</td>
-                    <td class="text-right t-num" style="font-size:8pt; vertical-align: top;">${renderRp(d.hpp)}</td>
-                    <td class="text-right t-num" style="vertical-align: top;">${d.stokAwal}</td>
-                    <td class="text-right t-num" style="vertical-align: top;">${d.laku}</td>
-                    <td class="text-right t-num" style="vertical-align: top;">${d.sisaFisik}</td>
-                    <td class="text-right t-num" style="vertical-align: top;">${renderRp(d.omzet)}</td>
-                </tr>
-            </tbody>`;
-        } else {
-            let anakHtml = anakData.map(d => `
-                <tr>
-                    <td style="border:none;"></td>
-                    <td style="border:none;"></td>
-                    <td style="border:none;"></td>
-                    <td style="color:#555; font-size:8pt; padding-left:15px; vertical-align: top;">└ ${d.teksBatch}</td>
-                    <td class="text-right t-num" style="color:#555; font-size:8pt; vertical-align: top;">${renderRp(d.hpp)}</td>
-                    <td class="text-right t-num" style="color:#555; font-size:8pt; vertical-align: top;">${d.stokAwal}</td>
-                    <td class="text-right t-num" style="color:#555; font-size:8pt; vertical-align: top;">${d.laku}</td>
-                    <td class="text-right t-num" style="color:#555; font-size:8pt; vertical-align: top;">${d.sisaFisik}</td>
-                    <td class="text-right t-num" style="color:#555; font-size:8pt; vertical-align: top;">${renderRp(d.omzet)}</td>
-                </tr>`).join('');
+        let rowHtml = "";
+        let rowCount = anakData.length;
+        let borderStyle = "border: 1px solid #444; padding: 4px;";
 
-            htmlTabel += `
-            <tbody style="page-break-inside: avoid; border-bottom: 1px solid #000;">
-                <tr style="background-color: #fafafa; font-weight: bold;">
-                    <td class="text-center" style="vertical-align: top;">${urut++}</td>
-                    <td style="vertical-align: top;">${induk.namaLengkap} <span style="font-size:7pt; color:#666;">[${induk.kategori}]</span></td>
-                    <td class="text-right t-num" style="vertical-align: top;">${renderRp(induk.jual)}</td>
-                    <td class="text-center" style="font-size:8pt; color:#888; vertical-align: top;">(Akumulasi Batch)</td>
-                    <td class="text-center" style="vertical-align: top;">-</td>
-                    <td class="text-right t-num" style="vertical-align: top;">${indukAwal}</td>
-                    <td class="text-right t-num" style="vertical-align: top;">${indukLaku}</td>
-                    <td class="text-right t-num" style="vertical-align: top;">${indukSisa}</td>
-                    <td class="text-right t-num" style="vertical-align: top;">${renderRp(indukOmzet)}</td>
-                </tr>
-                ${anakHtml}
-            </tbody>`;
-        }
+        anakData.forEach((d, index) => {
+            if (index === 0) {
+                rowHtml += `
+                <tr>
+                    <td rowspan="${rowCount}" class="text-center" style="vertical-align: middle; ${borderStyle}">${urut}</td>
+                    <td rowspan="${rowCount}" style="vertical-align: middle; ${borderStyle}"><b>${induk.namaLengkap}</b> <br><span style="font-size:7pt; color:#666;">[${induk.kategori}]</span></td>
+                    <td class="text-center" style="vertical-align: middle; font-size:8pt; ${borderStyle} color:${d.expColor}; font-style: ${d.expColor === 'red' ? 'italic' : 'normal'};">${d.expTeks}</td>
+                    <td class="text-center" style="vertical-align: middle; font-size:8pt; ${borderStyle}">${d.namaBatch}<br><span style="font-size:7pt;">(${d.tglKulakan})</span></td>
+                    <td class="text-right t-num" style="vertical-align: middle; font-size:8pt; ${borderStyle}">${renderRp(d.hpp)}</td>
+                    <td rowspan="${rowCount}" class="text-right t-num" style="vertical-align: middle; ${borderStyle}">${renderRp(induk.jual)}</td>
+                    <td class="text-right t-num" style="vertical-align: middle; ${borderStyle}">${d.stokAwal}</td>
+                    <td class="text-right t-num" style="vertical-align: middle; ${borderStyle}">${d.laku}</td>
+                    <td class="text-right t-num" style="vertical-align: middle; ${borderStyle}">${d.sisaFisik}</td>
+                    <td class="text-right t-num" style="vertical-align: middle; ${borderStyle}">${renderRp(d.omzet)}</td>
+                </tr>`;
+            } else {
+                rowHtml += `
+                <tr>
+                    <td class="text-center" style="vertical-align: middle; font-size:8pt; ${borderStyle} color:${d.expColor}; font-style: ${d.expColor === 'red' ? 'italic' : 'normal'};">${d.expTeks}</td>
+                    <td class="text-center" style="vertical-align: middle; font-size:8pt; ${borderStyle}">${d.namaBatch}<br><span style="font-size:7pt;">(${d.tglKulakan})</span></td>
+                    <td class="text-right t-num" style="vertical-align: middle; font-size:8pt; ${borderStyle}">${renderRp(d.hpp)}</td>
+                    <td class="text-right t-num" style="vertical-align: middle; ${borderStyle}">${d.stokAwal}</td>
+                    <td class="text-right t-num" style="vertical-align: middle; ${borderStyle}">${d.laku}</td>
+                    <td class="text-right t-num" style="vertical-align: middle; ${borderStyle}">${d.sisaFisik}</td>
+                    <td class="text-right t-num" style="vertical-align: middle; ${borderStyle}">${renderRp(d.omzet)}</td>
+                </tr>`;
+            }
+        });
+
+        htmlTabel += `
+        <tbody style="page-break-inside: avoid;">
+            ${rowHtml}
+        </tbody>`;
+        urut++;
     });
 
-    if(urut === 1) htmlTabel = `<tbody><tr><td colspan="9" class="text-center">Gudang Kosong</td></tr></tbody>`;
+    if(urut === 1) htmlTabel = `<tbody><tr><td colspan="10" class="text-center" style="border: 1px solid #444;">Gudang Kosong</td></tr></tbody>`;
     else htmlTabel += `
         <tbody style="page-break-inside: avoid;">
             <tr style="background-color: #e0e0e0; font-weight: 900;">
-                <td colspan="5" class="text-right" style="padding: 6px; border: 1px solid #000;">GRAND TOTAL KESELURUHAN</td>
-                <td class="text-right t-num" style="padding: 6px; border: 1px solid #000;">${grandTotalAwal}</td>
-                <td class="text-right t-num" style="padding: 6px; border: 1px solid #000;">${grandTotalLaku}</td>
-                <td class="text-right t-num" style="padding: 6px; border: 1px solid #000;">${grandTotalSisa}</td>
-                <td class="text-right t-num" style="padding: 6px; border: 1px solid #000;">${renderRp(grandTotalOmzet)}</td>
+                <td colspan="6" class="text-right" style="padding: 6px; border: 1px solid #444;">GRAND TOTAL KESELURUHAN</td>
+                <td class="text-right t-num" style="padding: 6px; border: 1px solid #444;">${grandTotalAwal}</td>
+                <td class="text-right t-num" style="padding: 6px; border: 1px solid #444;">${grandTotalLaku}</td>
+                <td class="text-right t-num" style="padding: 6px; border: 1px solid #444;">${grandTotalSisa}</td>
+                <td class="text-right t-num" style="padding: 6px; border: 1px solid #444;">${renderRp(grandTotalOmzet)}</td>
             </tr>
         </tbody>`;
 
@@ -6284,13 +6272,26 @@ function exportPDFMasterGudang() {
 
     let originalTable = document.querySelector('.table-cetak');
     let auditTable = document.createElement('table');
-    auditTable.className = 'table-cetak'; auditTable.id = 'temp-audit-table'; auditTable.style.fontSize = '8.5pt';
+    auditTable.className = 'table-cetak'; auditTable.id = 'temp-audit-table';
+    auditTable.style.fontSize = '8.5pt'; auditTable.style.borderCollapse = 'collapse'; auditTable.style.width = '100%';
+
+    let thStyle = "border: 1px solid #444; vertical-align: middle; padding: 6px;";
     auditTable.innerHTML = `
-        <thead style="display: table-header-group;">
+        <thead style="display: table-header-group; background-color: #f3f4f6;">
             <tr>
-                <th width="3%">No</th><th width="28%">Nama Obat & Varian [Kategori]</th>
-                <th width="11%">H. Jual</th><th width="16%">Batch / Tgl Kulakan</th><th width="12%">Modal/HPP</th>
-                <th width="6%">Awal</th><th width="6%">Laku</th><th width="6%">Sisa</th><th width="12%">Omzet</th>
+                <th rowspan="2" width="3%" style="${thStyle}">No</th>
+                <th rowspan="2" width="23%" style="${thStyle}">Nama Obat / Varian & Kategori</th>
+                <th rowspan="2" width="11%" style="${thStyle}">Batch Kadaluarsa</th>
+                <th rowspan="2" width="11%" style="${thStyle}">Kulakan</th>
+                <th rowspan="2" width="10%" style="${thStyle}">Modal/HPP</th>
+                <th rowspan="2" width="10%" style="${thStyle}">Harga Jual</th>
+                <th colspan="3" width="15%" class="text-center" style="${thStyle}">Total Stok</th>
+                <th rowspan="2" width="12%" style="${thStyle}">Omzet</th>
+            </tr>
+            <tr>
+                <th class="text-center" style="${thStyle}">Awal</th>
+                <th class="text-center" style="${thStyle}">Laku</th>
+                <th class="text-center" style="${thStyle}">Sisa</th>
             </tr>
         </thead>
         ${htmlTabel}
@@ -6324,7 +6325,6 @@ function exportPDFMasterGudang() {
         }, 1000);
     }, 400);
 }
-
 
 // ==========================================
 // MESIN KALKULATOR KONVERSI EDIT BATCH
