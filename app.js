@@ -2753,12 +2753,18 @@ let barang = masterItems.find(i => i.idBatch === idBatch);
 
 function renderEditTabsMobile() {
     let html = currentEditBatchesMobile.map((b, index) => {
-        let isActive = (!isAddingNewBatchMobile && index === activeEditBatchIndexMobile) ? 'bg-blue-600 text-white shadow-md rounded-full px-5' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200 rounded-full px-5';
-        return `<button type="button" onclick="pindahTabEditMobile(${index})" class="whitespace-nowrap py-2 shadow-sm text-xs font-bold transition ${isActive}">Batch Obat ${index + 1}</button>`;
+        // Desain Kapsul Menyala (Aktif) vs Redup (Tidak Aktif)
+        let isActive = (!isAddingNewBatchMobile && index === activeEditBatchIndexMobile) 
+            ? 'bg-white text-blue-700 shadow-sm border border-slate-200/80 rounded-lg' 
+            : 'text-slate-500 border border-transparent hover:bg-slate-200/50 hover:text-slate-700 rounded-lg';
+        return `<button type="button" onclick="pindahTabEditMobile(${index})" class="whitespace-nowrap px-4 py-2.5 text-xs font-black transition-all duration-300 ${isActive}">Batch ${index + 1}</button>`;
     }).join('');
 
-    let addActive = isAddingNewBatchMobile ? 'bg-blue-600 text-white shadow-md rounded-full px-5' : 'bg-slate-50 text-slate-500 hover:bg-slate-100 border border-slate-200 rounded-full px-5';
-    html += `<button type="button" onclick="siapkanBatchBaruMobile()" class="whitespace-nowrap py-2 shadow-sm text-xs font-bold transition flex items-center gap-1 ${addActive}"><i class="fa-solid fa-plus"></i> Tambah Stok</button>`;
+    // Tombol Tambah Stok dengan tema Emerald jika Aktif
+    let addActive = isAddingNewBatchMobile 
+        ? 'bg-white text-emerald-600 shadow-sm border border-slate-200/80 rounded-lg' 
+        : 'text-slate-500 border border-transparent hover:bg-slate-200/50 hover:text-slate-700 rounded-lg';
+    html += `<button type="button" onclick="siapkanBatchBaruMobile()" class="whitespace-nowrap px-4 py-2.5 text-xs font-black transition-all duration-300 flex items-center gap-1.5 ${addActive}"><i class="fa-solid fa-plus ${isAddingNewBatchMobile ? 'text-emerald-500' : 'text-slate-400'}"></i> Tambah Stok</button>`;
 
     document.getElementById('editBatchNavMobile').innerHTML = html;
 }
