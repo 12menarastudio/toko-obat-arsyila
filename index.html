@@ -63,6 +63,13 @@ tailwind.config = {
     }
 </style>
 
+<!-- PWA / STANDALONE APP CONFIG -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1e40af">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Arsyila">
+<link rel="apple-touch-icon" href="logo-apotek.png">
 </head>
 
 <body class="text-slate-800 overflow-x-hidden relative w-full h-full">
@@ -1779,6 +1786,7 @@ tailwind.config = {
                 padding: 0;
                 margin: 0;
                 overflow: visible !important;
+                overscroll-behavior-y: none !important;
             }
 
             .letter-landscape {
@@ -2171,5 +2179,13 @@ tailwind.config = {
     </div>
 </div>
 
+<!-- SERVICE WORKER ENGINE -->
+<script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function() {
+            navigator.serviceWorker.register('sw.js').catch(err => console.log('PWA Error:', err));
+        });
+    }
+</script>
 </body>
 </html>
