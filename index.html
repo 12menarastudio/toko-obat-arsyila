@@ -1754,10 +1754,11 @@ tailwind.config = {
         @media screen { #printArea { display: none; } }
         @media print {
     /* Aturan Wajib Tabel Terpotong Alami (Header Diulang & Anti Belah Baris) */
-    table { page-break-inside: auto !important; }
+    table { page-break-inside: auto !important; page-break-after: auto !important; }
+    tbody { page-break-inside: auto !important; page-break-after: auto !important; }
     thead { display: table-header-group !important; }
-    tr, td, th { page-break-inside: avoid !important; break-inside: avoid !important; }
-
+    tr { page-break-inside: avoid !important; break-inside: avoid !important; page-break-after: auto !important; }
+    td, th { page-break-inside: avoid !important; }
     /* Hide UI, show only print area naturally */
             body > *:not(#printArea) { display: none !important; }
 
@@ -1821,9 +1822,8 @@ tailwind.config = {
         .t-num { font-family: 'Courier New', Courier, monospace; font-weight: bold; }
         .table-cetak tfoot th { background-color: #e0e0e0; font-weight: 900; }
 
-        .bottom-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 15px; margin-bottom: 30px; }
-        .ledger-box { border: 1px solid #000; padding: 12px; background: #fff; display: flex; flex-col; justify-content: space-between;}
-        .ledger-title { font-weight: 900; font-size: 9pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 8px; background: #f0f0f0; padding: 4px; text-align: center;}
+        .bottom-grid { display: flex; justify-content: space-between; gap: 15px; margin-bottom: 30px; page-break-inside: avoid; }
+        .ledger-box { width: 32%; border: 1px solid #000; padding: 12px; background: #fff; display: flex; flex-direction: column; justify-content: space-between; }  .ledger-title { font-weight: 900; font-size: 9pt; text-transform: uppercase; border-bottom: 1px solid #000; padding-bottom: 4px; margin-bottom: 8px; background: #f0f0f0; padding: 4px; text-align: center;}
 
         .l-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; font-size: 9pt; }
         .l-lbl { color: #000; font-weight: bold; }
