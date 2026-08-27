@@ -6190,14 +6190,14 @@ function exportPDFMasterGudang() {
 
                 indukAwal += stokAwal; indukLaku += laku; indukSisa += sisaFisik; indukOmzet += omzet;
 
-                let expDateStr = f.expired || f.kadaluarsa || f.tglExpired || f.tglKadaluarsa;
+                // LOGIKA CERDAS: Ambil data expired dari level Induk Batch (b)
+                let expDateStr = b.expired || b.kadaluarsa || f.expired || f.kadaluarsa;
                 let isExpired = expDateStr ? (new Date(expDateStr) <= today) : false;
 
                 anakData.push({
                     namaBatch: `Batch ${idxBatch+1}`,
                     tglKulakan: f.tanggalNota || '-',
-                    expTeks: expDateStr ? `Exp: ${expDateStr}` : '-',
-                    expColor: isExpired ? "red" : "#222",
+                    expTeks: expDateStr ? expDateStr : '-',               expColor: isExpired ? "red" : "#222",
                     hpp: hpp, stokAwal: stokAwal, laku: laku, sisaFisik: sisaFisik, omzet: omzet
                 });
             });
