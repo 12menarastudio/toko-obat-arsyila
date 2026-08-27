@@ -1753,7 +1753,12 @@ tailwind.config = {
     <style>
         @media screen { #printArea { display: none; } }
         @media print {
-            /* Hide UI, show only print area naturally */
+    /* Aturan Wajib Tabel Terpotong Alami (Header Diulang & Anti Belah Baris) */
+    table { page-break-inside: auto !important; }
+    thead { display: table-header-group !important; }
+    tr, td, th { page-break-inside: avoid !important; break-inside: avoid !important; }
+
+    /* Hide UI, show only print area naturally */
             body > *:not(#printArea) { display: none !important; }
 
             #printArea {
