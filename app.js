@@ -28,6 +28,7 @@ let bukuCatatan = []; // DATABASE CATATAN DEFECTA (LOST SALES)
 let historiPenyusutan = [];
 let penyusutanObatTerpilih = null; // Variabel penyimpan sementara di modal
 let activeStoreCode = localStorage.getItem('apotek_active_store') || null;
+let offlineQueue = [];
 
 // TUGAS QW-1: SENTRALISASI PENYIMPANAN LOCAL STORAGE (ANTI-CRASH & DRY)
 function saveApotekDB(key, data) {
@@ -447,6 +448,9 @@ function loadApotekData() {
 
         let parsedPenyusutan = JSON.parse(localStorage.getItem('apotek_penyusutan' + storeSuffix));
         if (Array.isArray(parsedPenyusutan)) historiPenyusutan = parsedPenyusutan;
+
+        let parsedQueue = JSON.parse(localStorage.getItem('arsyila_offline_queue' + storeSuffix));
+        if (Array.isArray(parsedQueue)) offlineQueue = parsedQueue;
 
         if (!siklusAktif.tanggalStart) siklusAktif.tanggalStart = getTanggalLokal();
 
@@ -4195,6 +4199,16 @@ function prosesBayarMobile() {
     if(!document.getElementById('layar-etalase').classList.contains('hidden')) renderEtalaseMobile();
     triggerHaptic([100, 50, 100]);
     alert(`✅ Transaksi ${metode} Berhasil! Omzet telah masuk ke Beranda.`);
+
+    // Inject ke Supabase Queue jika Offline
+    if (!navigator.onLine) {
+         let toast = document.createElement('div');
+         toast.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-yellow-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-lg z-[9999] opacity-90';
+         toast.innerHTML = '<i class="fa-solid fa-wifi-slash mr-2"></i> Offline mode: Transaction saved locally';
+         document.body.appendChild(toast);
+         setTimeout(() => toast.remove(), 4000);
+    }
+    sinkronKeAwanMobile(); // Selalu panggil, biar fungsi cloud sync yang mikirin mau push apa queue
 }
 
 async function prosesBatalTransaksiMobile(idTransaksiInput) {
@@ -5213,8 +5227,58 @@ try {
     console.log('Mode Offline: Koneksi Supabase tertunda.');
 }
 
+async function syncOfflineData() {
+    if (!navigator.onLine || !supabaseClient) return;
+    if (offlineQueue.length === 0) return;
+
+    console.log('Mencoba push antrean offline ke Supabase...');
+    const indikator = document.getElementById('indikatorCloudMobile'); const teks = document.getElementById('teksCloudMobile');
+    if(indikator && teks) { indikator.classList.replace('bg-red-50', 'bg-emerald-50'); indikator.classList.replace('text-red-500', 'text-emerald-500'); indikator.classList.replace('border-red-100', 'border-emerald-100'); teks.innerText = 'SYNC QUEUE'; }
+
+    try {
+        let itemsToKeep = [];
+        for (let i = 0; i < offlineQueue.length; i++) {
+            const task = offlineQueue[i];
+            let success = false;
+            try {
+                const { error } = await supabaseClient.from(task.table).upsert(task.payload, { onConflict: task.conflictKey });
+                if (!error) {
+                    success = true;
+                } else {
+                    console.error("Gagal push queue:", error);
+                }
+            } catch (err) {
+                 console.error("Error catch queue:", err);
+            }
+            if (!success) {
+                itemsToKeep.push(task);
+            }
+        }
+
+        offlineQueue = itemsToKeep;
+        saveApotekDB('arsyila_offline_queue', offlineQueue);
+        if (offlineQueue.length === 0) {
+           console.log('Semua antrean offline berhasil disinkronisasi.');
+        }
+
+    } catch (e) { console.log("Gagal sync offline", e); }
+
+    setTimeout(() => { if(indikator && teks) { indikator.classList.replace('bg-emerald-50', 'bg-red-50'); indikator.classList.replace('text-emerald-500', 'text-red-500'); indikator.classList.replace('border-emerald-100', 'border-red-100'); teks.innerText = 'Live'; } }, 1500);
+}
+
+window.addEventListener('online', syncOfflineData);
+
 async function sinkronKeAwanMobile() {
-    if (!supabaseClient) return;
+    if (!supabaseClient) {
+        if (!navigator.onLine) {
+            console.log('Sedang offline. Data aman di local storage.');
+        }
+        return;
+    }
+
+    // Pertama, jalankan sync queue dulu
+    await syncOfflineData();
+
     const indikator = document.getElementById('indikatorCloudMobile'); const teks = document.getElementById('teksCloudMobile');
 
     if(indikator && teks) { indikator.classList.replace('bg-red-50', 'bg-emerald-50'); indikator.classList.replace('text-red-500', 'text-emerald-500'); indikator.classList.replace('border-red-100', 'border-emerald-100'); teks.innerText = 'SYNC'; }
@@ -5222,11 +5286,56 @@ async function sinkronKeAwanMobile() {
     try {
         const injectToko = (arr) => arr.map(item => ({ ...item, kode_toko: activeStoreCode }));
 
-        if (masterItems.length > 0) await supabaseClient.from('master_items').upsert(injectToko(masterItems), { onConflict: 'nama' });
-        if (etalaseItems.length > 0) await supabaseClient.from('etalase_items').upsert(injectToko(etalaseItems), { onConflict: 'nama' });
-        if (cashierHistory.length > 0) await supabaseClient.from('cashier_history').upsert(injectToko(cashierHistory), { onConflict: 'id' });
-        if (pengeluaranHistory.length > 0) await supabaseClient.from('pengeluaran_history').upsert(injectToko(pengeluaranHistory), { onConflict: 'id' });
-    } catch (err) { console.log(err); }
+        let payloadMaster = injectToko(masterItems);
+        let payloadEtalase = injectToko(etalaseItems);
+        let payloadCashier = injectToko(cashierHistory);
+        let payloadPengeluaran = injectToko(pengeluaranHistory);
+
+        if (!navigator.onLine) {
+             // Jika pas mau sync ternyata putus, masuk queue aja
+             if (masterItems.length > 0) offlineQueue.push({ table: 'master_items', payload: payloadMaster, conflictKey: 'nama' });
+             if (etalaseItems.length > 0) offlineQueue.push({ table: 'etalase_items', payload: payloadEtalase, conflictKey: 'nama' });
+             if (cashierHistory.length > 0) offlineQueue.push({ table: 'cashier_history', payload: payloadCashier, conflictKey: 'id' });
+             if (pengeluaranHistory.length > 0) offlineQueue.push({ table: 'pengeluaran_history', payload: payloadPengeluaran, conflictKey: 'id' });
+
+             saveApotekDB('arsyila_offline_queue', offlineQueue);
+             return;
+        }
+
+        let failed = false;
+        if (masterItems.length > 0) {
+             const {error} = await supabaseClient.from('master_items').upsert(payloadMaster, { onConflict: 'nama' });
+             if(error) failed = true;
+        }
+        if (etalaseItems.length > 0) {
+             const {error} = await supabaseClient.from('etalase_items').upsert(payloadEtalase, { onConflict: 'nama' });
+             if(error) failed = true;
+        }
+        if (cashierHistory.length > 0) {
+             const {error} = await supabaseClient.from('cashier_history').upsert(payloadCashier, { onConflict: 'id' });
+             if(error) failed = true;
+        }
+        if (pengeluaranHistory.length > 0) {
+             const {error} = await supabaseClient.from('pengeluaran_history').upsert(payloadPengeluaran, { onConflict: 'id' });
+             if(error) failed = true;
+        }
+
+        if (failed) throw new Error("Fetch failed");
+
+    } catch (err) {
+        console.log("Error syncing:", err);
+        // Fallback to queue if the fetch fails
+        let payloadMaster = injectToko(masterItems);
+        let payloadEtalase = injectToko(etalaseItems);
+        let payloadCashier = injectToko(cashierHistory);
+        let payloadPengeluaran = injectToko(pengeluaranHistory);
+
+        if (masterItems.length > 0) offlineQueue.push({ table: 'master_items', payload: payloadMaster, conflictKey: 'nama' });
+        if (etalaseItems.length > 0) offlineQueue.push({ table: 'etalase_items', payload: payloadEtalase, conflictKey: 'nama' });
+        if (cashierHistory.length > 0) offlineQueue.push({ table: 'cashier_history', payload: payloadCashier, conflictKey: 'id' });
+        if (pengeluaranHistory.length > 0) offlineQueue.push({ table: 'pengeluaran_history', payload: payloadPengeluaran, conflictKey: 'id' });
+        saveApotekDB('arsyila_offline_queue', offlineQueue);
+    }
 
     setTimeout(() => { if(indikator && teks) { indikator.classList.replace('bg-emerald-50', 'bg-red-50'); indikator.classList.replace('text-emerald-500', 'text-red-500'); indikator.classList.replace('border-emerald-100', 'border-red-100'); teks.innerText = 'Live'; } }, 1500);
 }
@@ -5410,6 +5519,7 @@ function initApp() {
     document.getElementById('appContent').classList.remove('hidden');
 
     loadApotekData();
+    syncOfflineData();
 
     try {
         let p = JSON.parse(localStorage.getItem('apotek_profilData_' + activeStoreCode));
