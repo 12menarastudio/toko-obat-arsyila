@@ -5352,24 +5352,37 @@ let cloudSyncInterval = setInterval(() => {
 document.getElementById('cariGudangMobile').addEventListener('input', (e) => { renderGudangMobile(e.target.value); });
 
 // ==========================================
-// 21. MESIN RESET TOTAL
+// 21. MESIN RESET TOTAL (NUKLIR CLOUD & LOKAL)
 // ==========================================
 function resetSistemMobile() {
-    tampilkanConfirmMobile("PERINGATAN BAHAYA!\n\nApakah Anda yakin ingin menghapus SEMUA DATA secara permanen? Gudang, Etalase, Riwayat, Laporan, Pengeluaran, dan Notifikasi akan dikosongkan ke posisi 0.", function() {
+    if (!navigator.onLine) {
+        return alert("⚠️ AKSES DITOLAK!\n\nKoneksi internet terputus. Anda harus dalam keadaan Online agar sistem bisa memusnahkan data di server Supabase secara sinkron.");
+    }
 
-        // Memusnahkan Semua Memori Inti
+    tampilkanConfirmMobile("PERINGATAN BAHAYA!\n\nApakah Anda yakin ingin menghapus SEMUA DATA secara permanen? Data di HP dan di Cloud (Supabase) akan HANGUS TOTAL ke posisi 0.", async function() {
+
+        if (supabaseClient && activeStoreCode) {
+            try {
+                await supabaseClient.from('cashier_history').delete().eq('kode_toko', activeStoreCode);
+                await supabaseClient.from('pengeluaran_history').delete().eq('kode_toko', activeStoreCode);
+                await supabaseClient.from('etalase_items').delete().eq('kode_toko', activeStoreCode);
+                await supabaseClient.from('master_items').delete().eq('kode_toko', activeStoreCode);
+            } catch (err) {
+                console.log("Gagal memusnahkan data Cloud:", err);
+                return alert("⚠️ TERJADI GANGGUAN PADA SERVER SUPABASE!\n\nProses reset dibatalkan otomatis untuk mencegah data pincang antara HP dan Cloud.");
+            }
+        }
+
         saveApotekDB('apotek_masterItems', []);
         saveApotekDB('apotek_etalaseItems', []);
         saveApotekDB('apotek_cashierHistory', []);
         saveApotekDB('apotek_siklusAktif', { modalAwal: 0, qtyAwal: 0, modalTambahan: 0, qtyTambahan: 0, uangMasuk: 0, tanggalStart: getTanggalLokal() });
-
-        // --- TAMBALAN BARU: Memusnahkan Pengeluaran & Notifikasi ---
         saveApotekDB('apotek_pengeluaranHistory', []);
         saveApotekDB('apotek_notifikasi', []);
-        // -----------------------------------------------------------
+        saveApotekDB('arsyila_offline_queue', []);
 
-        alert("✅ Sistem berhasil dibersihkan sampai ke akarnya! Memuat ulang...");
-        setTimeout(() => { window.location.reload(); }, 1200);
+        alert("✅ NUKLIR AKTIF! Seluruh data di HP dan Cloud telah hangus tak bersisa. Memuat ulang...");
+        setTimeout(() => { window.location.reload(); }, 1500);
     });
 }
 
