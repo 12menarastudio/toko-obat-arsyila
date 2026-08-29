@@ -2583,9 +2583,10 @@ function renderRekapMobile() {
                     rekapItem[idKunci] = { dnaInduk: item.dnaInduk, nama: item.nama, varian: item.varian, kategori: item.kategori, qty: 0, modal: 0, jual: 0 };
                 }
 
-                let hpp = item.hppSatuan || Math.round(item.jual * 0.8);
-                let subModal = hpp * item.qty;
+                                                let hpp = item.hppSatuan || Math.round(item.jual * 0.8);
+                let subModal = item.hppTotalModal !== undefined ? item.hppTotalModal : (hpp * item.qty);
                 let subJual = item.jual * item.qty;
+
 
                 rekapItem[idKunci].qty += item.qty;
                 rekapItem[idKunci].modal += subModal;
@@ -4252,9 +4253,10 @@ async function prosesBatalTransaksiMobile(idTransaksiInput) {
                 // Fallback riwayat lama sebelum keranjang array
                 let qty = trx.item || 1;
                 let hppRetur = Math.round(((trx.total || 0) - (trx.laba || 0)) / qty);
+                                                let hppAbsolutLama = ((trx.total || 0) - (trx.laba || 0));
                 kumpulanItemRetur.push({
                     dnaInduk: 'DNA-RETUR-OLD', nama: trx.obat, jual: Math.round((trx.total || 0) / qty),
-                    qty: qty, hppSatuan: hppRetur, hppTotalModal: (qty * hppRetur)
+                    qty: qty, hppSatuan: hppRetur, hppTotalModal: hppAbsolutLama
                 });
             }
         });
@@ -8037,10 +8039,16 @@ function KalkulatorMasterObat() {
                         rusakExpTotal: 0, modalAsetTersisa: 0, batches: [], expTerdekat: '2099-12-31'
                     };
                 }
-                let qtyLaku = item.qty || 0; pohonData[kunci].lakuGlobal += qtyLaku;
-                if (isShiftIni) { pohonData[kunci].lakuShiftIni += qtyLaku; pohonData[kunci].omzetShiftIni += (qtyLaku * (item.jual || 0)); pohonData[kunci].labaShiftIni += ((qtyLaku * (item.jual || 0)) - (qtyLaku * (item.hppSatuan || (item.jual * 0.8)))); }
+                                                let qtyLaku = item.qty || 0; pohonData[kunci].lakuGlobal += qtyLaku;
+                if (isShiftIni) { 
+                    pohonData[kunci].lakuShiftIni += qtyLaku; 
+                    pohonData[kunci].omzetShiftIni += (qtyLaku * (item.jual || 0)); 
+                    let modalMutlak = item.hppTotalModal !== undefined ? item.hppTotalModal : (qtyLaku * (item.hppSatuan || (item.jual * 0.8)));
+                    pohonData[kunci].labaShiftIni += ((qtyLaku * (item.jual || 0)) - modalMutlak); 
+                }
                 if (isHariIni) { pohonData[kunci].lakuHariIni += qtyLaku; }
             });
+
         } else {
             let kunci = trx.obat;
             if (!pohonData[kunci]) {
