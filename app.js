@@ -1375,7 +1375,7 @@ function renderRiwayatMobile() {
         let tombolAksi = modeSeleksiRiwayatAktif ? '' : `
             <div class="flex gap-2 relative z-10 mt-3 justify-end border-t border-slate-100 pt-3">
                 ${btnBatalHtml}
-                <button onclick="event.stopPropagation(); prosesCetakStrukMobile(${g.rawIds[0]}, this)" class="text-[10px] text-blue-600 hover:bg-blue-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-blue-100 shadow-sm active:scale-95"><i class="fa-solid fa-print"></i> Cetak</button>
+                <button onclick="event.stopPropagation(); cetakStrukRawBT(${g.rawIds[0]})" class="text-[10px] text-emerald-600 hover:bg-emerald-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-emerald-100 shadow-sm active:scale-95"><i class="fa-solid fa-print"></i> 🖨️ Cetak</button>
             </div>`;
 
                        return `<div id="kartu-riwayat-${g.waktu.replace(/[:\.]/g,'')}-${g.pelanggan ? g.pelanggan.toUpperCase().replace(/\s/g,'') : 'UMUM'}" onpointerdown="mulaiTekanRiwayat(${g.rawIds[0]})" onpointerup="lepasTekanRiwayat()" onpointerleave="lepasTekanRiwayat()" onclick="klikItemRiwayat(${g.rawIds[0]})" class="${bgCard} select-none rounded-2xl p-4 flex flex-col transition-all cursor-pointer relative group"><div class="flex justify-between items-start pointer-events-none"><div class="pr-2 flex-1"><p class="text-[9px] text-slate-400 font-bold uppercase tracking-widest flex items-center gap-1.5 mb-1"><i class="fa-regular fa-calendar-days"></i> ${g.tanggal} • ${g.waktu}</p><h3 class="font-bold text-slate-800 text-sm leading-tight inline-block mb-1">${judulObat} ${starIcon}</h3><p class="text-[10px] text-slate-500 font-medium">Oleh: ${g.kasir}</p>${badgePelunasanHtml}${teksKonsumen}</div><div class="text-right shrink-0"><p class="font-black ${isSelected ? 'text-blue-700' : 'text-corporate-700'} text-base">${rupiah(g.total)}</p><span class="inline-block mt-1.5 px-2 py-1 rounded-md text-[9px] font-black uppercase tracking-wider ${badgeWarna}">${teksStatus}</span></div></div>${areaRincian}${tombolPortal}${tombolAksi}</div>`;
@@ -4199,7 +4199,10 @@ function prosesBayarMobile() {
     if(!document.getElementById('layar-gudang').classList.contains('hidden')) renderGudangMobile(document.getElementById('cariGudangMobile').value);
     if(!document.getElementById('layar-etalase').classList.contains('hidden')) renderEtalaseMobile();
     triggerHaptic([100, 50, 100]);
-    alert(`✅ Transaksi ${metode} Berhasil! Omzet telah masuk ke Beranda.`);
+
+    // Ambil objek transaksi yang baru saja dicatat untuk auto-prompt cetak struk
+    let transaksiBaru = cashierHistory[0];
+    tampilkanModalSuksesTransaksi(transaksiBaru);
 
     // Inject ke Supabase Queue jika Offline
     if (!navigator.onLine) {
@@ -5156,9 +5159,404 @@ function pilihKategoriPengeluaran(nilaiKode, teksTampil) {
 }
 
 // ==========================================
-// 19. MESIN BLUETOOTH PRINTER (ESC/POS)
+// 19. MESIN THERMAL PRINTER (RAWBT & ESC/POS)
 // ==========================================
 let printerApotekTerhubung = null;
+
+// MESIN FORMAT STRUK THERMAL 58mm (32 Kolom) UNTUK RAWBT
+function generateReceiptTextRawBT(t) {
+    const W = 32;
+    const posTengah = (text) => {
+        let str = String(text || '').trim().substring(0, W);
+        let pad = Math.floor((W - str.length) / 2);
+        return " ".repeat(pad > 0 ? pad : 0) + str;
+    };
+    const padRow = (left, right) => {
+        let strLeft = String(left !== undefined && left !== null ? left : '');
+        let strRight = String(right !== undefined && right !== null ? right : '');
+        let gap = W - strLeft.length - strRight.length;
+        if (gap >= 1) {
+            return strLeft + " ".repeat(gap) + strRight;
+        } else {
+            let maxL = W - strRight.length - 1;
+            if (maxL > 0) {
+                return strLeft.substring(0, maxL) + " " + strRight;
+            } else {
+                return (strLeft + " " + strRight).substring(0, W);
+            }
+        }
+    };
+    const garisPemisah = (char = '-') => char.repeat(W);
+    const formatRp = (num) => 'Rp ' + (Number(num) || 0).toLocaleString('id-ID');
+
+    // Header Toko Standar
+    let storeName = 'ANTON CELL';
+    if (profilApotek && profilApotek.nama && profilApotek.nama.trim()) {
+        storeName = profilApotek.nama.trim().toUpperCase();
+    }
+    let storeAlamat = (profilApotek && profilApotek.alamat) ? profilApotek.alamat.substring(0, W) : '';
+    let storeTelp = (profilApotek && profilApotek.telepon) ? ('Telp: ' + profilApotek.telepon).substring(0, W) : '';
+
+    let lines = [];
+    lines.push(posTengah(storeName));
+    if (storeAlamat) lines.push(posTengah(storeAlamat));
+    if (storeTelp) lines.push(posTengah(storeTelp));
+    lines.push(garisPemisah('='));
+    lines.push(padRow('Tanggal : ' + (t.tanggal || getTanggalLokal()), t.waktu || ''));
+    lines.push(padRow('Kasir   : ' + (t.kasir || 'Kasir'), 'No: #' + (t.id ? String(t.id).slice(-6) : '-')));
+    lines.push(garisPemisah('-'));
+
+    // Deteksi Tipe Transaksi
+    // Kategori: 'Transfer', 'Top Up', 'Tarik Tunai', 'Pulsa', 'PPOB', 'Aksesoris', 'Retail', dll.
+    let kategori = (t.kategori || t.tipe || t.jenis || '').toUpperCase();
+    let namaObat = (t.obat || t.nama || '').toUpperCase();
+
+    let isTransfer = kategori.includes('TRANSFER') || kategori.includes('TOP UP') || kategori.includes('TOPUP') ||
+                     namaObat.includes('TRANSFER') || namaObat.includes('TOP UP') || namaObat.includes('TOPUP') ||
+                     t.jenisTransaksi === 'TRANSFER' || t.jenisTransaksi === 'TOPUP';
+
+    let isTarikTunai = kategori.includes('TARIK') || namaObat.includes('TARIK TUNAI') ||
+                       t.jenisTransaksi === 'TARIK_TUNAI' || t.jenisTransaksi === 'TARIK';
+
+    let isPulsa = kategori.includes('PULSA') || kategori.includes('PPOB') || kategori.includes('PAKET DATA') ||
+                  namaObat.includes('PULSA') || namaObat.includes('PLN') || namaObat.includes('PPOB') ||
+                  t.jenisTransaksi === 'PULSA' || t.jenisTransaksi === 'PPOB';
+
+    if (isTransfer) {
+        // A. BRILink - TRANSFER / TOP UP
+        lines.push(posTengah('BUKTI TRANSAKSI BRILINK'));
+        lines.push(posTengah('JENIS: TRANSFER / TOP UP'));
+        lines.push(garisPemisah('-'));
+        lines.push(padRow('BANK / E-WALLET', t.bank || t.tujuan || t.metodeBayar || t.subKategori || '-'));
+        lines.push(padRow('NO REK/AKUN', t.noRek || t.noTujuan || t.nomorTujuan || t.idPelanggan || '-'));
+        lines.push(padRow('NAMA PELANGGAN', t.pelanggan || t.namaPelanggan || 'UMUM'));
+        let nominalTrx = t.nominal !== undefined ? t.nominal : (t.nominalTransfer || t.hargaModal || (t.total ? (t.admin ? t.total - t.admin : t.total) : 0));
+        let biayaAdmin = t.admin !== undefined ? t.admin : (t.biayaAdmin || (t.total && nominalTrx ? t.total - nominalTrx : 0));
+        let grandTotal = t.total !== undefined ? t.total : (Number(nominalTrx) + Number(biayaAdmin));
+
+        lines.push(padRow('NOMINAL', formatRp(nominalTrx)));
+        lines.push(padRow('ADMIN', formatRp(biayaAdmin)));
+        lines.push(garisPemisah('-'));
+        lines.push(padRow('TOTAL', formatRp(grandTotal)));
+        if (t.sn || t.refNo || t.noRef) {
+            lines.push(padRow('NO REF', t.sn || t.refNo || t.noRef));
+        }
+
+    } else if (isTarikTunai) {
+        // B. BRILink - TARIK TUNAI
+        lines.push(posTengah('BUKTI TARIK TUNAI'));
+        lines.push(garisPemisah('-'));
+        lines.push(padRow('PELANGGAN', t.pelanggan || t.namaPelanggan || 'UMUM'));
+        if (t.dariAkun || t.bank) lines.push(padRow('DARI AKUN', t.dariAkun || t.bank || '-'));
+        if (t.keAkun || t.tujuan) lines.push(padRow('KE AKUN', t.keAkun || t.tujuan || '-'));
+
+        let nominalTarik = t.nominal !== undefined ? t.nominal : (t.nominalTarik || t.total || 0);
+        let biayaAdmin = t.admin !== undefined ? t.admin : (t.biayaAdmin || 0);
+        let tipeAdmin = (t.tipeAdmin || t.sumberAdmin || 'luar').toLowerCase(); // 'dalam' atau 'luar'
+        let badgeAdmin = tipeAdmin.includes('dalam') ? '(Bayar di Dlm)' : '(Bayar di Luar)';
+
+        lines.push(padRow('NOMINAL TARIK', formatRp(nominalTarik)));
+        // Jika padRow melebihi 32 karakter, cetak badge atau baris secara rapi
+        let adminValStr = formatRp(biayaAdmin) + ' ' + badgeAdmin;
+        if (('BIAYA ADMIN'.length + adminValStr.length + 1) > W) {
+            lines.push(padRow('BIAYA ADMIN', formatRp(biayaAdmin)));
+            lines.push(padRow('', tipeAdmin.includes('dalam') ? '[Bayar di Dalam]' : '[Bayar di Luar]'));
+        } else {
+            lines.push(padRow('BIAYA ADMIN', adminValStr));
+        }
+        lines.push(garisPemisah('-'));
+
+        // Tunai diserahkan: Nominal minus Admin jika 'Bayar di Dalam', atau exact Nominal jika 'Bayar di Luar'
+        let tunaiDiserahkan = tipeAdmin.includes('dalam') ? (nominalTarik - biayaAdmin) : nominalTarik;
+        lines.push(padRow('TUNAI DISERAHKAN', formatRp(tunaiDiserahkan)));
+
+    } else if (isPulsa) {
+        // C. PULSA & PPOB
+        lines.push(posTengah('BUKTI PEMBELIAN PULSA & PPOB'));
+        lines.push(garisPemisah('-'));
+        let namaProduk = t.produk || t.namaProduk || t.obat || (t.detailKeranjang && t.detailKeranjang[0] ? t.detailKeranjang[0].nama : 'Pulsa / Paket Data');
+        lines.push(padRow('PRODUK', String(namaProduk).substring(0, 22)));
+        lines.push(padRow('NO/ID TUJUAN', t.noTujuan || t.noHp || t.idPelanggan || t.pelanggan || '-'));
+        let hargaJual = t.total !== undefined ? t.total : (t.harga || t.jual || 0);
+        lines.push(padRow('HARGA', formatRp(hargaJual)));
+        if (t.sn || t.token || t.noToken || t.kodeVoucher) {
+            let snToken = t.sn || t.token || t.noToken || t.kodeVoucher;
+            lines.push(garisPemisah('-'));
+            lines.push(posTengah('SN / TOKEN:'));
+            lines.push(posTengah(snToken));
+        }
+
+    } else {
+        // D. AKSESORIS / RITEL & TRANSAKSI KASIR UMUM
+        lines.push(posTengah('BUKTI TRANSAKSI'));
+        lines.push(garisPemisah('-'));
+
+        let items = [];
+        if (Array.isArray(t.detailKeranjang) && t.detailKeranjang.length > 0) {
+            items = t.detailKeranjang;
+        } else if (Array.isArray(t.items) && t.items.length > 0) {
+            items = t.items;
+        } else {
+            items = [{
+                nama: t.obat || 'Produk Retail',
+                qty: t.item || 1,
+                jual: t.item ? Math.round((t.total || 0) / t.item) : (t.total || 0)
+            }];
+        }
+
+        items.forEach(it => {
+            let namaItem = it.nama || it.namaObat || 'Item';
+            if (it.varian) namaItem += ` ${it.varian}`;
+            lines.push(namaItem.substring(0, W));
+            let qty = it.qty || 1;
+            let harga = it.jual !== undefined ? it.jual : (it.harga || 0);
+            let sub = qty * harga;
+            lines.push(padRow(` ${qty} x ${formatRp(harga)}`, formatRp(sub)));
+        });
+
+        lines.push(garisPemisah('-'));
+        let grandTotal = t.total !== undefined ? t.total : 0;
+        lines.push(padRow('TOTAL', formatRp(grandTotal)));
+
+        let tunaiDiterima = t.tunaiDiterima !== undefined ? t.tunaiDiterima : (t.bayar !== undefined ? t.bayar : grandTotal);
+        let kembalian = t.kembalian !== undefined ? t.kembalian : (tunaiDiterima > grandTotal ? tunaiDiterima - grandTotal : 0);
+
+        lines.push(padRow('TUNAI DITERIMA', formatRp(tunaiDiterima)));
+        lines.push(padRow('KEMBALIAN', formatRp(kembalian)));
+        lines.push(padRow('METODE', (t.metode || 'TUNAI').toUpperCase()));
+    }
+
+    // Standard Store Footer
+    lines.push(garisPemisah('='));
+    lines.push(posTengah('Terima Kasih'));
+    lines.push(posTengah('Simpan Struk Ini'));
+    lines.push('\n\n\n'); // Feed printer cut
+
+    return lines.join('\n');
+}
+
+// FUNGSI UTAMA CETAK STRUK RAWBT
+function cetakStrukRawBT(transactionObj) {
+    if (!transactionObj) {
+        alert("⚠️ Data transaksi tidak valid untuk dicetak!");
+        return;
+    }
+
+    // Jika parameter yang dikirim berupa ID (angka atau string numeric)
+    if (typeof transactionObj === 'number' || (typeof transactionObj === 'string' && /^\d+$/.test(transactionObj))) {
+        let idCari = Number(transactionObj);
+        let found = cashierHistory.find(t => t.id === idCari);
+        if (found) {
+            transactionObj = found;
+        } else {
+            alert("⚠️ Data transaksi tidak ditemukan di riwayat!");
+            return;
+        }
+    }
+
+    try {
+        let receiptText = generateReceiptTextRawBT(transactionObj);
+        let rawbtIntent = `intent:${encodeURIComponent(receiptText)}#Intent;scheme=rawbt;package=ru.a402d.rawbtprinter;end;`;
+        window.location.href = rawbtIntent;
+    } catch (e) {
+        console.error("Gagal cetak RawBT:", e);
+        alert("⚠️ Gagal memanggil RawBT Printer: " + e.message);
+    }
+}
+
+// ==========================================
+// AUTO-PROMPT MODAL TRANSAKSI SUKSES
+// ==========================================
+let transaksiSuksesAktif = null;
+
+function tampilkanModalSuksesTransaksi(trx) {
+    if (!trx) return;
+    transaksiSuksesAktif = trx;
+
+    const modal = document.getElementById('modalSuksesTransaksi');
+    const panel = document.getElementById('panelSuksesTransaksi');
+    const rincian = document.getElementById('rincianSuksesTransaksi');
+    const btnCetak = document.getElementById('btnCetakModalSukses');
+
+    if (rincian) {
+        let namaRingkas = trx.obat || trx.nama || 'Transaksi';
+        let totalStr = rupiah(trx.total || 0);
+        let metodeStr = (trx.metode || 'Tunai').toUpperCase();
+        let pelangganStr = trx.pelanggan ? `<div class="text-[10px] text-slate-500 font-bold uppercase tracking-wider mb-1">Pelanggan: <span class="text-slate-700">${trx.pelanggan}</span></div>` : '';
+
+        rincian.innerHTML = `
+            <div class="flex justify-between items-center text-[10px] font-bold text-slate-400 mb-2 border-b border-slate-200/60 pb-1.5">
+                <span><i class="fa-regular fa-clock mr-1"></i>${trx.waktu || ''}</span>
+                <span class="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-black text-[9px] uppercase tracking-wider">${metodeStr}</span>
+            </div>
+            ${pelangganStr}
+            <div class="text-xs font-black text-slate-800 line-clamp-2 leading-snug mb-2">${namaRingkas}</div>
+            <div class="flex justify-between items-baseline pt-2 border-t border-slate-200/60">
+                <span class="text-[10px] font-black uppercase tracking-wider text-slate-500">Total Transaksi</span>
+                <span class="text-base font-black text-emerald-600">${totalStr}</span>
+            </div>
+        `;
+    }
+
+    if (btnCetak) {
+        btnCetak.onclick = function() {
+            cetakStrukRawBT(transaksiSuksesAktif);
+        };
+    }
+
+    if (modal && panel) {
+        modal.classList.remove('hidden');
+        modal.classList.remove('pointer-events-none');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            panel.classList.remove('scale-95');
+            panel.classList.add('scale-100');
+        }, 10);
+    }
+}
+
+function tutupModalSuksesTransaksi() {
+    const modal = document.getElementById('modalSuksesTransaksi');
+    const panel = document.getElementById('panelSuksesTransaksi');
+    if (modal && panel) {
+        modal.classList.add('opacity-0');
+        panel.classList.remove('scale-100');
+        panel.classList.add('scale-95');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.add('pointer-events-none');
+            transaksiSuksesAktif = null;
+        }, 300);
+    }
+}
+
+// ==========================================
+// RENDER RINCIAN LABA & PROFIT MODAL REPRINT ENGINE
+// ==========================================
+// Menampilkan kartu riwayat/keuntungan dengan tombol reprint '🖨️ Cetak'
+function renderRincianLabaBRILink(containerId = 'kontainerRincianBRILink', dataTrx = null) {
+    const container = document.getElementById(containerId);
+    let list = dataTrx || cashierHistory.filter(t => {
+        let k = (t.kategori || t.tipe || t.jenis || '').toUpperCase();
+        let o = (t.obat || t.nama || '').toUpperCase();
+        return k.includes('TRANSFER') || k.includes('TARIK') || k.includes('BRILINK') || o.includes('TRANSFER') || o.includes('TARIK TUNAI');
+    });
+
+    if (!container) return;
+    if (list.length === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-slate-400 text-xs">Belum ada transaksi BRILink.</div>`;
+        return;
+    }
+
+    container.innerHTML = list.map(t => {
+        let kategori = (t.kategori || t.tipe || 'BRILink').toUpperCase();
+        let nominal = t.nominal !== undefined ? t.nominal : (t.total || 0);
+        let admin = t.admin !== undefined ? t.admin : 0;
+        let laba = t.laba !== undefined ? t.laba : admin;
+        let idVal = t.id || 0;
+        return `
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col justify-between mb-3">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <span class="text-[9px] font-black uppercase tracking-wider bg-blue-50 text-blue-600 px-2 py-0.5 rounded-md border border-blue-100">${kategori}</span>
+                    <h4 class="font-black text-slate-800 text-xs mt-1">${t.obat || t.nama || 'BRILink'}</h4>
+                    <p class="text-[10px] text-slate-500 font-medium">Pelanggan: ${t.pelanggan || 'UMUM'}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-[10px] font-bold text-slate-400">${t.tanggal || ''} ${t.waktu || ''}</p>
+                    <p class="font-black text-slate-800 text-sm mt-0.5">${rupiah(t.total || nominal)}</p>
+                    <p class="text-[10px] font-bold text-emerald-600">Laba: +${rupiah(laba)}</p>
+                </div>
+            </div>
+            <div class="flex justify-end pt-2 border-t border-slate-100">
+                <button type="button" onclick="event.stopPropagation(); cetakStrukRawBT(${idVal})" class="text-[10px] text-emerald-600 hover:bg-emerald-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-emerald-100 shadow-sm active:scale-95">
+                    <i class="fa-solid fa-print"></i> 🖨️ Cetak
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderRincianLabaPulsa(containerId = 'kontainerRincianPulsa', dataTrx = null) {
+    const container = document.getElementById(containerId);
+    let list = dataTrx || cashierHistory.filter(t => {
+        let k = (t.kategori || t.tipe || t.jenis || '').toUpperCase();
+        let o = (t.obat || t.nama || '').toUpperCase();
+        return k.includes('PULSA') || k.includes('PPOB') || o.includes('PULSA') || o.includes('TOKEN') || o.includes('PLN');
+    });
+
+    if (!container) return;
+    if (list.length === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-slate-400 text-xs">Belum ada transaksi Pulsa / PPOB.</div>`;
+        return;
+    }
+
+    container.innerHTML = list.map(t => {
+        let harga = t.total !== undefined ? t.total : 0;
+        let laba = t.laba !== undefined ? t.laba : 0;
+        let idVal = t.id || 0;
+        return `
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col justify-between mb-3">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <span class="text-[9px] font-black uppercase tracking-wider bg-amber-50 text-amber-600 px-2 py-0.5 rounded-md border border-amber-100">PULSA & PPOB</span>
+                    <h4 class="font-black text-slate-800 text-xs mt-1">${t.obat || t.produk || t.nama || 'Pulsa'}</h4>
+                    <p class="text-[10px] text-slate-500 font-medium">Tujuan: ${t.noTujuan || t.noHp || t.pelanggan || '-'}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-[10px] font-bold text-slate-400">${t.tanggal || ''} ${t.waktu || ''}</p>
+                    <p class="font-black text-slate-800 text-sm mt-0.5">${rupiah(harga)}</p>
+                    <p class="text-[10px] font-bold text-emerald-600">Laba: +${rupiah(laba)}</p>
+                </div>
+            </div>
+            <div class="flex justify-end pt-2 border-t border-slate-100">
+                <button type="button" onclick="event.stopPropagation(); cetakStrukRawBT(${idVal})" class="text-[10px] text-emerald-600 hover:bg-emerald-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-emerald-100 shadow-sm active:scale-95">
+                    <i class="fa-solid fa-print"></i> 🖨️ Cetak
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function renderRincianLabaRetail(containerId = 'kontainerRincianRetail', dataTrx = null) {
+    const container = document.getElementById(containerId);
+    let list = dataTrx || cashierHistory.filter(t => {
+        let k = (t.kategori || t.tipe || t.jenis || '').toUpperCase();
+        return !k.includes('TRANSFER') && !k.includes('TARIK') && !k.includes('BRILINK') && !k.includes('PULSA') && !k.includes('PPOB');
+    });
+
+    if (!container) return;
+    if (list.length === 0) {
+        container.innerHTML = `<div class="p-6 text-center text-slate-400 text-xs">Belum ada transaksi Retail.</div>`;
+        return;
+    }
+
+    container.innerHTML = list.map(t => {
+        let total = t.total !== undefined ? t.total : 0;
+        let laba = t.laba !== undefined ? t.laba : 0;
+        let idVal = t.id || 0;
+        return `
+        <div class="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col justify-between mb-3">
+            <div class="flex justify-between items-start mb-2">
+                <div>
+                    <span class="text-[9px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-md border border-emerald-100">RETAIL</span>
+                    <h4 class="font-black text-slate-800 text-xs mt-1">${t.obat || t.nama || 'Aksesoris / Retail'}</h4>
+                    <p class="text-[10px] text-slate-500 font-medium">${t.item || 1} Item • ${t.metode || 'Tunai'}</p>
+                </div>
+                <div class="text-right">
+                    <p class="text-[10px] font-bold text-slate-400">${t.tanggal || ''} ${t.waktu || ''}</p>
+                    <p class="font-black text-slate-800 text-sm mt-0.5">${rupiah(total)}</p>
+                    <p class="text-[10px] font-bold text-emerald-600">Laba: +${rupiah(laba)}</p>
+                </div>
+            </div>
+            <div class="flex justify-end pt-2 border-t border-slate-100">
+                <button type="button" onclick="event.stopPropagation(); cetakStrukRawBT(${idVal})" class="text-[10px] text-emerald-600 hover:bg-emerald-50 font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 border border-emerald-100 shadow-sm active:scale-95">
+                    <i class="fa-solid fa-print"></i> 🖨️ Cetak
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+}
 
 async function prosesCetakStrukMobile(idTransaksi, elemenTombol) {
     const trx = cashierHistory.find(t => t.id === idTransaksi);
